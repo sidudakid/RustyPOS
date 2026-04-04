@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: openclaw_cafe
+      POSTGRES_USER: openclaw
+      POSTGRES_PASSWORD: openclaw
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openclaw -d openclaw_cafe"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://openclaw:openclaw@db:5432/openclaw_cafe
+      ADMIN_TOKEN: change-me-admin-token
+      HOST: 0.0.0.0
+      PORT: 8081
+      SEED_ON_STARTUP: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_BASE: http://backend:8081
+
+volumes:
+  postgres_data:

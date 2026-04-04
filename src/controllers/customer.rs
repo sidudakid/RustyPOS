@@ -1,0 +1,60 @@
+//! Customer-facing handlers for menu browsing, ordering, and status checks.
+
+use crate::{
+    errors::AppError,
+    models::order::{CreateOrderRequest, CreateTokenOrderRequest, OrderWithItemsView},
+    services::order_service,
+    AppState,
+};
+use actix_web::{web, HttpResponse};
+use uuid::Uuid;
+
+pub async fn get_table_menu(
+    state: web::Data<AppState>,
+    table_id: web::Path<Uuid>,
+) -> Result<HttpResponse, AppError> {
+    let menu = order_service::get_menu_for_table(&state.db, table_id.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(menu))
+}
+
+pub async fn get_token_menu(
+    state: web::Data<AppState>,
+    token: web::Path<String>,
+) -> Result<HttpResponse, AppError> {
+    let table_id = order_service::resolve_table_id_by_token(&state.db, &token.into_inner()).await?;
+    let menu = order_service::get_menu_for_table(&state.db, table_id).await?;
+    Ok(HttpResponse::Ok().json(menu))
+}
+
+pub async fn place_order(
+    state: web::Data<AppState>,
+    payload: web::Json<CreateOrderRequest>,
+) -> Result<HttpResponse, AppError> {
+    let created = order_service::create_order(&state, payload.into_inner()).await?;
+    Ok(HttpResponse::Created().json(created))
+}
+
+pub async fn place_token_order(
+    state: web::Data<AppState>,
+    payload: web::Json<CreateTokenOrderRequest>,
+) -> Result<HttpResponse, AppError> {
+    let payload = payload.into_inner();
+    let table_id = order_service::resolve_table_id_by_token(&state.db, &payload.token).await?;
+    let created = order_service::create_order(
+        &state,
+        CreateOrderRequest {
+            table_id,
+            items: payload.items,
+        },
+    )
+    .await?;
+    Ok(HttpResponse::Created().json(created))
+}
+
+pub async fn get_order_status(
+    state: web::Data<AppState>,
+    order_id: web::Path<Uuid>,
+) -> Result<HttpResponse, AppError> {
+    let order: OrderWithItemsView = order_service::get_order(&state.db, order_id.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(order))
+}
