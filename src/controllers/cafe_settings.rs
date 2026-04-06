@@ -21,3 +21,12 @@ pub async fn update_cafe_settings(
     let settings = cafe_settings_service::update_settings(&state.db, payload.into_inner()).await?;
     Ok(HttpResponse::Ok().json(settings))
 }
+
+pub async fn list_admin_tables(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, AppError> {
+    require_owner(&req, &state).await?;
+    let tables = cafe_settings_service::list_table_access(&state.db).await?;
+    Ok(HttpResponse::Ok().json(tables))
+}

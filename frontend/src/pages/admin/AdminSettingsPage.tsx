@@ -1,10 +1,21 @@
 import { SectionCard } from '../../components'
 import { useAdminOutletState } from '../../adminShared'
 import type { CafeSettings } from '../../api'
+import { shortId } from '../../lib'
+
+function tableLink(token: string) {
+  if (typeof window === 'undefined') return `/t/${token}`
+  return `${window.location.origin}/t/${token}`
+}
 
 export function AdminSettingsPage() {
   const admin = useAdminOutletState()
   const draft = admin.settingsDraft
+  const tableAccess = admin.settingsQuery.data?.table_access ?? []
+  const activeTableAccess = tableAccess.filter((table) => table.active)
+  const actualTableCount = activeTableAccess.length
+  const configuredTableCount = draft.table_count
+  const tableCountMismatch = actualTableCount !== configuredTableCount
 
   const updateDraft = <K extends keyof CafeSettings>(key: K, value: CafeSettings[K]) => {
     admin.setSettingsDraft((current) => ({ ...current, [key]: value }))
@@ -43,6 +54,43 @@ export function AdminSettingsPage() {
       </div>
 
       <div>
+        <SectionCard>
+          <div className="section-heading-row">
+            <div>
+              <p className="eyebrow">Setup health</p>
+              <h3 className="section-title">Restaurant setup status</h3>
+            </div>
+            <span className={tableCountMismatch ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
+              {tableCountMismatch ? 'Needs provisioning' : 'Tables aligned'}
+            </span>
+          </div>
+
+          <div className="settings-summary-grid">
+            <div className="settings-summary-card">
+              <span className="inventory-summary-label">Configured tables</span>
+              <strong>{configuredTableCount}</strong>
+            </div>
+            <div className="settings-summary-card">
+              <span className="inventory-summary-label">Actual backend tables</span>
+              <strong>{actualTableCount}</strong>
+            </div>
+            <div className="settings-summary-card">
+              <span className="inventory-summary-label">Tables with access tokens</span>
+              <strong>{activeTableAccess.length}</strong>
+            </div>
+            <div className="settings-summary-card">
+              <span className="inventory-summary-label">Missing table links</span>
+              <strong>{Math.max(configuredTableCount - activeTableAccess.length, 0)}</strong>
+            </div>
+          </div>
+
+          <p className="muted inventory-helper-text">
+            {tableCountMismatch
+              ? `Settings are configured for ${configuredTableCount} tables, but the backend currently has ${actualTableCount} active table records. Save settings to provision or reconcile the managed table set.`
+              : 'Configured table count matches the currently provisioned backend tables.'}
+          </p>
+        </SectionCard>
+
         <SectionCard>
           <div className="section-heading-row">
             <div>
@@ -100,6 +148,58 @@ export function AdminSettingsPage() {
             ))}
           </div>
           <p className="muted inventory-helper-text">Address summary: {admin.setupAddress || 'No address configured yet.'}</p>
+        </SectionCard>
+
+        <SectionCard>
+          <div className="section-heading-row">
+            <div>
+              <p className="eyebrow">Live access</p>
+              <h3 className="section-title">Table links and tokens</h3>
+            </div>
+            <span className="info-chip">{activeTableAccess.length} live tables</span>
+          </div>
+
+          {admin.settingsQuery.isLoading ? <p className="muted">Loading table access data…</p> : null}
+          {admin.settingsQuery.isError ? <p className="connection-bad">Failed to load live table access data.</p> : null}
+
+          <div className="admin-edit-list">
+            {activeTableAccess.map((table) => {
+              const link = tableLink(table.token)
+              return (
+                <div className="admin-edit-card" key={table.id}>
+                  <div className="section-heading-row">
+                    <div>
+                      <strong>{table.name}</strong>
+                      <div className="muted">Table #{table.table_number} · {shortId(table.id)}</div>
+                    </div>
+                    <span className="info-chip info-chip-success">Live token</span>
+                  </div>
+
+                  <div className="table-token-list">
+                    <div className="table-token-card">
+                      <div>
+                        <strong>{table.token_label}</strong>
+                        <div className="muted token-mono">{table.token}</div>
+                      </div>
+                      <div className="table-token-actions">
+                        <a href={link} target="_blank" rel="noreferrer" className="secondary-button">
+                          Open link
+                        </a>
+                        <button
+                          className="secondary-button"
+                          onClick={() => void navigator.clipboard?.writeText(link)}
+                          type="button"
+                        >
+                          Copy URL
+                        </button>
+                      </div>
+                      <div className="muted token-link">{link}</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </SectionCard>
       </div>
     </section>

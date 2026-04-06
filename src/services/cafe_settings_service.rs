@@ -1,22 +1,23 @@
 use crate::{
     errors::AppError,
-    models::cafe_settings::{CafeSettings, CafeSettingsResponse, UpdateCafeSettingsRequest},
+    models::{
+        cafe_settings::{CafeSettings, CafeSettingsResponse, UpdateCafeSettingsRequest},
+        table::AdminTableAccessArtifact,
+    },
 };
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
+use uuid::Uuid;
 
 pub async fn get_settings(pool: &PgPool) -> Result<CafeSettingsResponse, AppError> {
-    let settings = sqlx::query_as::<_, CafeSettings>(
-        "SELECT id, name, legal_name, slug, tagline, image_url, currency_code, primary_color, accent_color,
-                support_email, support_phone, address_line_1, address_line_2, city, state_region, postal_code,
-                country_code, timezone, service_mode, table_count, table_prefix, table_name_style
-         FROM cafe_settings
-         WHERE id = true",
-    )
-    .fetch_one(pool)
-    .await?;
+    let mut tx = pool.begin().await?;
+    let settings = fetch_settings(&mut tx).await?;
+    sync_tables_with_settings(&mut tx, &settings).await?;
+    let table_access = list_table_access_tx(&mut tx).await?;
+    tx.commit().await?;
 
     Ok(CafeSettingsResponse {
         table_name_preview: build_table_preview(&settings.table_prefix, &settings.table_name_style, settings.table_count),
+        table_access,
         settings,
     })
 }
@@ -24,6 +25,7 @@ pub async fn get_settings(pool: &PgPool) -> Result<CafeSettingsResponse, AppErro
 pub async fn update_settings(pool: &PgPool, payload: UpdateCafeSettingsRequest) -> Result<CafeSettingsResponse, AppError> {
     validate(&payload)?;
 
+    let mut tx = pool.begin().await?;
     let settings = sqlx::query_as::<_, CafeSettings>(
         "UPDATE cafe_settings
          SET name = $1,
@@ -73,13 +75,27 @@ pub async fn update_settings(pool: &PgPool, payload: UpdateCafeSettingsRequest) 
     .bind(payload.table_count)
     .bind(payload.table_prefix.trim())
     .bind(payload.table_name_style.trim())
-    .fetch_one(pool)
+    .fetch_one(&mut *tx)
     .await?;
+
+    sync_tables_with_settings(&mut tx, &settings).await?;
+    let table_access = list_table_access_tx(&mut tx).await?;
+    tx.commit().await?;
 
     Ok(CafeSettingsResponse {
         table_name_preview: build_table_preview(&settings.table_prefix, &settings.table_name_style, settings.table_count),
+        table_access,
         settings,
     })
+}
+
+pub async fn list_table_access(pool: &PgPool) -> Result<Vec<AdminTableAccessArtifact>, AppError> {
+    let mut tx = pool.begin().await?;
+    let settings = fetch_settings(&mut tx).await?;
+    sync_tables_with_settings(&mut tx, &settings).await?;
+    let table_access = list_table_access_tx(&mut tx).await?;
+    tx.commit().await?;
+    Ok(table_access)
 }
 
 fn validate(payload: &UpdateCafeSettingsRequest) -> Result<(), AppError> {
@@ -116,6 +132,137 @@ fn validate(payload: &UpdateCafeSettingsRequest) -> Result<(), AppError> {
     Ok(())
 }
 
+async fn fetch_settings(tx: &mut Transaction<'_, Postgres>) -> Result<CafeSettings, AppError> {
+    Ok(sqlx::query_as::<_, CafeSettings>(
+        "SELECT id, name, legal_name, slug, tagline, image_url, currency_code, primary_color, accent_color,
+                support_email, support_phone, address_line_1, address_line_2, city, state_region, postal_code,
+                country_code, timezone, service_mode, table_count, table_prefix, table_name_style
+         FROM cafe_settings
+         WHERE id = true",
+    )
+    .fetch_one(&mut **tx)
+    .await?)
+}
+
+async fn sync_tables_with_settings(tx: &mut Transaction<'_, Postgres>, settings: &CafeSettings) -> Result<(), AppError> {
+    let total = settings.table_count.clamp(1, 250);
+
+    for number in 1..=total {
+        let table_id: Option<Uuid> = sqlx::query_scalar(
+            "SELECT id FROM tables WHERE table_number = $1",
+        )
+        .bind(number)
+        .fetch_optional(&mut **tx)
+        .await?;
+
+        let name = format_table_name(&settings.table_prefix, &settings.table_name_style, number);
+
+        let table_id = if let Some(table_id) = table_id {
+            sqlx::query(
+                "UPDATE tables
+                 SET name = $2, active = true
+                 WHERE id = $1",
+            )
+            .bind(table_id)
+            .bind(&name)
+            .execute(&mut **tx)
+            .await?;
+            table_id
+        } else {
+            let table_id = Uuid::new_v4();
+            sqlx::query(
+                "INSERT INTO tables (id, name, table_number, active)
+                 VALUES ($1, $2, $3, true)",
+            )
+            .bind(table_id)
+            .bind(&name)
+            .bind(number)
+            .execute(&mut **tx)
+            .await?;
+            table_id
+        };
+
+        ensure_table_token(tx, table_id, number, &name).await?;
+    }
+
+    sqlx::query(
+        "UPDATE tables
+         SET active = false
+         WHERE table_number > $1",
+    )
+    .bind(total)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+async fn ensure_table_token(
+    tx: &mut Transaction<'_, Postgres>,
+    table_id: Uuid,
+    table_number: i32,
+    table_name: &str,
+) -> Result<(), AppError> {
+    let token = stable_table_token(table_number);
+    let label = format!("QR {}", table_name);
+
+    let existing: Option<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM table_tokens WHERE token = $1",
+    )
+    .bind(&token)
+    .fetch_optional(&mut **tx)
+    .await?;
+
+    if let Some(id) = existing {
+        sqlx::query(
+            "UPDATE table_tokens
+             SET table_id = $2, label = $3
+             WHERE id = $1",
+        )
+        .bind(id)
+        .bind(table_id)
+        .bind(label)
+        .execute(&mut **tx)
+        .await?;
+    } else {
+        sqlx::query(
+            "INSERT INTO table_tokens (id, table_id, token, label)
+             VALUES ($1, $2, $3, $4)",
+        )
+        .bind(Uuid::new_v4())
+        .bind(table_id)
+        .bind(token)
+        .bind(label)
+        .execute(&mut **tx)
+        .await?;
+    }
+
+    Ok(())
+}
+
+async fn list_table_access_tx(
+    tx: &mut Transaction<'_, Postgres>,
+) -> Result<Vec<AdminTableAccessArtifact>, AppError> {
+    Ok(sqlx::query_as::<_, AdminTableAccessArtifact>(
+        "SELECT
+            t.id,
+            t.table_number,
+            t.name,
+            t.active,
+            tt.token,
+            tt.label AS token_label,
+            '/t/' || tt.token AS menu_path
+         FROM tables t
+         JOIN table_tokens tt ON tt.table_id = t.id
+         WHERE t.table_number IS NOT NULL
+           AND t.active = true
+           AND tt.token = ('table-' || t.table_number::TEXT || '-qr')
+         ORDER BY t.table_number",
+    )
+    .fetch_all(&mut **tx)
+    .await?)
+}
+
 fn normalize_slug(input: &str) -> String {
     let mut slug = String::new();
     let mut previous_dash = false;
@@ -142,13 +289,45 @@ fn is_hex_color(input: &str) -> bool {
 fn build_table_preview(prefix: &str, style: &str, table_count: i32) -> Vec<String> {
     let total = table_count.clamp(1, 250) as usize;
     let preview_len = total.min(6);
-    let prefix = prefix.trim();
 
     (1..=preview_len)
-        .map(|index| match style {
-            "padded" => format!("{} {:02}", prefix, index),
-            "hyphenated" => format!("{}-{}", prefix.replace(' ', "-").to_uppercase(), index),
-            _ => format!("{} {}", prefix, index),
-        })
+        .map(|index| format_table_name(prefix, style, index as i32))
         .collect()
+}
+
+fn format_table_name(prefix: &str, style: &str, index: i32) -> String {
+    let prefix = prefix.trim();
+    match style {
+        "padded" => format!("{} {:02}", prefix, index),
+        "hyphenated" => format!("{}-{}", prefix.replace(' ', "-").to_uppercase(), index),
+        _ => format!("{} {}", prefix, index),
+    }
+}
+
+fn stable_table_token(index: i32) -> String {
+    format!("table-{}-qr", index)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{format_table_name, normalize_slug, stable_table_token};
+
+    #[test]
+    fn formats_table_names_from_settings() {
+        assert_eq!(format_table_name("Table", "numeric", 3), "Table 3");
+        assert_eq!(format_table_name("Patio", "padded", 3), "Patio 03");
+        assert_eq!(format_table_name("Window Bar", "hyphenated", 3), "WINDOW-BAR-3");
+    }
+
+    #[test]
+    fn normalizes_slugs() {
+        assert_eq!(normalize_slug("OpenClaw Café"), "openclaw-caf");
+        assert_eq!(normalize_slug("  hello -- world  "), "hello-world");
+    }
+
+    #[test]
+    fn uses_stable_tokens_by_table_number() {
+        assert_eq!(stable_table_token(1), "table-1-qr");
+        assert_eq!(stable_table_token(12), "table-12-qr");
+    }
 }

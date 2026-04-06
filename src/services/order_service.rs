@@ -21,7 +21,7 @@ pub async fn get_table_by_token(pool: &PgPool, token: &str) -> Result<CafeTable,
         "SELECT t.id, t.name
          FROM table_tokens tt
          JOIN tables t ON t.id = tt.table_id
-         WHERE tt.token = $1",
+         WHERE tt.token = $1 AND t.active = true",
     )
     .bind(token)
     .fetch_optional(pool)
@@ -37,7 +37,7 @@ pub async fn resolve_table_id_by_token(pool: &PgPool, token: &str) -> Result<Uui
 }
 
 pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid) -> Result<CustomerMenuResponse, AppError> {
-    let table_exists: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM tables WHERE id = $1")
+    let table_exists: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM tables WHERE id = $1 AND active = true")
         .bind(table_id)
         .fetch_optional(pool)
         .await?;
@@ -357,7 +357,7 @@ async fn ensure_table_exists<'a>(
     tx: &mut Transaction<'a, Postgres>,
     table_id: Uuid,
 ) -> Result<(), AppError> {
-    let exists: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM tables WHERE id = $1")
+    let exists: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM tables WHERE id = $1 AND active = true")
         .bind(table_id)
         .fetch_optional(&mut **tx)
         .await?;

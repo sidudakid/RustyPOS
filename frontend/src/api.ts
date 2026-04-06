@@ -81,8 +81,19 @@ export type CafeSettings = {
   table_name_style: 'numeric' | 'padded' | 'hyphenated'
 }
 
+export type AdminTableAccessArtifact = {
+  id: string
+  table_number: number
+  name: string
+  active: boolean
+  token: string
+  token_label: string
+  menu_path: string
+}
+
 export type CafeSettingsResponse = CafeSettings & {
   table_name_preview: string[]
+  table_access: AdminTableAccessArtifact[]
 }
 
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {

@@ -22,6 +22,7 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     let order_settlement_sql = include_str!("../migrations/008_order_settlement.sql");
     let menu_item_images_sql = include_str!("../migrations/009_menu_item_images.sql");
     let restaurant_setup_sql = include_str!("../migrations/010_restaurant_setup_foundation.sql");
+    let managed_tables_sql = include_str!("../migrations/011_managed_tables.sql");
 
     sqlx::raw_sql(init_sql).execute(pool).await?;
     sqlx::raw_sql(seed_sql).execute(pool).await?;
@@ -33,6 +34,7 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::raw_sql(order_settlement_sql).execute(pool).await?;
     sqlx::raw_sql(menu_item_images_sql).execute(pool).await?;
     sqlx::raw_sql(restaurant_setup_sql).execute(pool).await?;
+    sqlx::raw_sql(managed_tables_sql).execute(pool).await?;
     Ok(())
 }
 

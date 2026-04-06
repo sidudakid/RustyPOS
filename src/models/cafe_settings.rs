@@ -1,3 +1,4 @@
+use crate::models::table::AdminTableAccessArtifact;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
@@ -32,6 +33,7 @@ pub struct CafeSettingsResponse {
     #[serde(flatten)]
     pub settings: CafeSettings,
     pub table_name_preview: Vec<String>,
+    pub table_access: Vec<AdminTableAccessArtifact>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { fetchJson, MenuItem, OrderWithItemsView } from '../api'
 import { NotificationBanner, SectionCard } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 import { money } from '../lib'
-
-const defaultToken = 'table-1-qr'
 
 type CustomerMenuResponse = {
   hot_picks: MenuItem[]
@@ -14,7 +12,7 @@ type CustomerMenuResponse = {
 }
 
 export function CustomerPage() {
-  const { token = defaultToken } = useParams()
+  const { token } = useParams()
   const navigate = useNavigate()
   const { currency_code } = useCafeSettings()
   const [quantities, setQuantities] = useState<Record<string, number>>({})
@@ -24,6 +22,7 @@ export function CustomerPage() {
   const menuQuery = useQuery({
     queryKey: ['menu', token],
     queryFn: () => fetchJson<CustomerMenuResponse>(`/table-tokens/${token}/menu`),
+    enabled: Boolean(token),
   })
 
   const menuItems = menuQuery.data?.menu ?? []
@@ -153,6 +152,44 @@ export function CustomerPage() {
           <button onClick={() => setItemQuantity(item.id, quantity + 1)} disabled={interactionsDisabled}>+</button>
         </div>
       </div>
+    )
+  }
+
+  if (!token) {
+    return (
+      <section className="page-layout-customer">
+        <SectionCard>
+          <div className="hero-row">
+            <div>
+              <p className="eyebrow">Customer ordering</p>
+              <h2 className="section-title">Open your table link to start ordering</h2>
+              <p className="muted">
+                This restaurant uses table-specific QR or NFC links. Scan the code at your table, or ask staff for your direct link.
+              </p>
+            </div>
+            <div className="hero-chip-group">
+              <span className="info-chip">No table selected</span>
+              <span className="info-chip">Menu stays table-aware</span>
+            </div>
+          </div>
+
+          <div className="setup-callout-grid">
+            <div className="setup-callout-card">
+              <strong>Guests</strong>
+              <p className="muted">Scan the QR code on the table to load the right menu and send orders to the correct station.</p>
+            </div>
+            <div className="setup-callout-card">
+              <strong>Staff</strong>
+              <p className="muted">Need a direct URL? Grab it from Admin → Settings → Table access links.</p>
+            </div>
+          </div>
+
+          <div className="admin-inline-actions">
+            <Link to="/staff" className="secondary-button">Open staff station</Link>
+            <Link to="/admin/settings" className="secondary-button">Open setup dashboard</Link>
+          </div>
+        </SectionCard>
+      </section>
     )
   }
 

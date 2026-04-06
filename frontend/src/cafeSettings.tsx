@@ -27,6 +27,7 @@ const defaultSettings: CafeSettingsContextValue = {
   table_prefix: 'Table',
   table_name_style: 'numeric',
   table_name_preview: ['Table 1', 'Table 2', 'Table 3'],
+  table_access: [],
 }
 
 const CafeSettingsContext = createContext<CafeSettingsContextValue>(defaultSettings)

@@ -9,6 +9,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/health", web::get().to(controllers::health::health))
             .route("/cafe-settings", web::get().to(controllers::cafe_settings::get_cafe_settings))
             .route("/admin/cafe-settings", web::patch().to(controllers::cafe_settings::update_cafe_settings))
+            .route("/admin/tables", web::get().to(controllers::cafe_settings::list_admin_tables))
             .route("/table-tokens/{token}", web::get().to(controllers::table_tokens::resolve_table_token))
             .route("/table-tokens/{token}/menu", web::get().to(controllers::customer::get_token_menu))
             .route("/tables/{id}/menu", web::get().to(controllers::customer::get_table_menu))
