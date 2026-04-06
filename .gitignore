@@ -1,0 +1,16 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock
+
+# Frontend generated/dependency files
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Local environment
+.env
+frontend/.env
+
+# Corrupt repo recovery artifacts
+.git.corrupt.*

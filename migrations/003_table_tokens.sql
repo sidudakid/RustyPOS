@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS table_tokens (
+    id UUID PRIMARY KEY,
+    table_id UUID NOT NULL REFERENCES tables(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    label TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_table_tokens_token ON table_tokens (token);
+
+INSERT INTO table_tokens (id, table_id, token, label)
+VALUES
+    ('44444444-4444-4444-4444-444444444441', '11111111-1111-1111-1111-111111111111', 'table-1-qr', 'QR Table 1'),
+    ('44444444-4444-4444-4444-444444444442', '22222222-2222-2222-2222-222222222222', 'table-2-nfc', 'NFC Table 2'),
+    ('44444444-4444-4444-4444-444444444443', '33333333-3333-3333-3333-333333333333', 'window-bar-qr', 'QR Window Bar')
+ON CONFLICT (token) DO NOTHING;

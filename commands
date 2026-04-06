@@ -1,0 +1,2 @@
+cd /home/sidudakid/rust/OpenClaw
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.81:5173 HOST=0.0.0.0 PORT=8081 cargo run
