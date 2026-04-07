@@ -1812,6 +1812,7 @@ pre {
 
   .topbar-main {
     display: flex;
+    align-items: center;
     width: 100%;
   }
 
@@ -1825,6 +1826,7 @@ pre {
   .brand-block {
     width: 100%;
     min-width: 0;
+    flex: 1 1 auto;
   }
 
   .brand-link {
