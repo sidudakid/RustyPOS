@@ -933,7 +933,8 @@ pre {
 }
 
 .admin-overview-page,
-.admin-inventory-page {
+.admin-inventory-page,
+.admin-menu-page {
   gap: 1rem;
 }
 
@@ -1976,6 +1977,10 @@ pre {
   .admin-inventory-hero-strip,
   .admin-inventory-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar-stack {
+    position: static;
   }
 
   .admin-inventory-metric-strip,
