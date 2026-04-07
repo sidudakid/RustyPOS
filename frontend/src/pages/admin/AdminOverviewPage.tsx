@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom'
 import { SectionCard } from '../../components'
 import { money, useAdminOutletState } from '../../adminShared'
 
@@ -16,63 +17,112 @@ export function AdminOverviewPage() {
   const unavailableItems = inventoryItems.filter((item) => !item.available || item.stock_count <= 0)
   const archivedItems = menuItems.filter((item) => !item.active)
   const archivedCategories = categories.filter((category) => !category.active)
+  const topRiskItems = [...inventoryItems]
+    .filter((item) => item.active)
+    .sort((left, right) => {
+      const leftScore = Number(left.stock_count <= 0 || !left.available) * 2 + Number(left.restock_needed || left.stock_count <= left.low_stock_threshold)
+      const rightScore = Number(right.stock_count <= 0 || !right.available) * 2 + Number(right.restock_needed || right.stock_count <= right.low_stock_threshold)
+      if (rightScore !== leftScore) return rightScore - leftScore
+      return left.stock_count - right.stock_count
+    })
+    .slice(0, 4)
 
   return (
-    <div className="page-layout-admin admin-management-page">
-      <section className="grid stats-grid">
+    <div className="page-layout-admin admin-management-page admin-overview-page">
+      <section className="admin-overview-hero-grid">
         <SectionCard>
-          <p className="eyebrow">Catalog</p>
-          <h3 className="section-title">Menu items</h3>
-          <strong className="stat-value">{menuItems.length}</strong>
-          <p className="muted">{archivedItems.length} archived · {menuItems.filter((item) => item.active).length} active</p>
+          <div className="section-heading-row admin-overview-card-heading">
+            <div>
+              <p className="eyebrow">Ownership snapshot</p>
+              <h3 className="section-title">Management overview</h3>
+            </div>
+            <span className="info-chip">CRUD workspace</span>
+          </div>
+          <p className="muted inventory-helper-text admin-overview-intro">
+            Keep this area focused on restaurant setup, menu records, stock hygiene, and reporting. Staff owns the live service rail.
+          </p>
+          <div className="admin-overview-kpi-grid">
+            <div className="admin-overview-kpi-card">
+              <span className="inventory-summary-label">Tracked catalog</span>
+              <strong>{menuItems.length}</strong>
+              <small>{categories.length} categories</small>
+            </div>
+            <div className="admin-overview-kpi-card admin-overview-kpi-card-low">
+              <span className="inventory-summary-label">Inventory attention</span>
+              <strong>{lowStockItems.length}</strong>
+              <small>{unavailableItems.length} unavailable</small>
+            </div>
+            <div className="admin-overview-kpi-card">
+              <span className="inventory-summary-label">Table access links</span>
+              <strong>{activeTableAccess.length}</strong>
+              <small>{admin.settingsDraft.table_count} configured</small>
+            </div>
+            <div className="admin-overview-kpi-card admin-overview-kpi-card-success">
+              <span className="inventory-summary-label">Reported revenue</span>
+              <strong>{revenue ? money(revenue.total_revenue, admin.currency_code) : '—'}</strong>
+              <small>{revenue ? `${revenue.order_count} paid orders` : 'Analytics only'}</small>
+            </div>
+          </div>
         </SectionCard>
+
         <SectionCard>
-          <p className="eyebrow">Structure</p>
-          <h3 className="section-title">Categories</h3>
-          <strong className="stat-value">{categories.length}</strong>
-          <p className="muted">{archivedCategories.length} archived · {categories.filter((category) => category.active).length} active</p>
-        </SectionCard>
-        <SectionCard>
-          <p className="eyebrow">Inventory</p>
-          <h3 className="section-title">Needs attention</h3>
-          <strong className="stat-value">{lowStockItems.length}</strong>
-          <p className="muted">{unavailableItems.length} unavailable or empty</p>
-        </SectionCard>
-        <SectionCard>
-          <p className="eyebrow">Revenue</p>
-          <h3 className="section-title">Reported total</h3>
-          <strong className="stat-value">{revenue ? money(revenue.total_revenue, admin.currency_code) : '—'}</strong>
-          <p className="muted">Analytics-only view for ownership</p>
+          <div className="section-heading-row admin-overview-card-heading">
+            <div>
+              <p className="eyebrow">Setup pulse</p>
+              <h3 className="section-title">Readiness</h3>
+            </div>
+            <span className={admin.setupChecks.isComplete ? 'info-chip info-chip-success' : 'info-chip'}>
+              {admin.setupChecks.completed}/{admin.setupChecks.total}
+            </span>
+          </div>
+          <p className="muted inventory-helper-text">{admin.setupChecks.nextAction}</p>
+          <div className="pill-list">
+            <span className={admin.setupChecks.identityReady ? 'info-chip info-chip-success' : 'info-chip'}>Identity</span>
+            <span className={admin.setupChecks.locationReady ? 'info-chip info-chip-success' : 'info-chip'}>Location</span>
+            <span className={admin.setupChecks.tableRecordsReady ? 'info-chip info-chip-success' : 'info-chip'}>Tables</span>
+            <span className={admin.setupChecks.tableLinksReady ? 'info-chip info-chip-success' : 'info-chip'}>Links</span>
+            <span className={admin.setupChecks.supportReady ? 'info-chip info-chip-success' : 'info-chip'}>Support</span>
+          </div>
+          <div className="admin-overview-quick-links">
+            <NavLink className="admin-overview-quick-link" to="/admin/settings">
+              <strong>Open settings</strong>
+              <span>Branding, address, table counts, and QR links.</span>
+            </NavLink>
+            <NavLink className="admin-overview-quick-link" to="/admin/menu">
+              <strong>Review menu database</strong>
+              <span>Names, pricing, categories, and catalog cleanup.</span>
+            </NavLink>
+          </div>
         </SectionCard>
       </section>
 
-      <section className="two-column page-layout-admin">
-        <div>
+      <section className="two-column page-layout-admin admin-overview-main-grid">
+        <div className="admin-overview-main-stack">
           <SectionCard>
             <div className="section-heading-row">
               <div>
-                <p className="eyebrow">Management scope</p>
-                <h3 className="section-title">Admin database workspace</h3>
+                <p className="eyebrow">Management lanes</p>
+                <h3 className="section-title">What belongs here</h3>
               </div>
-              <span className="info-chip">No live order rail here</span>
+              <span className="info-chip">No live floor ops</span>
             </div>
-            <div className="admin-edit-list">
+            <div className="admin-edit-list admin-lane-grid">
               <div className="admin-edit-card">
                 <strong>Menu & categories</strong>
                 <p className="muted inventory-helper-text">
-                  Register new categories and items, edit names/prices/images, toggle availability, and archive records that should no longer appear.
+                  Register new categories and items, edit names, prices, images, and archive stale records without crowding staff workflows.
                 </p>
               </div>
               <div className="admin-edit-card">
                 <strong>Inventory values</strong>
                 <p className="muted inventory-helper-text">
-                  Update stock counts, thresholds, restock flags, and availability without mixing that work into floor operations.
+                  Maintain counts, thresholds, availability, and restock flags as durable data — not as a live rush board.
                 </p>
               </div>
               <div className="admin-edit-card">
                 <strong>Restaurant identity & table access</strong>
                 <p className="muted inventory-helper-text">
-                  Edit branding, address, service mode, managed table counts, table links, and QR assets from Settings.
+                  Update branding, address, service mode, managed table counts, customer links, and support details from Settings.
                 </p>
               </div>
             </div>
@@ -107,7 +157,7 @@ export function AdminOverviewPage() {
               </div>
             </div>
             <p className="muted inventory-helper-text">
-              Admin manages the structure and records. Staff handles live service activity separately in the Staff workspace.
+              Admin manages structure and records. Staff handles live service activity separately in the Staff workspace.
             </p>
           </SectionCard>
         </div>
@@ -116,29 +166,10 @@ export function AdminOverviewPage() {
           <SectionCard>
             <div className="section-heading-row">
               <div>
-                <p className="eyebrow">Setup pulse</p>
-                <h3 className="section-title">Readiness</h3>
-              </div>
-              <span className={admin.setupChecks.isComplete ? 'info-chip info-chip-success' : 'info-chip'}>
-                {admin.setupChecks.completed}/{admin.setupChecks.total}
-              </span>
-            </div>
-            <p className="muted inventory-helper-text">{admin.setupChecks.nextAction}</p>
-            <div className="pill-list">
-              <span className={admin.setupChecks.identityReady ? 'info-chip info-chip-success' : 'info-chip'}>Identity</span>
-              <span className={admin.setupChecks.tableRecordsReady ? 'info-chip info-chip-success' : 'info-chip'}>Tables</span>
-              <span className={admin.setupChecks.tableLinksReady ? 'info-chip info-chip-success' : 'info-chip'}>Links</span>
-              <span className={admin.setupChecks.supportReady ? 'info-chip info-chip-success' : 'info-chip'}>Support</span>
-            </div>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
                 <p className="eyebrow">Data hygiene</p>
-                <h3 className="section-title">Admin watchlist</h3>
+                <h3 className="section-title">Watchlist</h3>
               </div>
-              <span className="info-chip">CRUD focus</span>
+              <span className="info-chip">Owner review</span>
             </div>
             <div className="admin-watchlist">
               <div className="admin-watchlist-row">
@@ -158,6 +189,38 @@ export function AdminOverviewPage() {
                 <strong>{unavailableItems.length}</strong>
               </div>
             </div>
+          </SectionCard>
+
+          <SectionCard>
+            <div className="section-heading-row">
+              <div>
+                <p className="eyebrow">Inventory triage</p>
+                <h3 className="section-title">Highest-risk items</h3>
+              </div>
+              <NavLink to="/admin/inventory" className="info-chip admin-overview-inline-link">
+                Open inventory
+              </NavLink>
+            </div>
+            {topRiskItems.length === 0 ? (
+              <p className="muted">No active inventory items found yet.</p>
+            ) : (
+              <div className="admin-overview-risk-list">
+                {topRiskItems.map((item) => {
+                  const tone = item.stock_count <= 0 || !item.available ? 'inventory-badge inventory-badge-out' : item.restock_needed || item.stock_count <= item.low_stock_threshold ? 'inventory-badge inventory-badge-low' : 'inventory-badge inventory-badge-ok'
+                  return (
+                    <div key={item.id} className="admin-overview-risk-row">
+                      <div>
+                        <strong>{item.name}</strong>
+                        <p className="muted inventory-price-row">
+                          {item.category} · {item.stock_count} in stock · threshold {item.low_stock_threshold}
+                        </p>
+                      </div>
+                      <span className={tone}>{item.stock_count <= 0 || !item.available ? 'Critical' : item.restock_needed || item.stock_count <= item.low_stock_threshold ? 'Watch' : 'OK'}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </SectionCard>
         </aside>
       </section>

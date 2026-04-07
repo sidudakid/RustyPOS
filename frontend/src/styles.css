@@ -619,6 +619,11 @@ pre {
   margin-top: 1rem;
 }
 
+.admin-lane-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .admin-edit-card {
   display: flex;
   flex-direction: column;
@@ -641,6 +646,232 @@ pre {
 
 .analytics-subsection {
   margin-top: 1rem;
+}
+
+.admin-overview-page,
+.admin-inventory-page {
+  gap: 1rem;
+}
+
+.admin-overview-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.95fr);
+  gap: 1rem;
+}
+
+.admin-overview-main-grid {
+  align-items: start;
+}
+
+.admin-overview-main-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-overview-card-heading {
+  margin-bottom: 0;
+}
+
+.admin-overview-intro {
+  margin-top: 0.85rem;
+}
+
+.admin-overview-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.admin-overview-kpi-card {
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.64);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.55));
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-overview-kpi-card strong {
+  font-size: 1.7rem;
+  color: #f8fafc;
+}
+
+.admin-overview-kpi-card small {
+  color: #94a3b8;
+}
+
+.admin-overview-kpi-card-low {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.admin-overview-kpi-card-success {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.admin-overview-quick-links {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.admin-overview-quick-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  text-decoration: none;
+  color: #cbd5e1;
+  border: 1px solid rgba(71, 85, 105, 0.72);
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.admin-overview-quick-link strong,
+.admin-overview-inline-link {
+  color: #f8fafc;
+}
+
+.admin-overview-quick-link span {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.admin-overview-quick-link:hover {
+  border-color: rgba(147, 197, 253, 0.32);
+  background: rgba(30, 41, 59, 0.88);
+}
+
+.admin-overview-risk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-overview-risk-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.admin-inventory-summary-grid .card {
+  min-height: 100%;
+}
+
+.admin-inventory-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(180px, 0.7fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.admin-inventory-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.admin-filter-chip {
+  width: auto;
+}
+
+.admin-filter-chip-active {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.34), rgba(30, 64, 175, 0.22));
+  border: 1px solid rgba(147, 197, 253, 0.3);
+}
+
+.admin-inventory-empty-state {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.42);
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.admin-inventory-grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.admin-inventory-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-inventory-card-inactive {
+  opacity: 0.82;
+}
+
+.admin-inventory-card-top {
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+
+.admin-inventory-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-inventory-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-inventory-description {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.admin-inventory-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-inventory-metric-strip div {
+  padding: 0.8rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.34);
+  border: 1px solid rgba(71, 85, 105, 0.48);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-inventory-metric-strip strong {
+  font-size: 1.1rem;
+  color: #f8fafc;
+}
+
+.admin-inventory-form-grid {
+  margin-top: 0;
+}
+
+.admin-inventory-check {
+  min-height: 46px;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.admin-inventory-check-primary {
+  justify-content: center;
+}
+
+.admin-inventory-actions {
+  align-items: stretch;
 }
 
 .inventory-grid {
@@ -1037,7 +1268,10 @@ pre {
   .two-column,
   .three-column,
   .inventory-staff-metrics,
-  .table-qr-panel {
+  .table-qr-panel,
+  .admin-overview-hero-grid,
+  .admin-inventory-toolbar,
+  .admin-inventory-metric-strip {
     grid-template-columns: 1fr;
   }
 
@@ -1110,7 +1344,9 @@ pre {
 
   .grid,
   .stats-grid,
-  .inventory-summary-grid {
+  .inventory-summary-grid,
+  .admin-overview-kpi-grid,
+  .admin-inventory-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1220,7 +1456,8 @@ pre {
   .order-meta,
   .admin-inline-actions,
   .auth-token-row,
-  .hero-chip-group {
+  .hero-chip-group,
+  .admin-overview-risk-row {
     flex-direction: column;
     align-items: stretch;
   }
