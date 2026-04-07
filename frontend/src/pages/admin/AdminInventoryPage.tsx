@@ -18,12 +18,14 @@ function inventoryLabel(item: MenuItem) {
 
 type InventoryFilter = 'all' | 'attention' | 'healthy' | 'inactive'
 type InventorySort = 'attention' | 'name' | 'stock-low' | 'stock-high'
+type InventoryModalState = { itemId: string } | null
 
 export function AdminInventoryPage() {
   const admin = useAdminOutletState()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<InventoryFilter>('all')
   const [sort, setSort] = useState<InventorySort>('attention')
+  const [modal, setModal] = useState<InventoryModalState>(null)
 
   const items = admin.inventoryQuery.data ?? []
   const activeItems = items.filter((item) => item.active)
@@ -190,18 +192,27 @@ export function AdminInventoryPage() {
               const badgeClass = tone === 'out' ? 'inventory-badge inventory-badge-out' : tone === 'low' ? 'inventory-badge inventory-badge-low' : 'inventory-badge inventory-badge-ok'
               const cardClass = tone === 'out' ? 'inventory-card inventory-card-out' : tone === 'low' ? 'inventory-card inventory-card-low' : 'inventory-card inventory-card-ok'
 
-              return <InventoryEditorCard key={item.id} item={item} badgeClass={badgeClass} cardClass={cardClass} />
+              return (
+                <InventoryEditorCard
+                  key={item.id}
+                  item={item}
+                  badgeClass={badgeClass}
+                  cardClass={cardClass}
+                  onOpen={() => setModal({ itemId: item.id })}
+                />
+              )
             })}
           </div>
         )}
       </SectionCard>
+
+      {modal ? <InventoryEditorModal itemId={modal.itemId} onClose={() => setModal(null)} /> : null}
     </div>
   )
 }
 
-function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; badgeClass: string; cardClass: string }) {
+function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: MenuItem; badgeClass: string; cardClass: string; onOpen: () => void }) {
   const admin = useAdminOutletState()
-  const [expanded, setExpanded] = useState(false)
   const serverItem = admin.inventoryQuery.data?.find((entry) => entry.id === item.id) ?? item
   const draft = admin.draftMenuItems.find((entry) => entry.id === item.id) ?? serverItem
   const dirty = JSON.stringify({
@@ -225,19 +236,6 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
     low_stock_threshold: serverItem.low_stock_threshold,
     restock_needed: serverItem.restock_needed,
   })
-
-  const updateDraft = (patch: Partial<MenuItem>) => {
-    admin.setDraftMenuItems((current) => {
-      if (current.some((entry) => entry.id === item.id)) {
-        return current.map((entry) => (entry.id === item.id ? { ...entry, ...patch } : entry))
-      }
-      return [...current, { ...serverItem, ...patch }]
-    })
-  }
-
-  const resetDraft = () => {
-    admin.setDraftMenuItems((current) => current.map((entry) => (entry.id === item.id ? serverItem : entry)))
-  }
 
   return (
     <div className={`${cardClass} admin-inventory-card ${!draft.active ? 'admin-inventory-card-inactive' : ''}`}>
@@ -276,37 +274,131 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
       </div>
 
       <div className="admin-inventory-card-quick-actions">
-        <button type="button" className="secondary-button admin-inventory-expand-button" onClick={() => setExpanded((current) => !current)}>
-          {expanded ? 'Hide editor' : 'Edit item'}
+        <button type="button" className="secondary-button admin-inventory-expand-button" onClick={onOpen}>
+          Edit item
         </button>
         <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
           {admin.updateInventory.isPending ? 'Saving…' : 'Quick save'}
         </button>
       </div>
+    </div>
+  )
+}
 
-      {expanded ? (
-        <div className="admin-inventory-editor-stack">
-          <div className="inventory-staff-metrics admin-inventory-form-grid admin-inventory-form-grid-compact">
+function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+  const admin = useAdminOutletState()
+  const item = admin.inventoryQuery.data?.find((entry) => entry.id === itemId) ?? admin.draftMenuItems.find((entry) => entry.id === itemId)
+
+  if (!item) return null
+
+  const serverItem = admin.inventoryQuery.data?.find((entry) => entry.id === item.id) ?? item
+  const draft = admin.draftMenuItems.find((entry) => entry.id === item.id) ?? serverItem
+  const dirty = JSON.stringify({
+    name: draft.name,
+    description: draft.description,
+    category: draft.category,
+    price: draft.price,
+    active: draft.active,
+    available: draft.available,
+    stock_count: draft.stock_count,
+    low_stock_threshold: draft.low_stock_threshold,
+    restock_needed: draft.restock_needed,
+  }) !== JSON.stringify({
+    name: serverItem.name,
+    description: serverItem.description,
+    category: serverItem.category,
+    price: serverItem.price,
+    active: serverItem.active,
+    available: serverItem.available,
+    stock_count: serverItem.stock_count,
+    low_stock_threshold: serverItem.low_stock_threshold,
+    restock_needed: serverItem.restock_needed,
+  })
+
+  const updateDraft = (patch: Partial<MenuItem>) => {
+    admin.setDraftMenuItems((current) => {
+      if (current.some((entry) => entry.id === item.id)) {
+        return current.map((entry) => (entry.id === item.id ? { ...entry, ...patch } : entry))
+      }
+      return [...current, { ...serverItem, ...patch }]
+    })
+  }
+
+  const resetDraft = () => {
+    admin.setDraftMenuItems((current) => current.map((entry) => (entry.id === item.id ? serverItem : entry)))
+  }
+
+  const tone = inventoryTone(draft)
+  const badgeClass = tone === 'out' ? 'inventory-badge inventory-badge-out' : tone === 'low' ? 'inventory-badge inventory-badge-low' : 'inventory-badge inventory-badge-ok'
+
+  return (
+    <div className="admin-modal-backdrop" role="presentation" onClick={onClose}>
+      <div className="admin-modal admin-modal-inventory" role="dialog" aria-modal="true" aria-label={`Edit ${draft.name}`} onClick={(event) => event.stopPropagation()}>
+        <div className="section-heading-row admin-modal-header">
+          <div>
+            <p className="eyebrow">Inventory editor</p>
+            <h3 className="section-title">{draft.name}</h3>
+            <div className="admin-inventory-meta-row">
+              <span className={badgeClass}>{inventoryLabel(draft)}</span>
+              {!draft.active ? <span className="info-chip">Inactive</span> : null}
+              {dirty ? <span className="info-chip">Unsaved</span> : null}
+            </div>
+          </div>
+          <button className="secondary-button" type="button" onClick={onClose}>Close</button>
+        </div>
+
+        <div className="admin-modal-body admin-modal-body-stack">
+          <div className="admin-modal-section-grid">
+            <label>
+              Item name
+              <input value={draft.name} onChange={(e) => updateDraft({ name: e.target.value })} />
+            </label>
+            <label>
+              Category
+              <input value={draft.category} onChange={(e) => updateDraft({ category: e.target.value })} />
+            </label>
+          </div>
+
+          <label>
+            Description
+            <textarea value={draft.description} onChange={(e) => updateDraft({ description: e.target.value })} rows={4} />
+          </label>
+
+          <div className="admin-inventory-metric-strip admin-modal-kpi-strip">
+            <div>
+              <span className="inventory-summary-label">Price</span>
+              <strong>{money(draft.price, admin.currency_code)}</strong>
+            </div>
+            <div>
+              <span className="inventory-summary-label">On hand</span>
+              <strong>{draft.stock_count}</strong>
+            </div>
+            <div>
+              <span className="inventory-summary-label">Threshold</span>
+              <strong>{draft.low_stock_threshold}</strong>
+            </div>
+          </div>
+
+          <div className="admin-modal-section-grid admin-modal-section-grid-three">
             <label>
               Stock count
               <input type="number" min="0" value={draft.stock_count} onChange={(e) => updateDraft({ stock_count: Number(e.target.value) })} />
             </label>
             <label>
               Low-stock threshold
-              <input
-                type="number"
-                min="0"
-                value={draft.low_stock_threshold}
-                onChange={(e) => updateDraft({ low_stock_threshold: Number(e.target.value) })}
-              />
+              <input type="number" min="0" value={draft.low_stock_threshold} onChange={(e) => updateDraft({ low_stock_threshold: Number(e.target.value) })} />
             </label>
-            <label className="inline-check admin-inventory-check admin-inventory-check-primary">
-              <input type="checkbox" checked={draft.restock_needed} onChange={(e) => updateDraft({ restock_needed: e.target.checked })} />
-              Needs restock
+            <label>
+              Price
+              <input type="number" min="0" step="0.01" value={(draft.price / 100).toString()} onChange={(e) => updateDraft({ price: Math.max(0, Math.round(Number(e.target.value || 0) * 100)) })} />
             </label>
           </div>
 
-          <div className="admin-inventory-toggle-row admin-inventory-toggle-row-compact">
+          <div className="admin-inventory-toggle-row admin-modal-toggle-grid">
+            <label className="inline-check admin-inventory-check">
+              <input type="checkbox" checked={draft.restock_needed} onChange={(e) => updateDraft({ restock_needed: e.target.checked })} />
+              Needs restock
+            </label>
             <label className="inline-check admin-inventory-check">
               <input type="checkbox" checked={draft.available} onChange={(e) => updateDraft({ available: e.target.checked })} />
               Available for orders
@@ -316,26 +408,21 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
               Record active
             </label>
           </div>
+        </div>
 
-          <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">
-            <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
-              {admin.updateInventory.isPending ? 'Saving inventory…' : 'Save inventory'}
-            </button>
-            <button type="button" className="secondary-button" onClick={() => admin.updateMenuItem.mutate(draft)} disabled={!dirty || admin.updateMenuItem.isPending}>
-              {admin.updateMenuItem.isPending ? 'Saving full record…' : 'Save full record'}
-            </button>
-          </div>
-
+        <div className="admin-modal-footer">
           <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-secondary admin-inventory-actions-stack">
-            <button type="button" className="secondary-button" onClick={resetDraft} disabled={!dirty}>
-              Reset draft
-            </button>
-            <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>
-              Archive item
+            <button type="button" className="secondary-button" onClick={resetDraft} disabled={!dirty}>Reset draft</button>
+            <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>Archive item</button>
+          </div>
+          <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">
+            <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+            <button type="button" onClick={() => admin.updateMenuItem.mutate(draft)} disabled={!dirty || admin.updateMenuItem.isPending}>
+              {admin.updateMenuItem.isPending ? 'Saving…' : 'Save changes'}
             </button>
           </div>
         </div>
-      ) : null}
+      </div>
     </div>
   )
 }
