@@ -23,12 +23,8 @@ export function CustomerPage() {
   const selectedIds = useMemo(() => Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([id]) => id), [quantities])
 
   const menuQuery = useQuery({
-    queryKey: ['menu', token, selectedIds],
-    queryFn: () => {
-      const query = selectedIds.map((id) => `selected=${encodeURIComponent(id)}`).join('&')
-      const suffix = query ? `?${query}` : ''
-      return fetchJson<CustomerMenuResponse>(`/table-tokens/${token}/menu${suffix}`)
-    },
+    queryKey: ['menu', token],
+    queryFn: () => fetchJson<CustomerMenuResponse>(`/table-tokens/${token}/menu`),
     enabled: Boolean(token),
   })
 
@@ -57,15 +53,27 @@ export function CustomerPage() {
 
   const recommendedItems = useMemo(() => {
     const cartIds = new Set(cartItems.map((item) => item.id))
-    if (!cartIds.size) return recommendationPool.slice(0, 4)
+    const availableCandidates = recommendationPool.filter((entry) => !cartIds.has(entry.item.id))
 
-    return recommendationPool
-      .filter((entry) => !cartIds.has(entry.item.id))
+    if (!cartIds.size) {
+      return availableCandidates.slice(0, 4)
+    }
+
+    const byCategory = new Set(cartItems.map((item) => item.category))
+
+    return availableCandidates
       .sort(
-        (left, right) =>
-          right.matched_cart_items - left.matched_cart_items ||
-          right.score - left.score ||
-          right.paired_order_count - left.paired_order_count,
+        (left, right) => {
+          const leftCategoryBonus = byCategory.has(left.item.category) ? 0 : 1
+          const rightCategoryBonus = byCategory.has(right.item.category) ? 0 : 1
+
+          return (
+            leftCategoryBonus - rightCategoryBonus ||
+            right.matched_cart_items - left.matched_cart_items ||
+            right.score - left.score ||
+            right.paired_order_count - left.paired_order_count
+          )
+        },
       )
       .slice(0, 4)
   }, [cartItems, recommendationPool])
@@ -317,7 +325,9 @@ export function CustomerPage() {
                     <div>
                       <strong>{entry.item.name}</strong>
                       <div className="muted">{money(entry.item.price, currency_code)}</div>
-                      <span className="cart-recommendation-badge">Suggested add-on</span>
+                      <span className="cart-recommendation-badge">
+                        {entry.matched_cart_items > 0 || entry.score > 0 ? 'Learned pairing' : 'Popular fallback'}
+                      </span>
                       <div className="muted recommendation-reason cart-recommendation-reason">{entry.reason}</div>
                     </div>
                     <button

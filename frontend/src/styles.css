@@ -1033,6 +1033,76 @@ pre {
 .admin-inventory-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
+  gap: 0.95rem;
+}
+
+.admin-inventory-skeleton-card {
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.admin-inventory-skeleton-line,
+.admin-inventory-skeleton-block,
+.admin-inventory-skeleton-chip,
+.admin-inventory-skeleton-button {
+  position: relative;
+  overflow: hidden;
+  background: rgba(51, 65, 85, 0.55);
+  border-radius: 12px;
+}
+
+.admin-inventory-skeleton-line::after,
+.admin-inventory-skeleton-block::after,
+.admin-inventory-skeleton-chip::after,
+.admin-inventory-skeleton-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.22), transparent);
+  animation: inventorySkeletonPulse 1.35s infinite;
+}
+
+.admin-inventory-skeleton-line-title {
+  height: 18px;
+  width: 68%;
+}
+
+.admin-inventory-skeleton-line-meta {
+  height: 14px;
+  width: 42%;
+}
+
+.admin-inventory-skeleton-block {
+  height: 70px;
+}
+
+.admin-inventory-skeleton-metrics,
+.admin-inventory-skeleton-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-inventory-skeleton-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-inventory-skeleton-chip {
+  height: 52px;
+}
+
+.admin-inventory-skeleton-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-inventory-skeleton-button {
+  height: 42px;
+}
+
+@keyframes inventorySkeletonPulse {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .admin-inventory-card {

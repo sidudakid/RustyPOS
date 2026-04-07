@@ -159,7 +159,26 @@ export function AdminInventoryPage() {
           </button>
         </div>
 
-        {filteredItems.length === 0 ? (
+        {admin.inventoryQuery.isLoading ? (
+          <div className="inventory-grid admin-inventory-grid admin-inventory-skeleton-grid">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`inventory-skeleton-${index}`} className="inventory-card admin-inventory-card admin-inventory-skeleton-card">
+                <div className="admin-inventory-skeleton-line admin-inventory-skeleton-line-title" />
+                <div className="admin-inventory-skeleton-line admin-inventory-skeleton-line-meta" />
+                <div className="admin-inventory-skeleton-block" />
+                <div className="admin-inventory-skeleton-metrics">
+                  <div className="admin-inventory-skeleton-chip" />
+                  <div className="admin-inventory-skeleton-chip" />
+                  <div className="admin-inventory-skeleton-chip" />
+                </div>
+                <div className="admin-inventory-skeleton-actions">
+                  <div className="admin-inventory-skeleton-button" />
+                  <div className="admin-inventory-skeleton-button" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="admin-inventory-empty-state">
             <strong>No inventory records match this view.</strong>
             <p className="muted">Try a different filter or search term, or add menu items from the Menu workspace first.</p>
