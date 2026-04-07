@@ -1638,6 +1638,10 @@ pre {
   text-decoration: none;
 }
 
+.mobile-bottom-nav-hidden {
+  display: none !important;
+}
+
 .connection-good {
   color: #86efac;
   font-weight: 700;
@@ -1784,7 +1788,7 @@ pre {
 
 @media (max-width: 640px) {
   .page {
-    padding: 0.85rem;
+    padding: 1rem;
   }
 
   .page-with-mobile-nav {
@@ -1837,16 +1841,16 @@ pre {
 
   .topnav {
     position: fixed;
-    top: 76px;
+    top: 82px;
     left: 0.85rem;
     right: 0.85rem;
     z-index: 80;
     width: auto;
     display: none;
     grid-template-columns: 1fr;
-    gap: 0.5rem;
+    gap: 0.65rem;
     overflow: visible;
-    padding: 0.85rem;
+    padding: 1rem;
     border-radius: 18px;
     border: 1px solid rgba(71, 85, 105, 0.72);
     background: rgba(15, 23, 42, 0.98);
@@ -1966,7 +1970,7 @@ pre {
   .admin-settings-token-card,
   .settings-summary-card,
   .table-token-card {
-    padding: 0.85rem;
+    padding: 1rem;
     border-radius: 14px;
   }
 
@@ -2184,7 +2188,7 @@ pre {
 
 @media (max-width: 640px) {
   .page {
-    padding: 0.85rem;
+    padding: 1rem;
   }
 
   .card {

@@ -103,7 +103,7 @@ export function AppShell() {
         {menuOpen ? <button type="button" className="topnav-backdrop" aria-label="Close navigation menu" onClick={closeMenu} /> : null}
       </header>
 
-      <nav className="mobile-bottom-nav" aria-label="Primary mobile">
+      <nav className={menuOpen ? 'mobile-bottom-nav mobile-bottom-nav-hidden' : 'mobile-bottom-nav'} aria-label="Primary mobile">
         {navItems.map((item) => (
           <NavLink
             key={`mobile-${item.to}`}
