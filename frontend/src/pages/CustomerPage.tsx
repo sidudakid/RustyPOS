@@ -317,6 +317,7 @@ export function CustomerPage() {
                     <div>
                       <strong>{entry.item.name}</strong>
                       <div className="muted">{money(entry.item.price, currency_code)}</div>
+                      <span className="cart-recommendation-badge">Suggested add-on</span>
                       <div className="muted recommendation-reason cart-recommendation-reason">{entry.reason}</div>
                     </div>
                     <button
