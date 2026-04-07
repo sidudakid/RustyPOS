@@ -1,9 +1,21 @@
-import { Link } from 'react-router-dom'
+import type React from 'react'
 import { SectionCard } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 
 function buildAddress(parts: string[]) {
   return parts.filter((part) => part.trim().length > 0).join(', ')
+}
+
+function formatServiceMode(serviceMode: string) {
+  return serviceMode
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatTableStyle(style: string) {
+  return style
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 export function CustomerLandingPage() {
@@ -17,27 +29,51 @@ export function CustomerLandingPage() {
     settings.country_code,
   ])
   const support = [settings.support_phone, settings.support_email].filter((item) => item.trim().length > 0)
-  const serviceModeLabel = settings.service_mode.replace(/_/g, ' ')
   const previewTables = settings.table_name_preview.slice(0, 6)
+  const activeTables = settings.table_access.filter((table) => table.active)
+  const heroTitle = settings.name?.trim() || 'Welcome to our café'
+  const tagline = settings.tagline?.trim() || 'Fresh ordering from your table, without waiting around.'
+  const serviceModeLabel = formatServiceMode(settings.service_mode)
+  const tableStyleLabel = formatTableStyle(settings.table_name_style)
+  const brandStyle = {
+    '--landing-primary': settings.primary_color || '#2563EB',
+    '--landing-accent': settings.accent_color || '#F59E0B',
+  } as React.CSSProperties
 
   return (
-    <div className="customer-landing-page">
+    <div className="customer-landing-page" style={brandStyle}>
       <section className="customer-landing-hero">
         <SectionCard>
           <div className="hero-row customer-landing-hero-row">
             <div className="customer-landing-copy">
-              <p className="eyebrow">Welcome</p>
-              <h2 className="section-title">{settings.name || 'Welcome to our café'}</h2>
-              <p className="muted customer-landing-tagline">
-                {settings.tagline?.trim() || 'Fast café ordering for customers, kitchen, and staff.'}
-              </p>
+              <p className="eyebrow">Guest ordering</p>
+              <h2 className="section-title customer-landing-title">{heroTitle}</h2>
+              <p className="muted customer-landing-tagline">{tagline}</p>
               <p className="muted customer-landing-intro">
-                Scan your table QR code or open your direct table link to browse the menu, place an order, and track it from your seat.
+                The fastest way to order is right from your seat. Scan the QR code on your table, tap the NFC link if available,
+                or open the exact table link shared by staff.
               </p>
-              <div className="hero-chip-group">
-                <span className="info-chip">{settings.table_count} managed tables</span>
+
+              <div className="hero-chip-group customer-landing-chip-group">
                 <span className="info-chip">{serviceModeLabel}</span>
-                <span className="info-chip">{settings.currency_code}</span>
+                <span className="info-chip">{activeTables.length || settings.table_count} guest tables</span>
+                <span className="info-chip">Pay in {settings.currency_code}</span>
+              </div>
+
+              <div className="customer-landing-primary-actions">
+                <a href="#guest-start" className="customer-landing-primary-link">How to start ordering</a>
+                <span className="customer-landing-inline-note">Each table link is unique so your order goes to the right seat.</span>
+              </div>
+
+              <div className="customer-landing-assurance-grid">
+                <div className="customer-landing-assurance-card">
+                  <strong>Scan once, order from your phone</strong>
+                  <p className="muted">No account setup. Open the table link and your menu is ready.</p>
+                </div>
+                <div className="customer-landing-assurance-card">
+                  <strong>Stay table-aware automatically</strong>
+                  <p className="muted">Orders route to the correct table so food and drinks land where they should.</p>
+                </div>
               </div>
             </div>
 
@@ -48,9 +84,71 @@ export function CustomerLandingPage() {
                 <div className="customer-landing-placeholder">
                   <span aria-hidden="true">☕</span>
                   <strong>{settings.name || 'Cafe'}</strong>
-                  <p className="muted">Your restaurant image can be set from Admin → Settings.</p>
+                  <p className="muted">Add a restaurant photo in Admin → Settings to make this feel more like your place.</p>
                 </div>
               )}
+
+              <div className="customer-landing-floating-card" id="guest-start">
+                <p className="eyebrow">Start here</p>
+                <h3>Open your exact table</h3>
+                <ol className="customer-landing-step-list">
+                  <li>Find the QR code or tap point at your seat</li>
+                  <li>Open the table-specific menu on your phone</li>
+                  <li>Add items and track the order without flagging staff down</li>
+                </ol>
+                <p className="muted customer-landing-floating-note">
+                  Don&apos;t have the code? Ask staff for the link for <strong>your table</strong>, not a nearby one.
+                </p>
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+      </section>
+
+      <section className="customer-landing-grid customer-landing-grid-featured">
+        <SectionCard>
+          <p className="eyebrow">How it works</p>
+          <h3 className="section-title">A clearer path for guests</h3>
+          <div className="setup-callout-grid customer-landing-steps-grid">
+            <div className="setup-callout-card customer-landing-step-card">
+              <strong>1. Scan the code at your seat</strong>
+              <p className="muted">Use the printed QR or tap the table device. That opens the menu assigned to your table.</p>
+            </div>
+            <div className="setup-callout-card customer-landing-step-card">
+              <strong>2. Browse what&apos;s live right now</strong>
+              <p className="muted">You only see items the restaurant currently has available, so there&apos;s less back-and-forth.</p>
+            </div>
+            <div className="setup-callout-card customer-landing-step-card">
+              <strong>3. Place the order and relax</strong>
+              <p className="muted">Your order is sent to the right station and stays tied to your table for tracking.</p>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard>
+          <p className="eyebrow">Good to know</p>
+          <h3 className="section-title">Before you order</h3>
+          <div className="customer-landing-checklist">
+            <div className="customer-landing-checklist-row">
+              <span aria-hidden="true">✅</span>
+              <div>
+                <strong>Use your own table&apos;s link</strong>
+                <p className="muted">Every table has its own ordering entry point, so nearby tables won&apos;t work correctly for your order.</p>
+              </div>
+            </div>
+            <div className="customer-landing-checklist-row">
+              <span aria-hidden="true">📶</span>
+              <div>
+                <strong>Works best on your phone</strong>
+                <p className="muted">Scan, choose items, and keep the page open if you want to follow order progress.</p>
+              </div>
+            </div>
+            <div className="customer-landing-checklist-row">
+              <span aria-hidden="true">🙋</span>
+              <div>
+                <strong>Need help?</strong>
+                <p className="muted">If the code is missing or damaged, staff can point you to the correct table link right away.</p>
+              </div>
             </div>
           </div>
         </SectionCard>
@@ -58,67 +156,44 @@ export function CustomerLandingPage() {
 
       <section className="customer-landing-grid">
         <SectionCard>
-          <p className="eyebrow">How ordering works</p>
-          <h3 className="section-title">Start from your table link</h3>
-          <div className="setup-callout-grid">
-            <div className="setup-callout-card">
-              <strong>1. Scan or tap</strong>
-              <p className="muted">Use the QR code or NFC/table link provided at your seat.</p>
-            </div>
-            <div className="setup-callout-card">
-              <strong>2. Browse the menu</strong>
-              <p className="muted">See live menu items tied to the correct table.</p>
-            </div>
-            <div className="setup-callout-card">
-              <strong>3. Order and track</strong>
-              <p className="muted">Place your order and follow progress right from your phone.</p>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard>
-          <p className="eyebrow">Need help?</p>
-          <h3 className="section-title">Guest information</h3>
+          <p className="eyebrow">Restaurant details</p>
+          <h3 className="section-title">Visit information</h3>
           <div className="customer-landing-info-list">
             <div className="customer-landing-info-row">
               <span>Address</span>
               <strong>{address || 'Address not configured yet'}</strong>
             </div>
             <div className="customer-landing-info-row">
-              <span>Support</span>
-              <strong>{support.length ? support.join(' · ') : 'Ask staff for help'}</strong>
+              <span>Guest help</span>
+              <strong>{support.length ? support.join(' · ') : 'Ask staff for help at your table'}</strong>
             </div>
             <div className="customer-landing-info-row">
               <span>Table naming</span>
-              <strong>{settings.table_prefix} · {settings.table_name_style}</strong>
+              <strong>{settings.table_prefix} · {tableStyleLabel}</strong>
             </div>
           </div>
         </SectionCard>
-      </section>
 
-      <section className="customer-landing-grid customer-landing-bottom-grid">
         <SectionCard>
-          <p className="eyebrow">Preview</p>
-          <h3 className="section-title">Example table names</h3>
-          <div className="pill-list">
+          <p className="eyebrow">Table examples</p>
+          <h3 className="section-title">What to look for when staff mentions your table</h3>
+          <div className="pill-list customer-landing-pill-list">
             {previewTables.map((tableName) => (
               <span key={tableName} className="info-chip">{tableName}</span>
             ))}
           </div>
-          <p className="muted inventory-helper-text">
-            Your exact ordering menu opens only from a valid table link or QR code.
-          </p>
-        </SectionCard>
-
-        <SectionCard>
-          <p className="eyebrow">Operations</p>
-          <h3 className="section-title">Internal workspaces</h3>
-          <div className="admin-inline-actions">
-            <Link to="/staff" className="secondary-button">Open staff station</Link>
-            <Link to="/admin/settings" className="secondary-button">Open admin settings</Link>
+          <div className="customer-landing-metadata-grid">
+            <div className="customer-landing-metadata-card">
+              <span className="customer-landing-metadata-label">Configured tables</span>
+              <strong>{settings.table_count}</strong>
+            </div>
+            <div className="customer-landing-metadata-card">
+              <span className="customer-landing-metadata-label">Live guest links</span>
+              <strong>{activeTables.length}</strong>
+            </div>
           </div>
           <p className="muted inventory-helper-text">
-            These links are for staff and admins. Guests should start from their own table QR code.
+            Your exact menu only opens from a valid table link or QR code assigned to that table.
           </p>
         </SectionCard>
       </section>
