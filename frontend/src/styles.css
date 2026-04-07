@@ -328,7 +328,8 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-height: 100%;
+  min-height: 0;
+  align-self: start;
 }
 
 .menu-item-elevated {
