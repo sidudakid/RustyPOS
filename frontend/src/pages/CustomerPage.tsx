@@ -250,31 +250,6 @@ export function CustomerPage() {
           </SectionCard>
         ) : null}
 
-        {recommendedItems.length > 0 ? (
-          <SectionCard>
-            <div className="section-heading-row">
-              <h3 className="section-title">🧠 People also pick</h3>
-              <span className="muted">
-                {cartItems.length > 0 ? 'Smart add-ons for your current cart' : 'Popular add-ons guests often choose together'}
-              </span>
-            </div>
-            <div className="recommended-inline-list">
-              {recommendedItems.map((entry) => (
-                <div key={entry.item.id} className="recommended-inline-card">
-                  <div className="recommended-inline-copy">
-                    <strong>{entry.item.name}</strong>
-                    <span className="muted">{money(entry.item.price, currency_code)} · {entry.item.category}</span>
-                    <p className="muted recommendation-reason">{entry.reason}</p>
-                  </div>
-                  <button type="button" className="secondary-button recommended-inline-button" onClick={() => setItemQuantity(entry.item.id, (quantities[entry.item.id] ?? 0) + 1)} disabled={interactionsDisabled}>
-                    Add
-                  </button>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        ) : null}
-
         {Object.entries(grouped).map(([category, items]) => (
           <SectionCard key={category}>
             <div className="section-heading-row">
@@ -329,7 +304,7 @@ export function CustomerPage() {
               </button>
             </>
           )}
-          {recommendedItems.length > 0 ? (
+          {recommendedItems.length > 0 && cartItems.length > 0 ? (
             <>
               <hr />
               <div className="section-heading-row cart-recommendation-heading">

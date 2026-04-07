@@ -1014,6 +1014,7 @@ pre {
 
 .admin-inventory-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
 }
 
 .admin-inventory-card {
@@ -1533,6 +1534,12 @@ pre {
 
   .page {
     max-width: 1240px;
+  }
+}
+
+@media (max-width: 1400px) {
+  .admin-inventory-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
