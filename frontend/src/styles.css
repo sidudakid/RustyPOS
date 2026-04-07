@@ -1817,7 +1817,32 @@ pre {
 
   .topbar-row {
     align-items: center;
+    justify-content: space-between;
     flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .brand-block {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .brand-link {
+    align-items: center;
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .brand-link > div {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .brand-link h1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .hamburger-button {
@@ -1881,13 +1906,6 @@ pre {
 
   .nav-pill-copy {
     text-align: left;
-  }
-
-  .brand-link {
-    align-items: center;
-    width: auto;
-    min-width: 0;
-    flex: 1 1 auto;
   }
 
   .brand-subtitle,
