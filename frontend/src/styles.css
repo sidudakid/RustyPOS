@@ -1485,6 +1485,12 @@ pre {
   align-items: start;
 }
 
+.admin-settings-main-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .admin-settings-form-stack {
   gap: 0.85rem;
 }
@@ -1495,6 +1501,70 @@ pre {
 
 .admin-settings-preview-pills {
   margin-top: 0.75rem;
+}
+
+.admin-settings-table-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.admin-settings-table-preview-card {
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.admin-settings-address-card {
+  margin-top: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.64);
+  background: rgba(15, 23, 42, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-settings-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.6fr);
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.admin-settings-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-settings-table-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.admin-settings-table-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  text-align: left;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.64);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.admin-settings-table-row-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .admin-settings-token-list,
@@ -1882,7 +1952,9 @@ pre {
     min-width: 0;
   }
 
-  .admin-settings-inline-grid {
+  .admin-settings-inline-grid,
+  .admin-settings-toolbar,
+  .admin-settings-table-preview-grid {
     grid-template-columns: 1fr;
   }
 

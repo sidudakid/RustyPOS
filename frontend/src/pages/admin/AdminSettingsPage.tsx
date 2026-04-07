@@ -18,6 +18,10 @@ type QrModalState = {
   dataUrl: string
 } | null
 
+type TableAccessModalState = {
+  tableId: string
+} | null
+
 function sanitizeFilePart(value: string) {
   return value
     .trim()
@@ -144,28 +148,50 @@ export function AdminSettingsPage() {
   const configuredTableCount = draft.table_count
   const tableCountMismatch = actualTableCount !== configuredTableCount
   const [qrModal, setQrModal] = useState<QrModalState>(null)
+  const [tableModal, setTableModal] = useState<TableAccessModalState>(null)
+  const [tableQuery, setTableQuery] = useState('')
+  const [tableFilter, setTableFilter] = useState<'all' | 'open' | 'inactive'>('all')
 
   const updateDraft = <K extends keyof CafeSettings>(key: K, value: CafeSettings[K]) => {
     admin.setSettingsDraft((current) => ({ ...current, [key]: value }))
   }
 
   useEffect(() => {
-    if (!qrModal) return
+    if (!qrModal && !tableModal) return
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setQrModal(null)
+        setTableModal(null)
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [qrModal])
+  }, [qrModal, tableModal])
 
   const modalTitle = useMemo(() => {
     if (!qrModal) return ''
     return `${qrModal.tableName} QR code`
   }, [qrModal])
+
+  const filteredTableAccess = useMemo(() => {
+    const needle = tableQuery.trim().toLowerCase()
+
+    return activeTableAccess.filter((table) => {
+      const ops = tableOperations.find((entry) => entry.table_id === table.id)
+      const matchesText = !needle || [table.name, table.token_label, table.token].some((value) => value.toLowerCase().includes(needle))
+      const matchesFilter =
+        tableFilter === 'all' ||
+        (tableFilter === 'open' && Boolean(ops?.open_order_count)) ||
+        (tableFilter === 'inactive' && !ops?.active)
+
+      return matchesText && matchesFilter
+    })
+  }, [activeTableAccess, tableFilter, tableOperations, tableQuery])
+
+  const selectedTable = tableModal ? activeTableAccess.find((table) => table.id === tableModal.tableId) ?? null : null
+  const selectedTableOps = selectedTable ? tableOperations.find((entry) => entry.table_id === selectedTable.id) ?? null : null
 
   return (
     <>
@@ -200,7 +226,7 @@ export function AdminSettingsPage() {
           </SectionCard>
         </div>
 
-        <div>
+        <div className="admin-settings-main-stack">
           <SectionCard>
             <div className="section-heading-row">
               <div>
@@ -285,16 +311,24 @@ export function AdminSettingsPage() {
           </SectionCard>
 
           <SectionCard>
-            <p className="eyebrow">Preview</p>
-            <h3 className="section-title">Generated table names</h3>
-            <div className="pill-list admin-settings-preview-pills">
+            <div className="section-heading-row">
+              <div>
+                <p className="eyebrow">Preview</p>
+                <h3 className="section-title">Generated table names</h3>
+              </div>
+              <span className="info-chip">{admin.tablePreview.length} names</span>
+            </div>
+            <div className="admin-settings-table-preview-grid">
               {admin.tablePreview.map((tableName) => (
-                <span className="info-chip" key={tableName}>
-                  {tableName}
-                </span>
+                <div className="admin-settings-table-preview-card" key={tableName}>
+                  <strong>{tableName}</strong>
+                </div>
               ))}
             </div>
-            <p className="muted inventory-helper-text">Address summary: {admin.setupAddress || 'No address configured yet.'}</p>
+            <div className="admin-settings-address-card">
+              <span className="inventory-summary-label">Address summary</span>
+              <strong>{admin.setupAddress || 'No address configured yet.'}</strong>
+            </div>
           </SectionCard>
 
           <SectionCard>
@@ -303,114 +337,105 @@ export function AdminSettingsPage() {
                 <p className="eyebrow">Live access</p>
                 <h3 className="section-title">Table links and tokens</h3>
               </div>
-              <span className="info-chip">{activeTableAccess.length} live tables</span>
+              <span className="info-chip">{filteredTableAccess.length} shown</span>
+            </div>
+
+            <div className="admin-settings-toolbar">
+              <label>
+                Search tables
+                <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name, label, or token" />
+              </label>
+              <label>
+                Filter
+                <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value as 'all' | 'open' | 'inactive')}>
+                  <option value="all">All live tables</option>
+                  <option value="open">Open orders</option>
+                  <option value="inactive">Inactive / hidden</option>
+                </select>
+              </label>
             </div>
 
             {admin.settingsQuery.isLoading ? <p className="muted">Loading table access data…</p> : null}
             {admin.settingsQuery.isError ? <p className="connection-bad">Failed to load live table access data.</p> : null}
 
-            <div className="admin-edit-list admin-settings-token-list">
-              {activeTableAccess.map((table) => {
-                const link = tableLink(table.token)
+            <div className="admin-settings-table-list">
+              {filteredTableAccess.map((table) => {
                 const ops = tableOperations.find((entry) => entry.table_id === table.id)
                 return (
-                  <div className="admin-edit-card admin-settings-token-card" key={table.id}>
-                    <div className="section-heading-row">
-                      <div>
-                        <strong>{table.name}</strong>
-                        <div className="muted">Table #{table.table_number} · {shortId(table.id)}</div>
-                      </div>
+                  <button key={table.id} type="button" className="admin-settings-table-row" onClick={() => setTableModal({ tableId: table.id })}>
+                    <div>
+                      <strong>{table.name}</strong>
+                      <div className="muted">Table #{table.table_number} · {table.token_label}</div>
+                    </div>
+                    <div className="admin-settings-table-row-meta">
                       <span className={ops?.open_order_count ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
                         {ops?.open_order_count ? `${ops.open_order_count} open` : 'Live token'}
                       </span>
                     </div>
-
-                    {ops ? (
-                      <div className="pill-list">
-                        <span className="info-chip">Unpaid {(ops.unpaid_total_amount / 100).toFixed(2)}</span>
-                        {ops.ready_order_count > 0 ? <span className="info-chip info-chip-success">{ops.ready_order_count} ready</span> : null}
-                        {ops.paid_order_count > 0 ? <span className="info-chip">{ops.paid_order_count} paid</span> : null}
-                      </div>
-                    ) : null}
-
-                    <div className="table-token-list">
-                      <div className="table-token-card table-token-card-rich">
-                        <div>
-                          <strong>{table.token_label}</strong>
-                          <div className="muted token-mono">{table.token}</div>
-                        </div>
-
-                        <TableQrPreview
-                          tableName={table.name}
-                          tokenLabel={table.token_label}
-                          link={link}
-                          onPreview={(dataUrl) => setQrModal({
-                            tableName: table.name,
-                            tokenLabel: table.token_label,
-                            token: table.token,
-                            link,
-                            dataUrl,
-                          })}
-                        />
-
-                        <div className="table-token-actions">
-                          <a href={link} target="_blank" rel="noreferrer" className="secondary-button">
-                            Open link
-                          </a>
-                          <button
-                            className="secondary-button"
-                            onClick={() => void navigator.clipboard?.writeText(link)}
-                            type="button"
-                          >
-                            Copy URL
-                          </button>
-                        </div>
-                        <div className="muted token-link">{link}</div>
-                      </div>
-                    </div>
-                  </div>
+                  </button>
                 )
               })}
-            </div>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
-                <p className="eyebrow">Operations roster</p>
-                <h3 className="section-title">Active and inactive tables</h3>
-              </div>
-              <span className="info-chip">{tableOperations.length} total tables</span>
-            </div>
-            {admin.tableOperationsQuery.isLoading ? <p className="muted">Loading operational table state…</p> : null}
-            {admin.tableOperationsQuery.isError ? <p className="connection-bad">Failed to load operational table state.</p> : null}
-            <div className="admin-edit-list admin-settings-operations-list">
-              {tableOperations.map((table) => (
-                <div className="admin-edit-card" key={`ops-${table.table_id}`}>
-                  <div className="section-heading-row">
-                    <div>
-                      <strong>{table.table_name}</strong>
-                      <div className="muted">
-                        {table.active ? 'Active on floor' : 'Inactive / hidden'}
-                        {table.table_number ? ` · Table #${table.table_number}` : ''}
-                      </div>
-                    </div>
-                    <span className={table.active ? 'info-chip info-chip-success' : 'info-chip'}>
-                      {table.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <div className="pill-list">
-                    <span className="info-chip">{table.open_order_count} open</span>
-                    <span className="info-chip">{table.paid_order_count} paid</span>
-                    {table.ready_order_count > 0 ? <span className="info-chip info-chip-success">{table.ready_order_count} ready</span> : null}
-                    {table.unpaid_statuses.map((status) => <span className="info-chip" key={`${table.table_id}-${status}`}>{status}</span>)}
-                  </div>
-                </div>
-              ))}
+              {!filteredTableAccess.length ? <p className="muted">No tables match the current search/filter.</p> : null}
             </div>
           </SectionCard>
         </div>
       </section>
+
+      {tableModal && selectedTable ? (
+        <div className="admin-modal-backdrop" role="presentation" onClick={() => setTableModal(null)}>
+          <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`Table access for ${selectedTable.name}`} onClick={(event) => event.stopPropagation()}>
+            <div className="section-heading-row admin-modal-header">
+              <div>
+                <p className="eyebrow">Table access</p>
+                <h3 className="section-title">{selectedTable.name}</h3>
+                <div className="muted">Table #{selectedTable.table_number} · {shortId(selectedTable.id)}</div>
+              </div>
+              <button className="secondary-button" type="button" onClick={() => setTableModal(null)}>Close</button>
+            </div>
+
+            {selectedTableOps ? (
+              <div className="pill-list">
+                <span className="info-chip">Unpaid {(selectedTableOps.unpaid_total_amount / 100).toFixed(2)}</span>
+                <span className="info-chip">{selectedTableOps.paid_order_count} paid</span>
+                {selectedTableOps.ready_order_count > 0 ? <span className="info-chip info-chip-success">{selectedTableOps.ready_order_count} ready</span> : null}
+                {selectedTableOps.unpaid_statuses.map((status) => <span className="info-chip" key={`${selectedTableOps.table_id}-${status}`}>{status}</span>)}
+              </div>
+            ) : null}
+
+            <div className="table-token-list">
+              <div className="table-token-card table-token-card-rich">
+                <div>
+                  <strong>{selectedTable.token_label}</strong>
+                  <div className="muted token-mono">{selectedTable.token}</div>
+                </div>
+
+                <TableQrPreview
+                  tableName={selectedTable.name}
+                  tokenLabel={selectedTable.token_label}
+                  link={tableLink(selectedTable.token)}
+                  onPreview={(dataUrl) => setQrModal({
+                    tableName: selectedTable.name,
+                    tokenLabel: selectedTable.token_label,
+                    token: selectedTable.token,
+                    link: tableLink(selectedTable.token),
+                    dataUrl,
+                  })}
+                />
+
+                <div className="table-token-actions">
+                  <a href={tableLink(selectedTable.token)} target="_blank" rel="noreferrer" className="secondary-button">
+                    Open link
+                  </a>
+                  <button className="secondary-button" onClick={() => void navigator.clipboard?.writeText(tableLink(selectedTable.token))} type="button">
+                    Copy URL
+                  </button>
+                </div>
+                <div className="muted token-link">{tableLink(selectedTable.token)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {qrModal ? (
         <div className="table-qr-modal-backdrop" role="presentation" onClick={() => setQrModal(null)}>
