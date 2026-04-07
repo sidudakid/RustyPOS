@@ -30,3 +30,25 @@ pub struct AnalyticsSummary {
     pub monthly_profit_loss: Vec<MonthlyProfitLossPoint>,
     pub peak_hours: Vec<PeakHourPoint>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MonthlyExpenseRecord {
+    pub month: String,
+    pub rent: i64,
+    pub payroll: i64,
+    pub utilities: i64,
+    pub marketing: i64,
+    pub misc: i64,
+    pub notes: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpsertMonthlyExpenseRequest {
+    pub month: String,
+    pub rent: i64,
+    pub payroll: i64,
+    pub utilities: i64,
+    pub marketing: i64,
+    pub misc: i64,
+    pub notes: String,
+}

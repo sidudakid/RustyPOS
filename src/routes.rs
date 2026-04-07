@@ -20,6 +20,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/orders", web::get().to(controllers::admin::list_orders))
             .route("/admin/revenue", web::get().to(controllers::admin::revenue_summary))
             .route("/admin/analytics", web::get().to(controllers::analytics::analytics_summary))
+            .route("/admin/expenses", web::get().to(controllers::analytics::list_monthly_expenses))
+            .route("/admin/expenses", web::put().to(controllers::analytics::upsert_monthly_expense))
             .route("/orders/manual", web::post().to(controllers::admin::create_manual_order))
             .route("/orders/{id}/status", web::patch().to(controllers::kitchen::update_order_status))
             .route("/kitchen/orders", web::get().to(controllers::kitchen::list_active_orders))
