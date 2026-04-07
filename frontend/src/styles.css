@@ -1617,8 +1617,7 @@ pre {
 }
 
 .cart-mobile-toolbar,
-.cart-drawer-backdrop,
-.topnav-backdrop {
+.cart-drawer-backdrop {
   display: none;
 }
 
@@ -1630,17 +1629,11 @@ pre {
   display: none;
 }
 
-.hamburger-button-label {
-  display: inline;
-}
 
 .mobile-bottom-link {
   text-decoration: none;
 }
 
-.mobile-bottom-nav-hidden {
-  display: none !important;
-}
 
 .connection-good {
   color: #86efac;
@@ -1856,7 +1849,7 @@ pre {
   }
 
   .hamburger-button {
-    display: inline-flex;
+    display: none;
     align-items: center;
     justify-content: center;
     width: 52px;
@@ -1877,6 +1870,7 @@ pre {
   }
 
   .topnav {
+    display: none;
     position: fixed;
     top: 82px;
     left: 0.85rem;
@@ -1892,20 +1886,6 @@ pre {
     border: 1px solid rgba(71, 85, 105, 0.72);
     background: rgba(15, 23, 42, 0.98);
     box-shadow: 0 24px 64px rgba(2, 6, 23, 0.45);
-  }
-
-  .topnav-open {
-    display: grid;
-  }
-
-  .topnav-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 70;
-    display: block;
-    border: none;
-    background: rgba(2, 6, 23, 0.42);
-    box-shadow: none;
   }
 
   .nav-pill {

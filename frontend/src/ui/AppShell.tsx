@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useCafeSettings } from '../cafeSettings'
 
@@ -10,29 +10,11 @@ const navItems = [
 ] as const
 
 export function AppShell() {
-  const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const settings = useCafeSettings()
 
-  const closeMenu = () => setMenuOpen(false)
   const cafeName = settings.name || 'OpenClaw Café'
   const cafeImage = settings.image_url?.trim() || ''
-
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [location.pathname])
-
-  useEffect(() => {
-    if (!menuOpen) {
-      document.body.style.overflow = ''
-      return
-    }
-
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [menuOpen])
 
   const activeNavItem = useMemo(
     () =>
@@ -47,7 +29,7 @@ export function AppShell() {
       <header className="topbar">
         <div className="topbar-main">
           <div className="brand-block topbar-row">
-            <Link to="/" className="brand-link" onClick={closeMenu}>
+            <Link to="/" className="brand-link">
               <span className="brand-media-frame">
                 {cafeImage ? <img src={cafeImage} alt={cafeName} className="brand-image" /> : <span className="brand-mark">☕</span>}
               </span>
@@ -56,16 +38,6 @@ export function AppShell() {
                 <p className="brand-subtitle">{settings.tagline?.trim() || 'Fast café ordering for customers, kitchen, and staff.'}</p>
               </div>
             </Link>
-            <button
-              type="button"
-              className="hamburger-button secondary-button"
-              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((current) => !current)}
-            >
-              <span aria-hidden="true">{menuOpen ? '✕' : '☰'}</span>
-              <span className="hamburger-button-label">{menuOpen ? 'Close menu' : 'Open menu'}</span>
-            </button>
           </div>
 
           <div className="topbar-context">
@@ -77,14 +49,13 @@ export function AppShell() {
           </div>
         </div>
 
-        <nav className={menuOpen ? 'topnav topnav-open' : 'topnav'} aria-label="Primary">
+        <nav className="topnav" aria-label="Primary">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) => (isActive ? 'nav-pill nav-pill-active' : 'nav-pill')}
-              onClick={closeMenu}
             >
               <span className="nav-pill-icon" aria-hidden="true">
                 {item.icon}
@@ -96,11 +67,9 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-
-        {menuOpen ? <button type="button" className="topnav-backdrop" aria-label="Close navigation menu" onClick={closeMenu} /> : null}
       </header>
 
-      <nav className={menuOpen ? 'mobile-bottom-nav mobile-bottom-nav-hidden' : 'mobile-bottom-nav'} aria-label="Primary mobile">
+      <nav className="mobile-bottom-nav" aria-label="Primary mobile">
         {navItems.map((item) => (
           <NavLink
             key={`mobile-${item.to}`}
