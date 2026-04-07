@@ -260,9 +260,14 @@ export function CustomerPage() {
             </div>
             <div className="grid">
               {recommendedItems.map((entry) => (
-                <div key={entry.item.id}>
+                <div key={entry.item.id} className="recommended-menu-card-wrap">
                   {renderMenuCard(entry.item)}
-                  <p className="muted recommendation-reason">{entry.reason}</p>
+                  <div className="recommended-menu-meta">
+                    <p className="muted recommendation-reason">{entry.reason}</p>
+                    <button type="button" className="secondary-button recommendation-add-button" onClick={() => setItemQuantity(entry.item.id, (quantities[entry.item.id] ?? 0) + 1)} disabled={interactionsDisabled}>
+                      Add {entry.item.name}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -323,6 +328,34 @@ export function CustomerPage() {
               </button>
             </>
           )}
+          {recommendedItems.length > 0 ? (
+            <>
+              <hr />
+              <div className="section-heading-row cart-recommendation-heading">
+                <h4 className="section-title cart-recommendation-title">Recommended with your order</h4>
+                <span className="info-chip">{recommendedItems.length} ideas</span>
+              </div>
+              <div className="cart-recommendation-list">
+                {recommendedItems.map((entry) => (
+                  <div key={`cart-rec-${entry.item.id}`} className="cart-recommendation-card">
+                    <div>
+                      <strong>{entry.item.name}</strong>
+                      <div className="muted">{money(entry.item.price, currency_code)}</div>
+                      <div className="muted recommendation-reason cart-recommendation-reason">{entry.reason}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary-button cart-recommendation-button"
+                      onClick={() => setItemQuantity(entry.item.id, (quantities[entry.item.id] ?? 0) + 1)}
+                      disabled={interactionsDisabled}
+                    >
+                      Add
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
           <hr />
           <div className="order-meta">
             <strong>Total</strong>
