@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CafeSettingsResponse, fetchJson } from './api'
 
@@ -38,7 +38,14 @@ export function CafeSettingsProvider({ children }: { children: React.ReactNode }
     queryFn: () => fetchJson<CafeSettingsResponse>('/cafe-settings'),
   })
 
-  return <CafeSettingsContext.Provider value={query.data ?? defaultSettings}>{children}</CafeSettingsContext.Provider>
+  const settings = query.data ?? defaultSettings
+
+  useEffect(() => {
+    const cafeName = settings.name?.trim() || defaultSettings.name
+    document.title = cafeName
+  }, [settings.name])
+
+  return <CafeSettingsContext.Provider value={settings}>{children}</CafeSettingsContext.Provider>
 }
 
 export function useCafeSettings() {
