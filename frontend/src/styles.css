@@ -948,7 +948,7 @@ pre {
 }
 
 .admin-inventory-grid {
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .admin-inventory-card {
@@ -1471,6 +1471,12 @@ pre {
   }
 }
 
+@media (max-width: 1200px) {
+  .admin-inventory-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .two-column,
   .three-column,
@@ -1482,7 +1488,8 @@ pre {
   .admin-inventory-hero-strip,
   .admin-inventory-toggle-row,
   .admin-inventory-actions-primary,
-  .admin-inventory-actions-secondary {
+  .admin-inventory-actions-secondary,
+  .admin-inventory-grid {
     grid-template-columns: 1fr;
   }
 
