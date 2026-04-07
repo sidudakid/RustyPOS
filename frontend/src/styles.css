@@ -648,6 +648,43 @@ pre {
   margin-top: 1rem;
 }
 
+.analytics-kpi-grid {
+  margin-top: 1rem;
+}
+
+.analytics-profit-loss-card {
+  gap: 1rem;
+}
+
+.analytics-profit-loss-header {
+  margin-bottom: 0;
+  align-items: center;
+}
+
+.analytics-profit-loss-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.9rem;
+}
+
+.analytics-profit-loss-grid p,
+.analytics-profit-loss-grid strong {
+  margin: 0;
+}
+
+.analytics-tonal-value {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.analytics-tonal-value-profit {
+  color: #86efac;
+}
+
+.analytics-tonal-value-loss {
+  color: #fca5a5;
+}
+
 .admin-overview-page,
 .admin-inventory-page {
   gap: 1rem;
