@@ -201,6 +201,7 @@ export function AdminInventoryPage() {
 
 function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; badgeClass: string; cardClass: string }) {
   const admin = useAdminOutletState()
+  const [expanded, setExpanded] = useState(false)
   const serverItem = admin.inventoryQuery.data?.find((entry) => entry.id === item.id) ?? item
   const draft = admin.draftMenuItems.find((entry) => entry.id === item.id) ?? serverItem
   const dirty = JSON.stringify({
@@ -274,54 +275,67 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
         </div>
       </div>
 
-      <div className="inventory-staff-metrics admin-inventory-form-grid admin-inventory-form-grid-compact">
-        <label>
-          Stock count
-          <input type="number" min="0" value={draft.stock_count} onChange={(e) => updateDraft({ stock_count: Number(e.target.value) })} />
-        </label>
-        <label>
-          Low-stock threshold
-          <input
-            type="number"
-            min="0"
-            value={draft.low_stock_threshold}
-            onChange={(e) => updateDraft({ low_stock_threshold: Number(e.target.value) })}
-          />
-        </label>
-        <label className="inline-check admin-inventory-check admin-inventory-check-primary">
-          <input type="checkbox" checked={draft.restock_needed} onChange={(e) => updateDraft({ restock_needed: e.target.checked })} />
-          Needs restock
-        </label>
-      </div>
-
-      <div className="admin-inventory-toggle-row admin-inventory-toggle-row-compact">
-        <label className="inline-check admin-inventory-check">
-          <input type="checkbox" checked={draft.available} onChange={(e) => updateDraft({ available: e.target.checked })} />
-          Available for orders
-        </label>
-        <label className="inline-check admin-inventory-check">
-          <input type="checkbox" checked={draft.active} onChange={(e) => updateDraft({ active: e.target.checked })} />
-          Record active
-        </label>
-      </div>
-
-      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">
+      <div className="admin-inventory-card-quick-actions">
+        <button type="button" className="secondary-button admin-inventory-expand-button" onClick={() => setExpanded((current) => !current)}>
+          {expanded ? 'Hide editor' : 'Edit item'}
+        </button>
         <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
-          {admin.updateInventory.isPending ? 'Saving inventory…' : 'Save inventory'}
-        </button>
-        <button type="button" className="secondary-button" onClick={() => admin.updateMenuItem.mutate(draft)} disabled={!dirty || admin.updateMenuItem.isPending}>
-          {admin.updateMenuItem.isPending ? 'Saving full record…' : 'Save full record'}
+          {admin.updateInventory.isPending ? 'Saving…' : 'Quick save'}
         </button>
       </div>
 
-      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-secondary admin-inventory-actions-stack">
-        <button type="button" className="secondary-button" onClick={resetDraft} disabled={!dirty}>
-          Reset draft
-        </button>
-        <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>
-          Archive item
-        </button>
-      </div>
+      {expanded ? (
+        <div className="admin-inventory-editor-stack">
+          <div className="inventory-staff-metrics admin-inventory-form-grid admin-inventory-form-grid-compact">
+            <label>
+              Stock count
+              <input type="number" min="0" value={draft.stock_count} onChange={(e) => updateDraft({ stock_count: Number(e.target.value) })} />
+            </label>
+            <label>
+              Low-stock threshold
+              <input
+                type="number"
+                min="0"
+                value={draft.low_stock_threshold}
+                onChange={(e) => updateDraft({ low_stock_threshold: Number(e.target.value) })}
+              />
+            </label>
+            <label className="inline-check admin-inventory-check admin-inventory-check-primary">
+              <input type="checkbox" checked={draft.restock_needed} onChange={(e) => updateDraft({ restock_needed: e.target.checked })} />
+              Needs restock
+            </label>
+          </div>
+
+          <div className="admin-inventory-toggle-row admin-inventory-toggle-row-compact">
+            <label className="inline-check admin-inventory-check">
+              <input type="checkbox" checked={draft.available} onChange={(e) => updateDraft({ available: e.target.checked })} />
+              Available for orders
+            </label>
+            <label className="inline-check admin-inventory-check">
+              <input type="checkbox" checked={draft.active} onChange={(e) => updateDraft({ active: e.target.checked })} />
+              Record active
+            </label>
+          </div>
+
+          <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">
+            <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
+              {admin.updateInventory.isPending ? 'Saving inventory…' : 'Save inventory'}
+            </button>
+            <button type="button" className="secondary-button" onClick={() => admin.updateMenuItem.mutate(draft)} disabled={!dirty || admin.updateMenuItem.isPending}>
+              {admin.updateMenuItem.isPending ? 'Saving full record…' : 'Save full record'}
+            </button>
+          </div>
+
+          <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-secondary admin-inventory-actions-stack">
+            <button type="button" className="secondary-button" onClick={resetDraft} disabled={!dirty}>
+              Reset draft
+            </button>
+            <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>
+              Archive item
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
