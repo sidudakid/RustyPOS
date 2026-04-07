@@ -119,7 +119,7 @@ export function AdminInventoryPage() {
           </div>
         </div>
 
-        <div className="admin-inventory-toolbar">
+        <div className="admin-inventory-toolbar admin-inventory-toolbar-responsive">
           <label>
             Search items
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
@@ -144,7 +144,7 @@ export function AdminInventoryPage() {
           </label>
         </div>
 
-        <div className="admin-inventory-chip-row">
+        <div className="admin-inventory-chip-row admin-inventory-chip-row-responsive">
           <button type="button" className={filter === 'all' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('all')}>
             All {items.length}
           </button>
@@ -259,7 +259,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
         </div>
       </div>
 
-      <div className="admin-inventory-metric-strip">
+      <div className="admin-inventory-metric-strip admin-inventory-metric-strip-compact">
         <div>
           <span className="inventory-summary-label">On hand</span>
           <strong>{draft.stock_count}</strong>
@@ -274,7 +274,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
         </div>
       </div>
 
-      <div className="inventory-staff-metrics admin-inventory-form-grid">
+      <div className="inventory-staff-metrics admin-inventory-form-grid admin-inventory-form-grid-compact">
         <label>
           Stock count
           <input type="number" min="0" value={draft.stock_count} onChange={(e) => updateDraft({ stock_count: Number(e.target.value) })} />
@@ -294,7 +294,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
         </label>
       </div>
 
-      <div className="admin-inventory-toggle-row">
+      <div className="admin-inventory-toggle-row admin-inventory-toggle-row-compact">
         <label className="inline-check admin-inventory-check">
           <input type="checkbox" checked={draft.available} onChange={(e) => updateDraft({ available: e.target.checked })} />
           Available for orders
@@ -305,7 +305,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
         </label>
       </div>
 
-      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary">
+      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">
         <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
           {admin.updateInventory.isPending ? 'Saving inventory…' : 'Save inventory'}
         </button>
@@ -314,7 +314,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
         </button>
       </div>
 
-      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-secondary">
+      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-secondary admin-inventory-actions-stack">
         <button type="button" className="secondary-button" onClick={resetDraft} disabled={!dirty}>
           Reset draft
         </button>

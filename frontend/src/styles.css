@@ -1102,7 +1102,7 @@ pre {
 }
 
 .admin-inventory-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: 0.95rem;
 }
@@ -1181,6 +1181,8 @@ pre {
   flex-direction: column;
   gap: 1rem;
   min-height: 100%;
+  padding: 1rem;
+  border-radius: 18px;
 }
 
 .admin-inventory-card-inactive {
@@ -1190,13 +1192,14 @@ pre {
 .admin-inventory-card-top {
   align-items: flex-start;
   margin-bottom: 0;
-  min-height: 124px;
+  min-height: auto;
 }
 
 .admin-inventory-card-copy {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 0;
 }
 
 .admin-inventory-meta-row {
@@ -1247,6 +1250,41 @@ pre {
 .admin-inventory-metric-strip strong {
   font-size: 1.1rem;
   color: #f8fafc;
+}
+
+.admin-inventory-metric-strip-compact div {
+  min-height: 76px;
+}
+
+.admin-inventory-form-grid-compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.admin-inventory-form-grid-compact label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-inventory-toggle-row-compact {
+  gap: 0.7rem;
+}
+
+.admin-inventory-actions-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-inventory-toolbar-responsive label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.admin-inventory-chip-row-responsive {
+  align-items: center;
 }
 
 .admin-inventory-form-grid {
@@ -1717,15 +1755,9 @@ pre {
   }
 }
 
-@media (max-width: 1400px) {
-  .admin-inventory-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 1200px) {
   .admin-inventory-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1742,13 +1774,17 @@ pre {
   .table-qr-panel,
   .admin-overview-hero-grid,
   .admin-inventory-toolbar,
-  .admin-inventory-metric-strip,
   .admin-inventory-hero-strip,
+  .admin-inventory-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-inventory-metric-strip,
   .admin-inventory-toggle-row,
   .admin-inventory-actions-primary,
   .admin-inventory-actions-secondary,
-  .admin-inventory-grid {
-    grid-template-columns: 1fr;
+  .admin-inventory-actions-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-settings-page > div {
@@ -1795,7 +1831,11 @@ pre {
   .admin-inventory-grid,
   .settings-summary-grid,
   .recommended-inline-list,
-  .customer-order-hero-stats {
+  .customer-order-hero-stats,
+  .admin-inventory-form-grid-compact,
+  .admin-inventory-metric-strip,
+  .admin-inventory-toggle-row,
+  .admin-inventory-actions-stack {
     grid-template-columns: 1fr;
   }
 
@@ -2152,6 +2192,11 @@ pre {
   }
 
   .staff-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-inventory-chip-row-responsive {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
