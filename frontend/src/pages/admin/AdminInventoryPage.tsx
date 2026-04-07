@@ -101,6 +101,24 @@ export function AdminInventoryPage() {
           This view is for database maintenance: stock counts, thresholds, availability, and archived records. It intentionally stays separate from live staff handling.
         </p>
 
+        <div className="admin-inventory-hero-strip">
+          <div className="admin-inventory-hero-card admin-inventory-hero-card-danger">
+            <span className="inventory-summary-label">Critical stock-outs</span>
+            <strong>{out.length}</strong>
+            <p className="muted">Items unavailable or fully out of stock.</p>
+          </div>
+          <div className="admin-inventory-hero-card admin-inventory-hero-card-warning">
+            <span className="inventory-summary-label">Low stock</span>
+            <strong>{low.length}</strong>
+            <p className="muted">Items approaching threshold and needing attention soon.</p>
+          </div>
+          <div className="admin-inventory-hero-card">
+            <span className="inventory-summary-label">Healthy active items</span>
+            <strong>{healthy.length}</strong>
+            <p className="muted">Sellable records with no active warning right now.</p>
+          </div>
+        </div>
+
         <div className="admin-inventory-toolbar">
           <label>
             Search items
@@ -208,11 +226,18 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
           <div className="admin-inventory-card-title-row">
             <strong>{draft.name}</strong>
             {!draft.active ? <span className="info-chip">Inactive</span> : null}
+            {dirty ? <span className="info-chip">Unsaved</span> : null}
           </div>
-          <p className="muted inventory-price-row">{money(draft.price, admin.currency_code)} · {draft.category}</p>
+          <div className="admin-inventory-meta-row">
+            <p className="muted inventory-price-row">{money(draft.price, admin.currency_code)}</p>
+            <span className="admin-inventory-meta-dot">•</span>
+            <p className="muted inventory-price-row">{draft.category}</p>
+          </div>
           <p className="muted admin-inventory-description">{draft.description || 'No description yet.'}</p>
         </div>
-        <span className={badgeClass}>{inventoryLabel(draft)}</span>
+        <div className="admin-inventory-card-status">
+          <span className={badgeClass}>{inventoryLabel(draft)}</span>
+        </div>
       </div>
 
       <div className="admin-inventory-metric-strip">
@@ -250,7 +275,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
         </label>
       </div>
 
-      <div className="admin-inline-actions admin-inventory-actions">
+      <div className="admin-inventory-toggle-row">
         <label className="inline-check admin-inventory-check">
           <input type="checkbox" checked={draft.available} onChange={(e) => updateDraft({ available: e.target.checked })} />
           Available for orders
@@ -259,12 +284,18 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
           <input type="checkbox" checked={draft.active} onChange={(e) => updateDraft({ active: e.target.checked })} />
           Record active
         </label>
+      </div>
+
+      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary">
         <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
-          Save inventory
+          {admin.updateInventory.isPending ? 'Saving inventory…' : 'Save inventory'}
         </button>
         <button type="button" className="secondary-button" onClick={() => admin.updateMenuItem.mutate(draft)} disabled={!dirty || admin.updateMenuItem.isPending}>
-          Save full record
+          {admin.updateMenuItem.isPending ? 'Saving full record…' : 'Save full record'}
         </button>
+      </div>
+
+      <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-secondary">
         <button type="button" className="secondary-button" onClick={resetDraft} disabled={!dirty}>
           Reset draft
         </button>
