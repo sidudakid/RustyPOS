@@ -1777,13 +1777,7 @@ pre {
   }
 }
 
-@media (max-width: 1200px) {
-  .admin-inventory-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
   .admin-inventory-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
