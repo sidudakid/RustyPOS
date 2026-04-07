@@ -84,7 +84,7 @@ pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid, selected_item_ids
         hot_picks
     };
 
-    let recommendations = if selected_item_ids.is_empty() {
+    let mut recommendations: Vec<MenuRecommendation> = if selected_item_ids.is_empty() {
         sqlx::query_as::<_, (uuid::Uuid, String, String, String, i64, String, bool, bool, i32, i32, bool, i64, i64)>(
             "WITH recent_pairs AS (
                 SELECT
@@ -226,6 +226,31 @@ pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid, selected_item_ids
         })
         .collect()
     };
+
+    if recommendations.is_empty() {
+        let fallback_items = if !hot_picks.is_empty() {
+            hot_picks.clone()
+        } else {
+            menu.iter().take(4).cloned().collect()
+        };
+
+        recommendations = fallback_items
+            .into_iter()
+            .filter(|item| !selected_item_ids.iter().any(|selected_id| *selected_id == item.id))
+            .take(4)
+            .map(|item| MenuRecommendation {
+                item,
+                score: 0,
+                paired_order_count: 0,
+                matched_cart_items: 0,
+                reason: if selected_item_ids.is_empty() {
+                    "Suggested from current popular and available items".into()
+                } else {
+                    "Not enough pair history yet, so showing a strong available fallback".into()
+                },
+            })
+            .collect();
+    }
 
     Ok(CustomerMenuResponse { hot_picks, menu, recommendations })
 }
