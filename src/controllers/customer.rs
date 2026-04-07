@@ -7,22 +7,31 @@ use crate::{
     AppState,
 };
 use actix_web::{web, HttpResponse};
+use serde::Deserialize;
 use uuid::Uuid;
+
+#[derive(Debug, Deserialize)]
+pub struct CustomerMenuQuery {
+    #[serde(default)]
+    pub selected: Vec<Uuid>,
+}
 
 pub async fn get_table_menu(
     state: web::Data<AppState>,
     table_id: web::Path<Uuid>,
+    query: web::Query<CustomerMenuQuery>,
 ) -> Result<HttpResponse, AppError> {
-    let menu = order_service::get_menu_for_table(&state.db, table_id.into_inner()).await?;
+    let menu = order_service::get_menu_for_table(&state.db, table_id.into_inner(), &query.selected).await?;
     Ok(HttpResponse::Ok().json(menu))
 }
 
 pub async fn get_token_menu(
     state: web::Data<AppState>,
     token: web::Path<String>,
+    query: web::Query<CustomerMenuQuery>,
 ) -> Result<HttpResponse, AppError> {
     let table_id = order_service::resolve_table_id_by_token(&state.db, &token.into_inner()).await?;
-    let menu = order_service::get_menu_for_table(&state.db, table_id).await?;
+    let menu = order_service::get_menu_for_table(&state.db, table_id, &query.selected).await?;
     Ok(HttpResponse::Ok().json(menu))
 }
 

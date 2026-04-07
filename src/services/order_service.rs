@@ -36,7 +36,7 @@ pub async fn resolve_table_id_by_token(pool: &PgPool, token: &str) -> Result<Uui
     Ok(table.id)
 }
 
-pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid) -> Result<CustomerMenuResponse, AppError> {
+pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid, selected_item_ids: &[Uuid]) -> Result<CustomerMenuResponse, AppError> {
     let table_exists: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM tables WHERE id = $1 AND active = true")
         .bind(table_id)
         .fetch_optional(pool)
@@ -84,68 +84,148 @@ pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid) -> Result<Custome
         hot_picks
     };
 
-    let recommendations = sqlx::query_as::<_, (uuid::Uuid, String, String, String, i64, String, bool, bool, i32, i32, bool, i64, i64)>(
-        "WITH recent_pairs AS (
+    let recommendations = if selected_item_ids.is_empty() {
+        sqlx::query_as::<_, (uuid::Uuid, String, String, String, i64, String, bool, bool, i32, i32, bool, i64, i64)>(
+            "WITH recent_pairs AS (
+                SELECT
+                    oi1.menu_item_id AS anchor_item_id,
+                    oi2.menu_item_id AS recommended_item_id,
+                    COUNT(DISTINCT oi1.order_id)::BIGINT AS paired_order_count,
+                    SUM(LEAST(oi1.quantity, oi2.quantity))::BIGINT AS pair_strength
+                FROM order_items oi1
+                JOIN order_items oi2 ON oi1.order_id = oi2.order_id AND oi1.menu_item_id <> oi2.menu_item_id
+                JOIN orders o ON o.id = oi1.order_id
+                WHERE o.created_at >= NOW() - INTERVAL '90 days'
+                GROUP BY oi1.menu_item_id, oi2.menu_item_id
+            ), ranked AS (
+                SELECT
+                    recommended_item_id,
+                    SUM(pair_strength)::BIGINT AS score,
+                    SUM(paired_order_count)::BIGINT AS paired_order_count
+                FROM recent_pairs
+                GROUP BY recommended_item_id
+                ORDER BY SUM(pair_strength) DESC, SUM(paired_order_count) DESC
+                LIMIT 8
+            )
             SELECT
-                oi1.menu_item_id AS anchor_item_id,
-                oi2.menu_item_id AS recommended_item_id,
-                COUNT(DISTINCT oi1.order_id)::BIGINT AS paired_order_count,
-                SUM(LEAST(oi1.quantity, oi2.quantity))::BIGINT AS pair_strength
-            FROM order_items oi1
-            JOIN order_items oi2 ON oi1.order_id = oi2.order_id AND oi1.menu_item_id <> oi2.menu_item_id
-            JOIN orders o ON o.id = oi1.order_id
-            WHERE o.created_at >= NOW() - INTERVAL '90 days'
-            GROUP BY oi1.menu_item_id, oi2.menu_item_id
-        ), ranked AS (
-            SELECT
-                recommended_item_id,
-                SUM(pair_strength)::BIGINT AS score,
-                SUM(paired_order_count)::BIGINT AS paired_order_count
-            FROM recent_pairs
-            GROUP BY recommended_item_id
-            ORDER BY SUM(pair_strength) DESC, SUM(paired_order_count) DESC
-            LIMIT 8
+                mi.id,
+                mi.name,
+                mi.description,
+                mi.image_url,
+                mi.price,
+                mi.category,
+                mi.active,
+                mi.available,
+                mi.stock_count,
+                mi.low_stock_threshold,
+                mi.restock_needed,
+                ranked.score,
+                ranked.paired_order_count
+            FROM ranked
+            JOIN menu_items mi ON mi.id = ranked.recommended_item_id
+            WHERE mi.active = true AND mi.available = true AND mi.stock_count > 0
+            ORDER BY ranked.score DESC, ranked.paired_order_count DESC, mi.name ASC",
         )
-        SELECT
-            mi.id,
-            mi.name,
-            mi.description,
-            mi.image_url,
-            mi.price,
-            mi.category,
-            mi.active,
-            mi.available,
-            mi.stock_count,
-            mi.low_stock_threshold,
-            mi.restock_needed,
-            ranked.score,
-            ranked.paired_order_count
-        FROM ranked
-        JOIN menu_items mi ON mi.id = ranked.recommended_item_id
-        WHERE mi.active = true AND mi.available = true AND mi.stock_count > 0
-        ORDER BY ranked.score DESC, ranked.paired_order_count DESC, mi.name ASC",
-    )
-    .fetch_all(pool)
-    .await?
-    .into_iter()
-    .map(|(id, name, description, image_url, price, category, active, available, stock_count, low_stock_threshold, restock_needed, score, paired_order_count)| MenuRecommendation {
-        item: MenuItem {
-            id,
-            name,
-            description,
-            image_url,
-            price,
-            category,
-            active,
-            available,
-            stock_count,
-            low_stock_threshold,
-            restock_needed,
-        },
-        score,
-        paired_order_count,
-    })
-    .collect();
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(|(id, name, description, image_url, price, category, active, available, stock_count, low_stock_threshold, restock_needed, score, paired_order_count)| MenuRecommendation {
+            item: MenuItem {
+                id,
+                name,
+                description,
+                image_url,
+                price,
+                category,
+                active,
+                available,
+                stock_count,
+                low_stock_threshold,
+                restock_needed,
+            },
+            score,
+            paired_order_count,
+            matched_cart_items: 0,
+            reason: "Popular add-on across recent orders".into(),
+        })
+        .collect()
+    } else {
+        sqlx::query_as::<_, (uuid::Uuid, String, String, String, i64, String, bool, bool, i32, i32, bool, i64, i64, i64)>(
+            "WITH selected_items AS (
+                SELECT UNNEST($1::uuid[]) AS menu_item_id
+            ), recent_pairs AS (
+                SELECT
+                    oi1.menu_item_id AS anchor_item_id,
+                    oi2.menu_item_id AS recommended_item_id,
+                    COUNT(DISTINCT oi1.order_id)::BIGINT AS paired_order_count,
+                    SUM(LEAST(oi1.quantity, oi2.quantity))::BIGINT AS pair_strength
+                FROM order_items oi1
+                JOIN order_items oi2 ON oi1.order_id = oi2.order_id AND oi1.menu_item_id <> oi2.menu_item_id
+                JOIN orders o ON o.id = oi1.order_id
+                WHERE o.created_at >= NOW() - INTERVAL '90 days'
+                GROUP BY oi1.menu_item_id, oi2.menu_item_id
+            ), ranked AS (
+                SELECT
+                    rp.recommended_item_id,
+                    SUM(rp.pair_strength)::BIGINT AS score,
+                    SUM(rp.paired_order_count)::BIGINT AS paired_order_count,
+                    COUNT(DISTINCT rp.anchor_item_id)::BIGINT AS matched_cart_items
+                FROM recent_pairs rp
+                JOIN selected_items si ON si.menu_item_id = rp.anchor_item_id
+                WHERE rp.recommended_item_id <> ALL($1::uuid[])
+                GROUP BY rp.recommended_item_id
+                ORDER BY COUNT(DISTINCT rp.anchor_item_id) DESC, SUM(rp.pair_strength) DESC, SUM(rp.paired_order_count) DESC
+                LIMIT 8
+            )
+            SELECT
+                mi.id,
+                mi.name,
+                mi.description,
+                mi.image_url,
+                mi.price,
+                mi.category,
+                mi.active,
+                mi.available,
+                mi.stock_count,
+                mi.low_stock_threshold,
+                mi.restock_needed,
+                ranked.score,
+                ranked.paired_order_count,
+                ranked.matched_cart_items
+            FROM ranked
+            JOIN menu_items mi ON mi.id = ranked.recommended_item_id
+            WHERE mi.active = true AND mi.available = true AND mi.stock_count > 0
+            ORDER BY ranked.matched_cart_items DESC, ranked.score DESC, ranked.paired_order_count DESC, mi.name ASC",
+        )
+        .bind(selected_item_ids)
+        .fetch_all(pool)
+        .await?
+        .into_iter()
+        .map(|(id, name, description, image_url, price, category, active, available, stock_count, low_stock_threshold, restock_needed, score, paired_order_count, matched_cart_items)| MenuRecommendation {
+            item: MenuItem {
+                id,
+                name,
+                description,
+                image_url,
+                price,
+                category,
+                active,
+                available,
+                stock_count,
+                low_stock_threshold,
+                restock_needed,
+            },
+            score,
+            paired_order_count,
+            matched_cart_items,
+            reason: if matched_cart_items > 1 {
+                format!("Often picked with {} items already in your cart", matched_cart_items)
+            } else {
+                "Often picked with one of your selected items".into()
+            },
+        })
+        .collect()
+    };
 
     Ok(CustomerMenuResponse { hot_picks, menu, recommendations })
 }

@@ -20,9 +20,15 @@ export function CustomerPage() {
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [checkoutTone, setCheckoutTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
 
+  const selectedIds = useMemo(() => Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([id]) => id), [quantities])
+
   const menuQuery = useQuery({
-    queryKey: ['menu', token],
-    queryFn: () => fetchJson<CustomerMenuResponse>(`/table-tokens/${token}/menu`),
+    queryKey: ['menu', token, selectedIds],
+    queryFn: () => {
+      const query = selectedIds.map((id) => `selected=${encodeURIComponent(id)}`).join('&')
+      const suffix = query ? `?${query}` : ''
+      return fetchJson<CustomerMenuResponse>(`/table-tokens/${token}/menu${suffix}`)
+    },
     enabled: Boolean(token),
   })
 
@@ -55,7 +61,12 @@ export function CustomerPage() {
 
     return recommendationPool
       .filter((entry) => !cartIds.has(entry.item.id))
-      .sort((left, right) => right.score - left.score || right.paired_order_count - left.paired_order_count)
+      .sort(
+        (left, right) =>
+          right.matched_cart_items - left.matched_cart_items ||
+          right.score - left.score ||
+          right.paired_order_count - left.paired_order_count,
+      )
       .slice(0, 4)
   }, [cartItems, recommendationPool])
 
@@ -247,7 +258,14 @@ export function CustomerPage() {
                 {cartItems.length > 0 ? 'Based on what is already in your cart' : 'Popular add-ons guests often choose together'}
               </span>
             </div>
-            <div className="grid">{recommendedItems.map((entry) => renderMenuCard(entry.item))}</div>
+            <div className="grid">
+              {recommendedItems.map((entry) => (
+                <div key={entry.item.id}>
+                  {renderMenuCard(entry.item)}
+                  <p className="muted recommendation-reason">{entry.reason}</p>
+                </div>
+              ))}
+            </div>
           </SectionCard>
         ) : null}
 

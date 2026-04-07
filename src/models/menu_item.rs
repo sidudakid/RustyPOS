@@ -83,6 +83,8 @@ pub struct MenuRecommendation {
     pub item: MenuItem,
     pub score: i64,
     pub paired_order_count: i64,
+    pub matched_cart_items: i64,
+    pub reason: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -117,6 +117,8 @@ export type MenuRecommendation = {
   item: MenuItem
   score: number
   paired_order_count: number
+  matched_cart_items: number
+  reason: string
 }
 
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
