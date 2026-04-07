@@ -125,11 +125,18 @@ export function KitchenPage() {
   return (
     <section>
       <SectionCard>
-        <h2 className="section-title">Kitchen board</h2>
-        <p className={connected ? 'connection-good' : 'connection-bad'}>
-          {connected ? 'Live updates connected' : 'Live updates disconnected'}
-        </p>
-        <p className="muted">Last event: {lastEvent}</p>
+        <div className="section-heading-row kitchen-header-compact">
+          <div>
+            <p className="eyebrow">Kitchen</p>
+            <h2 className="section-title">Prep queue</h2>
+          </div>
+          <div className="hero-chip-group">
+            <span className={connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
+              {connected ? 'Live connected' : 'Disconnected'}
+            </span>
+            <span className="info-chip">Last: {lastEvent}</span>
+          </div>
+        </div>
         <div className="notification-row">
           <p className="muted">Notifications: {soundEnabled ? 'sound on' : 'sound muted'}</p>
           <NotificationButton
@@ -167,19 +174,6 @@ export function KitchenPage() {
             localStorage.setItem('adminToken', value)
           }}
         />
-      </SectionCard>
-
-      <SectionCard>
-        <div className="section-heading-row">
-          <div>
-            <p className="eyebrow">Kitchen only</p>
-            <h3 className="section-title">Prep queue</h3>
-          </div>
-          <span className="info-chip">Pending, preparing, and ready only</span>
-        </div>
-        <p className="muted">
-          Inventory and cashier controls moved to the staff station so the kitchen can stay focused on prep, finishing drinks, and handing off ready orders.
-        </p>
       </SectionCard>
 
       <div className="three-column">

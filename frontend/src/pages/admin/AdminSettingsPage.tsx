@@ -230,6 +230,32 @@ export function AdminSettingsPage() {
           <SectionCard>
             <div className="section-heading-row">
               <div>
+                <p className="eyebrow">Quick access</p>
+                <h3 className="section-title">Tables, links, and previews</h3>
+              </div>
+              <span className="info-chip">Fast actions</span>
+            </div>
+            <div className="admin-settings-quick-grid">
+              <button type="button" className="admin-settings-quick-card" onClick={() => setTableFilter('all')}>
+                <span className="inventory-summary-label">Live access</span>
+                <strong>{activeTableAccess.length} tables</strong>
+                <small>Search, filter, and open table access modals.</small>
+              </button>
+              <button type="button" className="admin-settings-quick-card" onClick={() => setTableQuery('TABLE-')}>
+                <span className="inventory-summary-label">Generated names</span>
+                <strong>{admin.tablePreview.length} previews</strong>
+                <small>Preview table labels without digging through the page.</small>
+              </button>
+              <div className="admin-settings-address-card admin-settings-address-card-compact">
+                <span className="inventory-summary-label">Address summary</span>
+                <strong>{admin.setupAddress || 'No address configured yet.'}</strong>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard>
+            <div className="section-heading-row">
+              <div>
                 <p className="eyebrow">Setup health</p>
                 <h3 className="section-title">Restaurant setup status</h3>
               </div>
@@ -324,10 +350,6 @@ export function AdminSettingsPage() {
                   <strong>{tableName}</strong>
                 </div>
               ))}
-            </div>
-            <div className="admin-settings-address-card">
-              <span className="inventory-summary-label">Address summary</span>
-              <strong>{admin.setupAddress || 'No address configured yet.'}</strong>
             </div>
           </SectionCard>
 
