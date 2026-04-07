@@ -56,9 +56,6 @@ export function AppShell() {
                 <p className="brand-subtitle">{settings.tagline?.trim() || 'Fast café ordering for customers, kitchen, and staff.'}</p>
               </div>
             </Link>
-          </div>
-
-          <div className="mobile-topnav-trigger-row">
             <button
               type="button"
               className="hamburger-button secondary-button"
@@ -67,7 +64,7 @@ export function AppShell() {
               onClick={() => setMenuOpen((current) => !current)}
             >
               <span aria-hidden="true">{menuOpen ? '✕' : '☰'}</span>
-              <span>{menuOpen ? 'Close menu' : 'Open menu'}</span>
+              <span className="hamburger-button-label">{menuOpen ? 'Close menu' : 'Open menu'}</span>
             </button>
           </div>
 
