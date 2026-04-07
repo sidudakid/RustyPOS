@@ -169,7 +169,7 @@ export function AdminSettingsPage() {
 
   return (
     <>
-      <section className="two-column page-layout-admin">
+      <section className="two-column page-layout-admin admin-settings-page">
         <div>
           <SectionCard>
             <div className="section-heading-row">
@@ -180,17 +180,17 @@ export function AdminSettingsPage() {
               <span className="info-chip">Slug: {draft.slug}</span>
             </div>
 
-            <div className="form-stack">
+            <div className="form-stack admin-settings-form-stack">
               <input value={draft.name} onChange={(e) => updateDraft('name', e.target.value)} placeholder="Cafe name" />
               <input value={draft.legal_name} onChange={(e) => updateDraft('legal_name', e.target.value)} placeholder="Legal name" />
               <input value={draft.slug} onChange={(e) => updateDraft('slug', e.target.value)} placeholder="Slug" />
               <input value={draft.tagline} onChange={(e) => updateDraft('tagline', e.target.value)} placeholder="Tagline" />
               <input value={draft.image_url} onChange={(e) => updateDraft('image_url', e.target.value)} placeholder="Image URL" />
-              <div className="two-column">
+              <div className="two-column admin-settings-inline-grid">
                 <input value={draft.currency_code} onChange={(e) => updateDraft('currency_code', e.target.value)} placeholder="Currency" />
                 <input value={draft.timezone} onChange={(e) => updateDraft('timezone', e.target.value)} placeholder="Timezone" />
               </div>
-              <div className="two-column">
+              <div className="two-column admin-settings-inline-grid">
                 <input value={draft.primary_color} onChange={(e) => updateDraft('primary_color', e.target.value)} placeholder="Primary color" />
                 <input value={draft.accent_color} onChange={(e) => updateDraft('accent_color', e.target.value)} placeholder="Accent color" />
               </div>
@@ -247,14 +247,14 @@ export function AdminSettingsPage() {
               <span className="info-chip">{admin.tablePreview.length} preview names</span>
             </div>
 
-            <div className="form-stack">
+            <div className="form-stack admin-settings-form-stack">
               <input value={draft.address_line_1} onChange={(e) => updateDraft('address_line_1', e.target.value)} placeholder="Address line 1" />
               <input value={draft.address_line_2} onChange={(e) => updateDraft('address_line_2', e.target.value)} placeholder="Address line 2" />
-              <div className="two-column">
+              <div className="two-column admin-settings-inline-grid">
                 <input value={draft.city} onChange={(e) => updateDraft('city', e.target.value)} placeholder="City" />
                 <input value={draft.state_region} onChange={(e) => updateDraft('state_region', e.target.value)} placeholder="State / region" />
               </div>
-              <div className="two-column">
+              <div className="two-column admin-settings-inline-grid">
                 <input value={draft.postal_code} onChange={(e) => updateDraft('postal_code', e.target.value)} placeholder="Postal code" />
                 <input value={draft.country_code} onChange={(e) => updateDraft('country_code', e.target.value)} placeholder="Country code" />
               </div>
@@ -263,7 +263,7 @@ export function AdminSettingsPage() {
                 <option value="counter_service">Counter service</option>
                 <option value="hybrid">Hybrid</option>
               </select>
-              <div className="two-column">
+              <div className="two-column admin-settings-inline-grid">
                 <input
                   type="number"
                   min="1"
@@ -287,7 +287,7 @@ export function AdminSettingsPage() {
           <SectionCard>
             <p className="eyebrow">Preview</p>
             <h3 className="section-title">Generated table names</h3>
-            <div className="pill-list">
+            <div className="pill-list admin-settings-preview-pills">
               {admin.tablePreview.map((tableName) => (
                 <span className="info-chip" key={tableName}>
                   {tableName}
@@ -309,12 +309,12 @@ export function AdminSettingsPage() {
             {admin.settingsQuery.isLoading ? <p className="muted">Loading table access data…</p> : null}
             {admin.settingsQuery.isError ? <p className="connection-bad">Failed to load live table access data.</p> : null}
 
-            <div className="admin-edit-list">
+            <div className="admin-edit-list admin-settings-token-list">
               {activeTableAccess.map((table) => {
                 const link = tableLink(table.token)
                 const ops = tableOperations.find((entry) => entry.table_id === table.id)
                 return (
-                  <div className="admin-edit-card" key={table.id}>
+                  <div className="admin-edit-card admin-settings-token-card" key={table.id}>
                     <div className="section-heading-row">
                       <div>
                         <strong>{table.name}</strong>
@@ -384,7 +384,7 @@ export function AdminSettingsPage() {
             </div>
             {admin.tableOperationsQuery.isLoading ? <p className="muted">Loading operational table state…</p> : null}
             {admin.tableOperationsQuery.isError ? <p className="connection-bad">Failed to load operational table state.</p> : null}
-            <div className="admin-edit-list">
+            <div className="admin-edit-list admin-settings-operations-list">
               {tableOperations.map((table) => (
                 <div className="admin-edit-card" key={`ops-${table.table_id}`}>
                   <div className="section-heading-row">
