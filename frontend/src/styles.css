@@ -1630,6 +1630,10 @@ pre {
   display: none;
 }
 
+.mobile-topnav-trigger-row {
+  display: none;
+}
+
 .mobile-bottom-link {
   text-decoration: none;
 }
@@ -1804,7 +1808,9 @@ pre {
 
   .topbar-main {
     display: flex;
+    flex-direction: column;
     width: 100%;
+    gap: 0.8rem;
   }
 
   .topbar-row {
@@ -1812,12 +1818,21 @@ pre {
     flex-wrap: nowrap;
   }
 
+  .mobile-topnav-trigger-row {
+    display: block;
+  }
+
   .hamburger-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    min-height: 52px;
+    gap: 0.55rem;
     flex-shrink: 0;
-    margin-left: auto;
+    margin-left: 0;
+    border-radius: 16px;
+    font-size: 1rem;
   }
 
   .topnav {
