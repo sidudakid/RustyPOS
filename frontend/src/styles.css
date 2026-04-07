@@ -672,6 +672,52 @@ pre {
   margin: 0;
 }
 
+.analytics-expense-intro {
+  margin-top: 0.85rem;
+}
+
+.analytics-expense-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.analytics-expense-toolbar label,
+.analytics-expense-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.analytics-expense-card {
+  gap: 1rem;
+}
+
+.analytics-expense-card-caption {
+  margin: 0.35rem 0 0;
+}
+
+.analytics-expense-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.9rem;
+}
+
+.analytics-expense-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.analytics-expense-summary-row p,
+.analytics-expense-summary-row strong {
+  margin: 0;
+}
+
 .analytics-tonal-value {
   font-weight: 700;
   color: #f8fafc;

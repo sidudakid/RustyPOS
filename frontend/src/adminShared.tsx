@@ -33,6 +33,16 @@ export type AnalyticsSummary = {
   }[]
 }
 
+export type MonthlyExpenseRecord = {
+  month: string
+  rent: number
+  payroll: number
+  utilities: number
+  marketing: number
+  misc: number
+  notes: string
+}
+
 const defaultSettingsDraft: CafeSettings = {
   name: 'OpenClaw Café',
   legal_name: 'OpenClaw Café',
@@ -140,6 +150,22 @@ export function useAdminState() {
     enabled: Boolean(token),
   })
 
+  const monthlyExpensesQuery = useQuery({
+    queryKey: ['admin-monthly-expenses', token],
+    queryFn: async () => {
+      try {
+        return await fetchJson<MonthlyExpenseRecord[]>('/admin/expenses', { headers: authHeaders })
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+        if (message.includes('404') || message.includes('not found')) {
+          return []
+        }
+        throw error
+      }
+    },
+    enabled: Boolean(token),
+  })
+
   const inventoryQuery = useQuery({
     queryKey: ['admin-inventory', token],
     queryFn: () => fetchJson<MenuItem[]>('/admin/inventory', { headers: authHeaders }),
@@ -176,10 +202,11 @@ export function useAdminState() {
       void menuItemsQuery.refetch()
       void settingsQuery.refetch()
       void analyticsQuery.refetch()
+      void monthlyExpensesQuery.refetch()
       void inventoryQuery.refetch()
       void tableOperationsQuery.refetch()
     }
-  }, [ordersQuery, categoriesQuery, revenueQuery, menuItemsQuery, settingsQuery, analyticsQuery, inventoryQuery, tableOperationsQuery])
+  }, [ordersQuery, categoriesQuery, revenueQuery, menuItemsQuery, settingsQuery, analyticsQuery, monthlyExpensesQuery, inventoryQuery, tableOperationsQuery])
 
   useEffect(() => {
     if (!token) {
@@ -210,6 +237,7 @@ export function useAdminState() {
       menuItemsQuery.refetch(),
       settingsQuery.refetch(),
       analyticsQuery.refetch(),
+      monthlyExpensesQuery.refetch(),
       inventoryQuery.refetch(),
       tableOperationsQuery.refetch(),
     ])
@@ -355,6 +383,16 @@ export function useAdminState() {
     onSuccess: refreshAdminData,
   })
 
+  const upsertMonthlyExpense = useMutation({
+    mutationFn: async (expense: MonthlyExpenseRecord) =>
+      fetchJson<MonthlyExpenseRecord>('/admin/expenses', {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify(expense),
+      }),
+    onSuccess: refreshAdminData,
+  })
+
   const activeOrders = useMemo(
     () => (ordersQuery.data ?? []).filter((entry) => entry.order.status !== 'ready'),
     [ordersQuery.data],
@@ -444,6 +482,7 @@ export function useAdminState() {
     menuItemsQuery,
     settingsQuery,
     analyticsQuery,
+    monthlyExpensesQuery,
     inventoryQuery,
     tableOperationsQuery,
     activeOrders,
@@ -458,6 +497,7 @@ export function useAdminState() {
     toggleAvailability,
     updateCafeSettings,
     updateInventory,
+    upsertMonthlyExpense,
     refreshAdminData,
   }
 }
