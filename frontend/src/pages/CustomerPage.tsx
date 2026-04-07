@@ -137,7 +137,11 @@ export function CustomerPage() {
 
     return (
       <div key={item.id} className="card menu-item">
-        {item.image_url ? <img src={item.image_url} alt={item.name} className="menu-item-image" /> : null}
+        {item.image_url ? (
+          <div className="menu-item-image-shell">
+            <img src={item.image_url} alt={item.name} className="menu-item-image" />
+          </div>
+        ) : null}
         <div className="menu-copy">
           <div className="menu-header-row">
             <strong>{item.name}</strong>

@@ -36,7 +36,9 @@ export function AppShell() {
         <div className="topbar-main">
           <div className="brand-block topbar-row">
             <Link to="/" className="brand-link" onClick={closeMenu}>
-              {cafeImage ? <img src={cafeImage} alt={cafeName} className="brand-image" /> : <span className="brand-mark">☕</span>}
+              <span className="brand-media-frame">
+                {cafeImage ? <img src={cafeImage} alt={cafeName} className="brand-image" /> : <span className="brand-mark">☕</span>}
+              </span>
               <div>
                 <h1>{cafeName}</h1>
                 <p className="brand-subtitle">{settings.tagline?.trim() || 'Fast café ordering for customers, kitchen, and staff.'}</p>

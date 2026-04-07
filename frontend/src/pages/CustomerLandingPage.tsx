@@ -78,15 +78,17 @@ export function CustomerLandingPage() {
             </div>
 
             <div className="customer-landing-media-card">
-              {settings.image_url?.trim() ? (
-                <img src={settings.image_url} alt={settings.name} className="customer-landing-image" />
-              ) : (
-                <div className="customer-landing-placeholder">
-                  <span aria-hidden="true">☕</span>
-                  <strong>{settings.name || 'Cafe'}</strong>
-                  <p className="muted">Add a restaurant photo in Admin → Settings to make this feel more like your place.</p>
-                </div>
-              )}
+              <div className="customer-landing-image-shell">
+                {settings.image_url?.trim() ? (
+                  <img src={settings.image_url} alt={settings.name} className="customer-landing-image" />
+                ) : (
+                  <div className="customer-landing-placeholder">
+                    <span aria-hidden="true">☕</span>
+                    <strong>{settings.name || 'Cafe'}</strong>
+                    <p className="muted">Add a restaurant photo in Admin → Settings to make this feel more like your place.</p>
+                  </div>
+                )}
+              </div>
 
               <div className="customer-landing-floating-card" id="guest-start">
                 <p className="eyebrow">Start here</p>
