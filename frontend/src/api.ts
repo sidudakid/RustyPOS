@@ -57,6 +57,19 @@ export type OpenTableSummary = {
   statuses: OrderStatus[]
 }
 
+export type TableOperationalSummary = {
+  table_id: string
+  table_name: string
+  table_number?: number | null
+  active: boolean
+  open_order_count: number
+  paid_order_count: number
+  ready_order_count: number
+  unpaid_total_amount: number
+  unpaid_statuses: OrderStatus[]
+  last_order_at?: string | null
+}
+
 export type CafeSettings = {
   name: string
   legal_name: string

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { API_BASE, fetchJson, MenuItem, OpenTableSummary, OrderWithItemsView } from '../api'
+import { API_BASE, fetchJson, MenuItem, OpenTableSummary, OrderWithItemsView, TableOperationalSummary } from '../api'
 import { AuthTokenInput, NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 import { money, shortId } from '../lib'
@@ -92,13 +92,30 @@ export function StaffPage() {
     enabled: Boolean(token),
   })
 
+  const tableOperationsQuery = useQuery({
+    queryKey: ['staff-table-operations', token],
+    queryFn: async () => {
+      try {
+        const data = await fetchJson<TableOperationalSummary[]>('/staff/tables', { headers: authHeaders })
+        setTokenInvalid(false)
+        return data
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message.includes('unauthorized')) setTokenInvalid(true)
+        throw error
+      }
+    },
+    enabled: Boolean(token),
+  })
+
   useEffect(() => {
     refetchRef.current = () => {
       void inventoryQuery.refetch()
       void ordersQuery.refetch()
       void openTablesQuery.refetch()
+      void tableOperationsQuery.refetch()
     }
-  }, [inventoryQuery, ordersQuery, openTablesQuery])
+  }, [inventoryQuery, ordersQuery, openTablesQuery, tableOperationsQuery])
 
   const showBanner = (message: string, tone: 'info' | 'success' | 'muted' | 'alert') => {
     setBanner(message)
@@ -161,7 +178,7 @@ export function StaffPage() {
     },
     onSuccess: async (item) => {
       showBanner(`📦 ${item.name} inventory updated.`, 'success')
-      await Promise.all([inventoryQuery.refetch(), openTablesQuery.refetch()])
+      await Promise.all([inventoryQuery.refetch(), openTablesQuery.refetch(), tableOperationsQuery.refetch()])
     },
   })
 
@@ -174,7 +191,7 @@ export function StaffPage() {
     onSuccess: async (settledOrders) => {
       const tableName = settledOrders[0]?.order.table_name ?? 'table'
       showBanner(`💸 ${tableName} settled successfully.`, 'success')
-      await Promise.all([ordersQuery.refetch(), openTablesQuery.refetch()])
+      await Promise.all([ordersQuery.refetch(), openTablesQuery.refetch(), tableOperationsQuery.refetch()])
     },
   })
 
@@ -184,6 +201,16 @@ export function StaffPage() {
   const inventoryLow = inventoryItems.filter((item) => inventoryTone(item) === 'low')
   const readyOrders = (ordersQuery.data ?? []).filter((entry) => entry.order.status === 'ready')
   const openTables = openTablesQuery.data ?? []
+  const tableOperations = tableOperationsQuery.data ?? []
+  const activeTables = tableOperations.filter((table) => table.active)
+  const inactiveTables = tableOperations.filter((table) => !table.active)
+  const idleActiveTables = activeTables.filter((table) => table.open_order_count === 0)
+  const activeAttentionTables = activeTables.filter((table) => table.ready_order_count > 0 || table.open_order_count > 0)
+
+  const formatLastOrderAt = (value?: string | null) => {
+    if (!value) return 'No orders yet'
+    return new Date(value).toLocaleString()
+  }
 
   return (
     <section className="two-column page-layout-admin">
@@ -248,10 +275,87 @@ export function StaffPage() {
         <SectionCard>
           <div className="section-heading-row">
             <div>
-              <p className="eyebrow">Cashier</p>
-              <h3 className="section-title">Open tables</h3>
+              <p className="eyebrow">Table operations</p>
+              <h3 className="section-title">Floor snapshot</h3>
             </div>
-            <span className="info-chip">{openTables.length} open</span>
+            <span className="info-chip">{activeTables.length} active tables</span>
+          </div>
+          <div className="inventory-summary-grid">
+            <div className="inventory-summary-card inventory-summary-card-out">
+              <span className="inventory-summary-label">Open checks</span>
+              <strong>{openTables.length}</strong>
+            </div>
+            <div className="inventory-summary-card inventory-summary-card-low">
+              <span className="inventory-summary-label">Need attention</span>
+              <strong>{activeAttentionTables.length}</strong>
+            </div>
+            <div className="inventory-summary-card">
+              <span className="inventory-summary-label">Idle active</span>
+              <strong>{idleActiveTables.length}</strong>
+            </div>
+            <div className="inventory-summary-card">
+              <span className="inventory-summary-label">Inactive</span>
+              <strong>{inactiveTables.length}</strong>
+            </div>
+          </div>
+          <div className="order-list compact-order-list">
+            {tableOperations.map((table) => {
+              const payableTable = openTables.find((entry) => entry.table_id === table.table_id)
+              const toneClass = !table.active
+                ? 'info-chip'
+                : table.open_order_count > 0
+                  ? 'info-chip info-chip-danger'
+                  : 'info-chip info-chip-success'
+
+              return (
+                <div className="admin-order-card" key={table.table_id}>
+                  <div className="order-meta">
+                    <div>
+                      <strong>{table.table_name}</strong>
+                      <div className="muted">
+                        {table.active ? 'Active on floor' : 'Inactive / hidden'}
+                        {table.table_number ? ` · #${table.table_number}` : ''}
+                      </div>
+                    </div>
+                    <span className={toneClass}>
+                      {table.active ? (table.open_order_count > 0 ? `${table.open_order_count} open` : 'Clear') : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="pill-list">
+                    {table.unpaid_statuses.map((status) => (
+                      <StatusBadge key={`${table.table_id}-${status}`} status={status} />
+                    ))}
+                    {table.ready_order_count > 0 ? <span className="info-chip info-chip-success">{table.ready_order_count} ready</span> : null}
+                    {table.paid_order_count > 0 ? <span className="info-chip">{table.paid_order_count} paid</span> : null}
+                  </div>
+                  <div className="muted">
+                    Unpaid total: {money(table.unpaid_total_amount, currency_code)} · Last activity: {formatLastOrderAt(table.last_order_at)}
+                  </div>
+                  <div className="admin-inline-actions">
+                    {payableTable ? (
+                      <button onClick={() => settleTable.mutate(payableTable)} disabled={settleTable.isPending}>
+                        Settle open check
+                      </button>
+                    ) : (
+                      <button className="secondary-button" disabled>
+                        No unpaid check
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            {tableOperations.length === 0 ? <p className="muted">No tables found yet.</p> : null}
+          </div>
+        </SectionCard>
+
+        <SectionCard>
+          <div className="section-heading-row">
+            <div>
+              <p className="eyebrow">Cashier</p>
+              <h3 className="section-title">Settlement queue</h3>
+            </div>
+            <span className="info-chip">{openTables.length} payable</span>
           </div>
           <div className="order-list">
             {openTables.map((table) => (

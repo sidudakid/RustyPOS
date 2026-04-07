@@ -6,7 +6,7 @@ use crate::{
         menu_item::{AdminRevenueSummary, CustomerMenuResponse, MenuItem},
         order::{
             CreateOrderRequest, OpenTableSummary, Order, OrderItem, OrderItemView, OrderRow, OrderStatus,
-            OrderWithItems, OrderWithItemsView,
+            OrderWithItems, OrderWithItemsView, TableOperationalSummary,
         },
         table::CafeTable,
     },
@@ -235,6 +235,57 @@ pub async fn settle_table(pool: &PgPool, table_id: Uuid) -> Result<Vec<OrderWith
     }
 
     Ok(settled)
+}
+
+pub async fn list_table_operational_summary(pool: &PgPool) -> Result<Vec<TableOperationalSummary>, AppError> {
+    let rows = sqlx::query_as::<_, (Uuid, String, Option<i32>, bool, i64, i64, i64, i64, Option<chrono::DateTime<chrono::Utc>>)>(
+        "SELECT
+            t.id,
+            t.name,
+            t.table_number,
+            t.active,
+            COUNT(DISTINCT CASE WHEN o.status != 'paid' THEN o.id END)::BIGINT AS open_order_count,
+            COUNT(DISTINCT CASE WHEN o.status = 'paid' THEN o.id END)::BIGINT AS paid_order_count,
+            COUNT(DISTINCT CASE WHEN o.status = 'ready' THEN o.id END)::BIGINT AS ready_order_count,
+            COALESCE(SUM(CASE WHEN o.status != 'paid' THEN (mi.price * oi.quantity)::BIGINT ELSE 0 END), 0)::BIGINT AS unpaid_total_amount,
+            MAX(o.created_at) AS last_order_at
+         FROM tables t
+         LEFT JOIN orders o ON o.table_id = t.id
+         LEFT JOIN order_items oi ON oi.order_id = o.id
+         LEFT JOIN menu_items mi ON mi.id = oi.menu_item_id
+         GROUP BY t.id, t.name, t.table_number, t.active
+         ORDER BY t.active DESC, t.table_number NULLS LAST, t.name"
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut out = Vec::with_capacity(rows.len());
+    for (table_id, table_name, table_number, active, open_order_count, paid_order_count, ready_order_count, unpaid_total_amount, last_order_at) in rows {
+        let unpaid_statuses = sqlx::query_scalar::<_, OrderStatus>(
+            "SELECT DISTINCT status
+             FROM orders
+             WHERE table_id = $1 AND status != 'paid'
+             ORDER BY status"
+        )
+        .bind(table_id)
+        .fetch_all(pool)
+        .await?;
+
+        out.push(TableOperationalSummary {
+            table_id,
+            table_name,
+            table_number,
+            active,
+            open_order_count,
+            paid_order_count,
+            ready_order_count,
+            unpaid_total_amount,
+            unpaid_statuses,
+            last_order_at,
+        });
+    }
+
+    Ok(out)
 }
 
 pub async fn update_order_status(

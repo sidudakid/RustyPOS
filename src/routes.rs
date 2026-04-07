@@ -10,6 +10,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/cafe-settings", web::get().to(controllers::cafe_settings::get_cafe_settings))
             .route("/admin/cafe-settings", web::patch().to(controllers::cafe_settings::update_cafe_settings))
             .route("/admin/tables", web::get().to(controllers::cafe_settings::list_admin_tables))
+            .route("/admin/tables/operations", web::get().to(controllers::cafe_settings::list_admin_table_operations))
             .route("/table-tokens/{token}", web::get().to(controllers::table_tokens::resolve_table_token))
             .route("/table-tokens/{token}/menu", web::get().to(controllers::customer::get_token_menu))
             .route("/tables/{id}/menu", web::get().to(controllers::customer::get_table_menu))
@@ -35,6 +36,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/inventory", web::get().to(controllers::inventory::list_inventory))
             .route("/inventory/{id}", web::patch().to(controllers::inventory::update_inventory_item))
             .route("/staff/open-tables", web::get().to(controllers::staff::list_open_tables))
+            .route("/staff/tables", web::get().to(controllers::staff::list_table_operations))
             .route("/staff/tables/{id}/settle", web::post().to(controllers::staff::settle_table))
             .route("/ws/orders", web::get().to(ws::orders_ws)),
     );

@@ -49,6 +49,9 @@ export function AdminInventoryPage() {
           </div>
           <span className="info-chip">{items.length} live items</span>
         </div>
+        <p className="muted inventory-helper-text">
+          Admin can edit stock values, availability, and restock state here as part of the restaurant database. Staff can react operationally in their own workspace.
+        </p>
 
         <div className="inventory-grid">
           {items.map((item) => {
@@ -79,7 +82,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
       <div className="section-heading-row">
         <div>
           <strong>{draft.name}</strong>
-          <p className="muted inventory-price-row">{money(draft.price, admin.currency_code)}</p>
+          <p className="muted inventory-price-row">{money(draft.price, admin.currency_code)} · {draft.category}</p>
         </div>
         <span className={badgeClass}>{inventoryLabel(draft)}</span>
       </div>
@@ -107,7 +110,13 @@ function InventoryEditorCard({ item, badgeClass, cardClass }: { item: MenuItem; 
           <input type="checkbox" checked={draft.available} onChange={(e) => updateDraft({ available: e.target.checked })} />
           Available for orders
         </label>
+        <label className="inline-check">
+          <input type="checkbox" checked={draft.active} onChange={(e) => updateDraft({ active: e.target.checked })} />
+          Record active
+        </label>
         <button onClick={() => admin.updateInventory.mutate(draft)}>Save inventory</button>
+        <button className="secondary-button" onClick={() => admin.updateMenuItem.mutate(draft)}>Save full record</button>
+        <button className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>Archive item</button>
       </div>
     </div>
   )

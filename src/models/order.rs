@@ -92,6 +92,20 @@ pub struct OpenTableSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TableOperationalSummary {
+    pub table_id: Uuid,
+    pub table_name: String,
+    pub table_number: Option<i32>,
+    pub active: bool,
+    pub open_order_count: i64,
+    pub paid_order_count: i64,
+    pub ready_order_count: i64,
+    pub unpaid_total_amount: i64,
+    pub unpaid_statuses: Vec<OrderStatus>,
+    pub last_order_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateOrderItemRequest {
     pub menu_item_id: Uuid,
     pub quantity: i32,

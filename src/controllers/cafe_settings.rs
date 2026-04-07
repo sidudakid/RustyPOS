@@ -30,3 +30,12 @@ pub async fn list_admin_tables(
     let tables = cafe_settings_service::list_table_access(&state.db).await?;
     Ok(HttpResponse::Ok().json(tables))
 }
+
+pub async fn list_admin_table_operations(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, AppError> {
+    require_owner(&req, &state).await?;
+    let tables = crate::services::order_service::list_table_operational_summary(&state.db).await?;
+    Ok(HttpResponse::Ok().json(tables))
+}

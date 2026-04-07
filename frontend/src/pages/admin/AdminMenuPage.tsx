@@ -17,6 +17,9 @@ export function AdminMenuPage() {
             </div>
             <span className="info-chip">{admin.draftCategories.length} categories</span>
           </div>
+          <p className="muted inventory-helper-text">
+            Admin owns category CRUD here: register new groups, edit labels/order, or archive old structure without touching live floor operations.
+          </p>
 
           <div className="form-stack">
             <input placeholder="New category name" value={admin.categoryName} onChange={(e) => admin.setCategoryName(e.target.value)} />
@@ -42,7 +45,7 @@ export function AdminMenuPage() {
           <div className="section-heading-row">
             <div>
               <p className="eyebrow">Menu catalog</p>
-              <h3 className="section-title">Create item</h3>
+              <h3 className="section-title">Register item</h3>
             </div>
             <span className="info-chip">{admin.draftMenuItems.filter((item) => item.active).length} active items</span>
           </div>
@@ -62,7 +65,7 @@ export function AdminMenuPage() {
               disabled={!admin.itemName.trim() || !admin.itemPrice.trim() || admin.createMenuItem.isPending}
               onClick={() => admin.createMenuItem.mutate()}
             >
-              {admin.createMenuItem.isPending ? 'Saving…' : 'Create menu item'}
+              {admin.createMenuItem.isPending ? 'Saving…' : 'Register menu item'}
             </button>
           </div>
         </SectionCard>
@@ -75,6 +78,9 @@ export function AdminMenuPage() {
             </div>
             <span className="info-chip">{admin.draftMenuItems.length} total</span>
           </div>
+          <p className="muted inventory-helper-text">
+            Edit, disable, or archive any record here. This page is the owner-facing menu database, not a live order dashboard.
+          </p>
           <div className="admin-edit-list">
             {admin.draftMenuItems.map((item) => (
               <MenuItemEditor key={item.id} item={item} />
@@ -116,7 +122,7 @@ function CategoryEditor({ category }: { category: MenuCategory }) {
       <div className="admin-inline-actions">
         <button onClick={() => admin.updateCategory.mutate(draft)}>Save category</button>
         <button className="secondary-button" onClick={() => admin.archiveCategory.mutate(draft.id)}>
-          Archive
+          Archive category
         </button>
       </div>
     </div>
@@ -160,11 +166,14 @@ function MenuItemEditor({ item }: { item: MenuItem }) {
       </div>
       <div className="admin-inline-actions">
         <button onClick={() => admin.updateMenuItem.mutate(draft)}>Save item</button>
+        <button className="secondary-button" onClick={() => admin.updateInventory.mutate(draft)}>
+          Save stock
+        </button>
         <button className="secondary-button" onClick={() => admin.toggleAvailability.mutate({ itemId: draft.id, available: !draft.available })}>
           {draft.available ? 'Mark unavailable' : 'Mark available'}
         </button>
         <button className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>
-          Archive
+          Archive item
         </button>
       </div>
     </div>

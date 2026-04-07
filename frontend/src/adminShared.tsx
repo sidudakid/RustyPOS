@@ -10,6 +10,7 @@ import {
   MenuItem,
   OrderStatus,
   OrderWithItemsView,
+  TableOperationalSummary,
 } from './api'
 import { useCafeSettings } from './cafeSettings'
 import { centsToMajorUnits, majorUnitsToCents, money, shortId } from './lib'
@@ -47,6 +48,18 @@ const defaultSettingsDraft: CafeSettings = {
   table_count: 12,
   table_prefix: 'Table',
   table_name_style: 'numeric',
+}
+
+function normalizeSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function isNonEmpty(value: string) {
+  return value.trim().length > 0
 }
 
 export function useAdminState() {
@@ -126,6 +139,12 @@ export function useAdminState() {
     enabled: Boolean(token),
   })
 
+  const tableOperationsQuery = useQuery({
+    queryKey: ['admin-table-operations', token],
+    queryFn: () => fetchJson<TableOperationalSummary[]>('/admin/tables/operations', { headers: authHeaders }),
+    enabled: Boolean(token),
+  })
+
   useEffect(() => {
     setDraftCategories(categoriesQuery.data ?? [])
   }, [categoriesQuery.data])
@@ -151,8 +170,9 @@ export function useAdminState() {
       void settingsQuery.refetch()
       void analyticsQuery.refetch()
       void inventoryQuery.refetch()
+      void tableOperationsQuery.refetch()
     }
-  }, [ordersQuery, categoriesQuery, revenueQuery, menuItemsQuery, settingsQuery, analyticsQuery, inventoryQuery])
+  }, [ordersQuery, categoriesQuery, revenueQuery, menuItemsQuery, settingsQuery, analyticsQuery, inventoryQuery, tableOperationsQuery])
 
   useEffect(() => {
     if (!token) {
@@ -184,6 +204,7 @@ export function useAdminState() {
       settingsQuery.refetch(),
       analyticsQuery.refetch(),
       inventoryQuery.refetch(),
+      tableOperationsQuery.refetch(),
     ])
   }
 
@@ -340,6 +361,45 @@ export function useAdminState() {
     .filter(Boolean)
     .join(', ')
 
+  const setupChecks = useMemo(() => {
+    const liveTables = settingsQuery.data?.table_access?.filter((table) => table.active) ?? []
+    const slug = normalizeSlug(settingsDraft.slug)
+    const identityReady = [settingsDraft.name, settingsDraft.legal_name, slug, settingsDraft.tagline].every(isNonEmpty)
+    const supportReady = Boolean(isNonEmpty(settingsDraft.support_email) || isNonEmpty(settingsDraft.support_phone))
+    const locationReady = [settingsDraft.address_line_1, settingsDraft.city, settingsDraft.country_code].every(isNonEmpty)
+    const brandReady = [settingsDraft.primary_color, settingsDraft.accent_color].every((value) => /^#[0-9a-f]{6}$/i.test(value.trim()))
+    const requestedTables = Math.max(settingsDraft.table_count, 0)
+    const tableRecordsReady = liveTables.length === requestedTables && requestedTables > 0
+    const tableLinksReady = liveTables.every((table) => Boolean(table.token)) && tableRecordsReady
+    const completed = [identityReady, supportReady, locationReady, brandReady, tableRecordsReady, tableLinksReady].filter(Boolean).length
+    const total = 6
+
+    return {
+      slug,
+      liveTables,
+      identityReady,
+      supportReady,
+      locationReady,
+      brandReady,
+      tableRecordsReady,
+      tableLinksReady,
+      completed,
+      total,
+      isComplete: completed === total,
+      nextAction: !identityReady
+        ? 'Finish the restaurant name, legal name, slug, and tagline so every surface uses a consistent identity.'
+        : !supportReady
+          ? 'Add at least one support contact so staff and guests have a fallback when service hiccups happen.'
+          : !locationReady
+            ? 'Complete the restaurant address so receipts, table setup, and admin context feel anchored to a real location.'
+            : !tableRecordsReady
+              ? `Save settings to provision ${requestedTables} managed table${requestedTables === 1 ? '' : 's'} and align backend access.`
+              : !tableLinksReady
+                ? 'Review live table links and confirm every table has a usable customer entry point.'
+                : 'Setup looks healthy. Final pass: verify table links on a phone and hand the admin token to the right operator only.',
+    }
+  }, [settingsDraft, settingsQuery.data])
+
   return {
     token,
     setToken,
@@ -370,6 +430,7 @@ export function useAdminState() {
     tablePreview,
     appSettings,
     setupAddress,
+    setupChecks,
     ordersQuery,
     revenueQuery,
     categoriesQuery,
@@ -377,6 +438,7 @@ export function useAdminState() {
     settingsQuery,
     analyticsQuery,
     inventoryQuery,
+    tableOperationsQuery,
     activeOrders,
     readyOrders,
     updateStatus,
@@ -399,12 +461,16 @@ export function useAdminOutletState() {
   return useOutletContext<AdminState>()
 }
 
+export function setupProgressLabel(completed: number, total: number) {
+  return `${completed}/${total} setup checks complete`
+}
+
 export function adminShellTitle(pathname: string) {
   if (pathname.includes('/admin/analytics')) return 'Analytics'
-  if (pathname.includes('/admin/menu')) return 'Menu management'
-  if (pathname.includes('/admin/inventory')) return 'Inventory'
+  if (pathname.includes('/admin/menu')) return 'Menu database'
+  if (pathname.includes('/admin/inventory')) return 'Inventory database'
   if (pathname.includes('/admin/settings')) return 'Restaurant settings'
-  return 'Overview'
+  return 'Management overview'
 }
 
 export { centsToMajorUnits, majorUnitsToCents, money, shortId }

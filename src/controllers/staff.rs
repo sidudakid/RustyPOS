@@ -27,3 +27,12 @@ pub async fn settle_table(
     let settled = order_service::settle_table(&state.db, table_id.into_inner()).await?;
     Ok(HttpResponse::Ok().json(settled))
 }
+
+pub async fn list_table_operations(
+    req: HttpRequest,
+    state: web::Data<AppState>,
+) -> Result<HttpResponse, AppError> {
+    require_kitchen_access(&req, &state).await?;
+    let tables = order_service::list_table_operational_summary(&state.db).await?;
+    Ok(HttpResponse::Ok().json(tables))
+}
