@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { jsPDF } from 'jspdf'
 import { SectionCard } from '../../components'
 import { centsToMajorUnits, majorUnitsToCents, money, MonthlyExpenseRecord, useAdminOutletState } from '../../adminShared'
 
@@ -66,6 +67,87 @@ function totalExpenseFromDraft(draft: ExpenseDraft) {
   return parsed.rent + parsed.payroll + parsed.utilities + parsed.marketing + parsed.misc
 }
 
+function downloadMonthlyAnalyticsPdf({
+  cafeName,
+  currencyCode,
+  month,
+  revenue,
+  costs,
+  profit,
+  marginPercent,
+  orderCount,
+  expenses,
+  notes,
+}: {
+  cafeName: string
+  currencyCode: string
+  month: string
+  revenue: number
+  costs: number
+  profit: number
+  marginPercent?: number | null
+  orderCount?: number | null
+  expenses: MonthlyExpenseRecord
+  notes?: string
+}) {
+  const doc = new jsPDF()
+  const left = 16
+  let y = 18
+
+  const writeRow = (label: string, value: string) => {
+    doc.setFont('helvetica', 'bold')
+    doc.text(label, left, y)
+    doc.setFont('helvetica', 'normal')
+    doc.text(value, 88, y)
+    y += 8
+  }
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.text(cafeName || 'Cafe Analytics', left, y)
+  y += 10
+
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Monthly analytics report · ${formatMonthLabel(month)}`, left, y)
+  y += 12
+
+  writeRow('Revenue', money(revenue, currencyCode))
+  writeRow('Order-linked costs', money(costs, currencyCode))
+  writeRow('Operating profit', money(profit, currencyCode))
+  writeRow('Margin', typeof marginPercent === 'number' ? `${marginPercent.toFixed(1)}%` : '—')
+  writeRow('Orders counted', typeof orderCount === 'number' ? String(orderCount) : '—')
+
+  y += 4
+  doc.setFont('helvetica', 'bold')
+  doc.text('Operating expenses', left, y)
+  y += 8
+
+  writeRow('Rent', money(expenses.rent, currencyCode))
+  writeRow('Payroll', money(expenses.payroll, currencyCode))
+  writeRow('Utilities', money(expenses.utilities, currencyCode))
+  writeRow('Marketing', money(expenses.marketing, currencyCode))
+  writeRow('Misc', money(expenses.misc, currencyCode))
+
+  const totalExpenses = expenses.rent + expenses.payroll + expenses.utilities + expenses.marketing + expenses.misc
+  writeRow('Total expenses', money(totalExpenses, currencyCode))
+
+  const reportNotes = notes?.trim() || expenses.notes?.trim()
+  if (reportNotes) {
+    y += 4
+    doc.setFont('helvetica', 'bold')
+    doc.text('Notes', left, y)
+    y += 8
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(reportNotes, 175)
+    doc.text(lines, left, y)
+  }
+
+  const safeMonth = month.replace(/[^0-9-]/g, '')
+  const safeName = (cafeName || 'cafe').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  doc.save(`${safeName || 'cafe'}-analytics-${safeMonth || 'month'}.pdf`)
+}
+
 export function AdminAnalyticsPage() {
   const admin = useAdminOutletState()
   const analytics = admin.analyticsQuery.data
@@ -102,6 +184,10 @@ export function AdminAnalyticsPage() {
   const expenseTotal = expenseRecords.reduce((sum, entry) => sum + entry.rent + entry.payroll + entry.utilities + entry.marketing + entry.misc, 0)
   const monthWithExpenses = expenseRecords.length
   const latestExpenseMonth = expenseRecords[0]
+  const selectedMonthSummary = monthlyProfitLoss.find((entry) => entry.month === selectedMonth) ?? monthlyProfitLoss[0] ?? null
+  const selectedMonthDraft = drafts[selectedMonth] ?? createDraft(selectedMonth, expenseMap.get(selectedMonth))
+  const selectedMonthExpenseRecord = parseExpenseDraft(selectedMonthDraft)
+  const selectedMonthExpenseTotal = totalExpenseFromDraft(selectedMonthDraft)
 
   const addMonthDraft = () => {
     if (!selectedMonth) return
@@ -128,6 +214,68 @@ export function AdminAnalyticsPage() {
               <h3 className="section-title">Monthly profit &amp; loss</h3>
             </div>
             <span className="info-chip">{monthlyProfitLoss.length} months</span>
+          </div>
+
+          <div className="analytics-expense-toolbar analytics-report-toolbar">
+            <label>
+              <span className="muted">Report month</span>
+              <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} />
+            </label>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() =>
+                downloadMonthlyAnalyticsPdf({
+                  cafeName: admin.settingsDraft.name,
+                  currencyCode: admin.currency_code,
+                  month: selectedMonthSummary?.month ?? selectedMonth,
+                  revenue: selectedMonthSummary?.revenue ?? 0,
+                  costs: selectedMonthSummary?.costs ?? 0,
+                  profit: selectedMonthSummary?.profit ?? -selectedMonthExpenseTotal,
+                  marginPercent: selectedMonthSummary?.margin_percent,
+                  orderCount: selectedMonthSummary?.order_count,
+                  expenses: selectedMonthExpenseRecord,
+                  notes: selectedMonthDraft.notes,
+                })
+              }
+            >
+              Download PDF report
+            </button>
+          </div>
+
+          <div className="admin-edit-card analytics-profit-loss-card analytics-month-report-card">
+            <div className="section-heading-row analytics-profit-loss-header">
+              <div>
+                <strong>{formatMonthLabel(selectedMonthSummary?.month ?? selectedMonth)}</strong>
+                <p className="muted analytics-expense-card-caption">Focused monthly report for download and stakeholder review.</p>
+              </div>
+              <span className={profitLossTone(selectedMonthSummary?.profit ?? -selectedMonthExpenseTotal)}>
+                {money(selectedMonthSummary?.profit ?? -selectedMonthExpenseTotal, admin.currency_code)}
+              </span>
+            </div>
+
+            <div className="analytics-profit-loss-grid">
+              <div>
+                <p className="muted">Revenue</p>
+                <strong>{money(selectedMonthSummary?.revenue ?? 0, admin.currency_code)}</strong>
+              </div>
+              <div>
+                <p className="muted">Order-linked costs</p>
+                <strong>{money(selectedMonthSummary?.costs ?? 0, admin.currency_code)}</strong>
+              </div>
+              <div>
+                <p className="muted">Saved expenses</p>
+                <strong>{money(selectedMonthExpenseTotal, admin.currency_code)}</strong>
+              </div>
+              <div>
+                <p className="muted">Orders</p>
+                <strong>{selectedMonthSummary?.order_count ?? 0}</strong>
+              </div>
+              <div>
+                <p className="muted">Margin</p>
+                <strong>{typeof selectedMonthSummary?.margin_percent === 'number' ? `${selectedMonthSummary.margin_percent.toFixed(1)}%` : '—'}</strong>
+              </div>
+            </div>
           </div>
 
           <div className="admin-overview-kpi-grid analytics-kpi-grid">

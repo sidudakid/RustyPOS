@@ -704,6 +704,14 @@ pre {
   margin-top: 1rem;
 }
 
+.analytics-report-toolbar {
+  justify-content: space-between;
+}
+
+.analytics-month-report-card {
+  margin-top: 1rem;
+}
+
 .analytics-expense-toolbar label,
 .analytics-expense-grid label {
   display: flex;
@@ -1428,68 +1436,6 @@ pre {
 
   .table-qr-copy {
     gap: 0.75rem;
-  }
-}
-
-  .topbar {
-    gap: 0.85rem;
-    padding: 1rem;
-  }
-
-  .page {
-    padding: 1rem;
-  }
-
-  .card {
-    padding: 0.9rem;
-  }
-
-  button {
-    width: 100%;
-  }
-
-  .order-meta {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .sidebar-sticky,
-  .admin-sidebar-stack {
-    position: static;
-    top: auto;
-  }
-
-  .hero-chip-group {
-    justify-content: flex-start;
-  }
-
-  .admin-inline-actions button {
-    flex: 1 1 180px;
-  }
-
-  .auth-token-row {
-    grid-template-columns: 1fr;
-  }
-
-  .mobile-cart-bar {
-    display: flex;
-    position: sticky;
-    bottom: 0;
-    z-index: 30;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.9rem 1rem;
-    margin: 0 -1rem;
-    background: rgba(15, 23, 42, 0.96);
-    border-top: 1px solid rgba(71, 85, 105, 0.75);
-    backdrop-filter: blur(14px);
-  }
-
-  .mobile-cart-count {
-    color: #cbd5e1;
-    font-size: 0.9rem;
-    margin-bottom: 0.15rem;
   }
 }
 

@@ -30,6 +30,7 @@ export type AnalyticsSummary = {
     costs: number
     profit: number
     margin_percent?: number | null
+    order_count?: number
   }[]
 }
 
