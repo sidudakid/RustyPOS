@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { SectionCard } from '../../components'
 import { useAdminOutletState } from '../../adminShared'
-import type { CafeSettings, TableOperationalSummary } from '../../api'
+import { PUBLIC_ORIGIN, type CafeSettings, type TableOperationalSummary } from '../../api'
 import { shortId } from '../../lib'
 
 function tableLink(token: string) {
+  if (PUBLIC_ORIGIN) return `${PUBLIC_ORIGIN}/t/${token}`
   if (typeof window === 'undefined') return `/t/${token}`
   return `${window.location.origin}/t/${token}`
 }

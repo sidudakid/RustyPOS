@@ -1,7 +1,11 @@
 const rawApiBase = import.meta.env.VITE_API_BASE?.trim()
+const rawPublicOrigin = import.meta.env.VITE_PUBLIC_ORIGIN?.trim()
 const browserHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'
 const defaultApiBase = `http://${browserHost}:8081`
 export const API_BASE = rawApiBase && rawApiBase.length > 0 ? rawApiBase : defaultApiBase
+export const PUBLIC_ORIGIN = rawPublicOrigin && rawPublicOrigin.length > 0
+  ? rawPublicOrigin.replace(/\/$/, '')
+  : (typeof window !== 'undefined' ? window.location.origin : '')
 
 export type MenuItem = {
   id: string
