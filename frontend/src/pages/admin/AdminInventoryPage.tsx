@@ -287,6 +287,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
 
 function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
   const admin = useAdminOutletState()
+  const [confirmArchive, setConfirmArchive] = useState(false)
   const item = admin.inventoryQuery.data?.find((entry) => entry.id === itemId) ?? admin.draftMenuItems.find((entry) => entry.id === itemId)
 
   if (!item) return null
@@ -413,7 +414,15 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
         <div className="admin-modal-footer">
           <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-secondary admin-inventory-actions-stack">
             <button type="button" className="secondary-button" onClick={resetDraft} disabled={!dirty}>Reset draft</button>
-            <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>Archive item</button>
+            {confirmArchive ? (
+              <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>
+                Confirm archive
+              </button>
+            ) : (
+              <button type="button" className="secondary-button" onClick={() => setConfirmArchive(true)}>
+                Delete / archive
+              </button>
+            )}
           </div>
           <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">
             <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
