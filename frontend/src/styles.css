@@ -2308,8 +2308,8 @@ pre {
     position: fixed;
     left: 0.75rem;
     right: 0.75rem;
-    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0));
-    z-index: 55;
+    bottom: calc(5.6rem + env(safe-area-inset-bottom, 0));
+    z-index: 75;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
