@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { jsPDF } from 'jspdf'
 import { SectionCard } from '../../components'
 import { centsToMajorUnits, majorUnitsToCents, money, MonthlyExpenseRecord, useAdminOutletState } from '../../adminShared'
 
@@ -67,7 +66,7 @@ function totalExpenseFromDraft(draft: ExpenseDraft) {
   return parsed.rent + parsed.payroll + parsed.utilities + parsed.marketing + parsed.misc
 }
 
-function downloadMonthlyAnalyticsPdf({
+async function downloadMonthlyAnalyticsPdf({
   cafeName,
   currencyCode,
   month,
@@ -90,6 +89,7 @@ function downloadMonthlyAnalyticsPdf({
   expenses: MonthlyExpenseRecord
   notes?: string
 }) {
+  const { jsPDF } = await import('jspdf')
   const doc = new jsPDF()
   const left = 16
   let y = 18
@@ -225,7 +225,7 @@ export function AdminAnalyticsPage() {
               type="button"
               className="secondary-button"
               onClick={() =>
-                downloadMonthlyAnalyticsPdf({
+                void downloadMonthlyAnalyticsPdf({
                   cafeName: admin.settingsDraft.name,
                   currencyCode: admin.currency_code,
                   month: selectedMonthSummary?.month ?? selectedMonth,
