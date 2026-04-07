@@ -376,20 +376,33 @@ pre {
   line-height: 1.35;
 }
 
-.recommended-menu-card-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+.recommended-inline-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
 }
 
-.recommended-menu-meta {
+.recommended-inline-card {
   display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
+  justify-content: space-between;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: rgba(15, 23, 42, 0.42);
 }
 
-.recommendation-add-button {
-  width: 100%;
+.recommended-inline-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.recommended-inline-button {
+  width: auto;
+  min-width: 82px;
 }
 
 .cart-recommendation-heading {
@@ -1583,7 +1596,8 @@ pre {
   .inventory-summary-grid,
   .admin-overview-kpi-grid,
   .admin-inventory-grid,
-  .settings-summary-grid {
+  .settings-summary-grid,
+  .recommended-inline-list {
     grid-template-columns: 1fr;
   }
 
@@ -1677,6 +1691,16 @@ pre {
 
   .cart-remove-button,
   .cart-clear-button {
+    width: 100%;
+  }
+
+  .recommended-inline-card,
+  .cart-recommendation-card {
+    flex-direction: column;
+  }
+
+  .recommended-inline-button,
+  .cart-recommendation-button {
     width: 100%;
   }
 

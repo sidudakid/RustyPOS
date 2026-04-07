@@ -255,19 +255,20 @@ export function CustomerPage() {
             <div className="section-heading-row">
               <h3 className="section-title">🧠 People also pick</h3>
               <span className="muted">
-                {cartItems.length > 0 ? 'Based on what is already in your cart' : 'Popular add-ons guests often choose together'}
+                {cartItems.length > 0 ? 'Smart add-ons for your current cart' : 'Popular add-ons guests often choose together'}
               </span>
             </div>
-            <div className="grid">
+            <div className="recommended-inline-list">
               {recommendedItems.map((entry) => (
-                <div key={entry.item.id} className="recommended-menu-card-wrap">
-                  {renderMenuCard(entry.item)}
-                  <div className="recommended-menu-meta">
+                <div key={entry.item.id} className="recommended-inline-card">
+                  <div className="recommended-inline-copy">
+                    <strong>{entry.item.name}</strong>
+                    <span className="muted">{money(entry.item.price, currency_code)} · {entry.item.category}</span>
                     <p className="muted recommendation-reason">{entry.reason}</p>
-                    <button type="button" className="secondary-button recommendation-add-button" onClick={() => setItemQuantity(entry.item.id, (quantities[entry.item.id] ?? 0) + 1)} disabled={interactionsDisabled}>
-                      Add {entry.item.name}
-                    </button>
                   </div>
+                  <button type="button" className="secondary-button recommended-inline-button" onClick={() => setItemQuantity(entry.item.id, (quantities[entry.item.id] ?? 0) + 1)} disabled={interactionsDisabled}>
+                    Add
+                  </button>
                 </div>
               ))}
             </div>
