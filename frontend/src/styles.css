@@ -1824,15 +1824,17 @@ pre {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: auto;
+    width: 52px;
     min-width: 52px;
+    max-width: 52px;
     min-height: 52px;
-    gap: 0.45rem;
-    flex-shrink: 0;
+    gap: 0;
+    flex: 0 0 52px;
     margin-left: auto;
-    padding-inline: 0.9rem;
+    padding: 0;
     border-radius: 16px;
     font-size: 1rem;
+    overflow: hidden;
   }
 
   .hamburger-button-label {
