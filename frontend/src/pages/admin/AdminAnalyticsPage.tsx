@@ -1,5 +1,16 @@
+import { useEffect, useMemo, useState } from 'react'
 import { SectionCard } from '../../components'
-import { money, useAdminOutletState } from '../../adminShared'
+import { centsToMajorUnits, majorUnitsToCents, money, MonthlyExpenseRecord, useAdminOutletState } from '../../adminShared'
+
+type ExpenseDraft = {
+  month: string
+  rent: string
+  payroll: string
+  utilities: string
+  marketing: string
+  misc: string
+  notes: string
+}
 
 function formatMonthLabel(value: string) {
   const direct = new Date(`${value}-01T00:00:00Z`)
@@ -21,6 +32,40 @@ function profitLossTone(profit: number) {
   return 'analytics-tonal-value'
 }
 
+function monthInputValue() {
+  const now = new Date()
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+function createDraft(month: string, expense?: MonthlyExpenseRecord): ExpenseDraft {
+  return {
+    month,
+    rent: centsToMajorUnits(expense?.rent ?? 0),
+    payroll: centsToMajorUnits(expense?.payroll ?? 0),
+    utilities: centsToMajorUnits(expense?.utilities ?? 0),
+    marketing: centsToMajorUnits(expense?.marketing ?? 0),
+    misc: centsToMajorUnits(expense?.misc ?? 0),
+    notes: expense?.notes ?? '',
+  }
+}
+
+function parseExpenseDraft(draft: ExpenseDraft): MonthlyExpenseRecord {
+  return {
+    month: draft.month,
+    rent: majorUnitsToCents(draft.rent),
+    payroll: majorUnitsToCents(draft.payroll),
+    utilities: majorUnitsToCents(draft.utilities),
+    marketing: majorUnitsToCents(draft.marketing),
+    misc: majorUnitsToCents(draft.misc),
+    notes: draft.notes.trim(),
+  }
+}
+
+function totalExpenseFromDraft(draft: ExpenseDraft) {
+  const parsed = parseExpenseDraft(draft)
+  return parsed.rent + parsed.payroll + parsed.utilities + parsed.marketing + parsed.misc
+}
+
 export function AdminAnalyticsPage() {
   const admin = useAdminOutletState()
   const analytics = admin.analyticsQuery.data
@@ -29,6 +74,49 @@ export function AdminAnalyticsPage() {
   const latestMonth = monthlyProfitLoss[0]
   const profitableMonths = monthlyProfitLoss.filter((entry) => entry.profit > 0).length
   const lossMonths = monthlyProfitLoss.filter((entry) => entry.profit < 0).length
+  const expenseRecords = admin.monthlyExpensesQuery.data ?? []
+  const expenseMap = useMemo(() => new Map(expenseRecords.map((entry) => [entry.month, entry])), [expenseRecords])
+  const [selectedMonth, setSelectedMonth] = useState(monthInputValue())
+  const [drafts, setDrafts] = useState<Record<string, ExpenseDraft>>({})
+
+  const expenseMonths = useMemo(() => {
+    const months = new Set<string>()
+    monthlyProfitLoss.forEach((entry) => months.add(entry.month))
+    expenseRecords.forEach((entry) => months.add(entry.month))
+    if (!months.size) months.add(selectedMonth)
+    return Array.from(months).sort((left, right) => right.localeCompare(left)).slice(0, 6)
+  }, [expenseRecords, monthlyProfitLoss, selectedMonth])
+
+  useEffect(() => {
+    setDrafts((current) => {
+      const next = { ...current }
+      expenseMonths.forEach((month) => {
+        if (!next[month]) {
+          next[month] = createDraft(month, expenseMap.get(month))
+        }
+      })
+      return next
+    })
+  }, [expenseMonths, expenseMap])
+
+  const expenseTotal = expenseRecords.reduce((sum, entry) => sum + entry.rent + entry.payroll + entry.utilities + entry.marketing + entry.misc, 0)
+  const monthWithExpenses = expenseRecords.length
+  const latestExpenseMonth = expenseRecords[0]
+
+  const addMonthDraft = () => {
+    if (!selectedMonth) return
+    setDrafts((current) => ({
+      ...current,
+      [selectedMonth]: current[selectedMonth] ?? createDraft(selectedMonth, expenseMap.get(selectedMonth)),
+    }))
+  }
+
+  const setDraftValue = (month: string, patch: Partial<ExpenseDraft>) => {
+    setDrafts((current) => ({
+      ...current,
+      [month]: { ...(current[month] ?? createDraft(month, expenseMap.get(month))), ...patch },
+    }))
+  }
 
   return (
     <section className="two-column page-layout-admin">
@@ -100,6 +188,111 @@ export function AdminAnalyticsPage() {
         <SectionCard>
           <div className="section-heading-row">
             <div>
+              <p className="eyebrow">Operating costs</p>
+              <h3 className="section-title">Monthly expenses</h3>
+            </div>
+            <span className="info-chip">{monthWithExpenses} saved months</span>
+          </div>
+
+          <p className="muted analytics-expense-intro">
+            Capture fixed and discretionary monthly operating costs so profit/loss stays grounded in actual rent, payroll, utilities, marketing, and misc spend.
+          </p>
+
+          <div className="analytics-expense-toolbar">
+            <label>
+              <span className="muted">Open month</span>
+              <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} />
+            </label>
+            <button type="button" className="secondary-button" onClick={addMonthDraft}>
+              Open draft month
+            </button>
+          </div>
+
+          {admin.monthlyExpensesQuery.isLoading ? <p className="muted">Loading saved expenses…</p> : null}
+          {admin.monthlyExpensesQuery.isError ? (
+            <div className="admin-inventory-empty-state">
+              <strong>Expense storage is unavailable right now.</strong>
+              <p className="muted inventory-helper-text">
+                The analytics page still works, but the monthly expense editor needs the admin expenses endpoint to load or save data.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="admin-edit-list analytics-subsection">
+            {expenseMonths.map((month) => {
+              const draft = drafts[month] ?? createDraft(month, expenseMap.get(month))
+              const summary = monthlyProfitLoss.find((entry) => entry.month === month)
+              const totalExpense = totalExpenseFromDraft(draft)
+              const projectedProfit = summary ? summary.revenue - totalExpense : null
+
+              return (
+                <div className="admin-edit-card analytics-expense-card" key={month}>
+                  <div className="section-heading-row analytics-profit-loss-header">
+                    <div>
+                      <strong>{formatMonthLabel(month)}</strong>
+                      <p className="muted analytics-expense-card-caption">
+                        {summary ? `Revenue ${money(summary.revenue, admin.currency_code)} · Orders cost model ${money(summary.costs, admin.currency_code)}` : 'No linked profit/loss row yet — expense data can still be prepared.'}
+                      </p>
+                    </div>
+                    <span className="info-chip">{money(totalExpense, admin.currency_code)} total</span>
+                  </div>
+
+                  <div className="analytics-expense-grid">
+                    {([
+                      ['rent', 'Rent'],
+                      ['payroll', 'Payroll'],
+                      ['utilities', 'Utilities'],
+                      ['marketing', 'Marketing'],
+                      ['misc', 'Misc'],
+                    ] as const).map(([key, label]) => (
+                      <label key={key}>
+                        <span className="muted">{label}</span>
+                        <input
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          value={draft[key]}
+                          onChange={(event) => setDraftValue(month, { [key]: event.target.value } as Partial<ExpenseDraft>)}
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <label>
+                    <span className="muted">Notes</span>
+                    <textarea
+                      rows={3}
+                      placeholder="Lease changes, seasonal payroll spikes, vendor notes, campaign details…"
+                      value={draft.notes}
+                      onChange={(event) => setDraftValue(month, { notes: event.target.value })}
+                    />
+                  </label>
+
+                  <div className="analytics-expense-summary-row">
+                    <div>
+                      <p className="muted">Projected operating profit</p>
+                      <strong className={projectedProfit === null ? 'analytics-tonal-value' : profitLossTone(projectedProfit)}>
+                        {projectedProfit === null ? '—' : money(projectedProfit, admin.currency_code)}
+                      </strong>
+                    </div>
+                    <div className="admin-inline-actions">
+                      <button
+                        type="button"
+                        onClick={() => admin.upsertMonthlyExpense.mutate(parseExpenseDraft(draft))}
+                        disabled={admin.upsertMonthlyExpense.isPending || admin.monthlyExpensesQuery.isError}
+                      >
+                        {admin.upsertMonthlyExpense.isPending ? 'Saving…' : 'Save expenses'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </SectionCard>
+
+        <SectionCard>
+          <div className="section-heading-row">
+            <div>
               <p className="eyebrow">Trends</p>
               <h3 className="section-title">Monthly revenue</h3>
             </div>
@@ -125,6 +318,14 @@ export function AdminAnalyticsPage() {
           <p className="muted">Total revenue: {revenue ? money(revenue.total_revenue, admin.currency_code) : '—'}</p>
           <p className="muted">Average order: {revenue ? money(revenue.average_order_value, admin.currency_code) : '—'}</p>
           <p className="muted">Orders counted: {revenue?.order_count ?? 0}</p>
+        </SectionCard>
+
+        <SectionCard>
+          <p className="eyebrow">Expense coverage</p>
+          <h3 className="section-title">Saved cost baseline</h3>
+          <p className="muted">Tracked months: {monthWithExpenses}</p>
+          <p className="muted">Saved operating costs: {money(expenseTotal, admin.currency_code)}</p>
+          <p className="muted">Latest expense month: {latestExpenseMonth ? formatMonthLabel(latestExpenseMonth.month) : '—'}</p>
         </SectionCard>
 
         <SectionCard>
