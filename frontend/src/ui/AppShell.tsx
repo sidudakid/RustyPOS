@@ -3,10 +3,10 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useCafeSettings } from '../cafeSettings'
 
 const navItems = [
-  { to: '/', label: 'Customer', icon: '🛎️', description: 'Ordering and table flow', end: true },
-  { to: '/kitchen', label: 'Kitchen', icon: '👨‍🍳', description: 'Prep queue and handoff', end: false },
-  { to: '/staff', label: 'Staff', icon: '💳', description: 'Cashier and inventory', end: false },
-  { to: '/admin/orders', label: 'Admin', icon: '📊', description: 'Operations and settings', end: false },
+  { to: '/', label: 'Customer', shortLabel: 'Order', icon: '🛎️', description: 'Ordering and table flow', end: true },
+  { to: '/kitchen', label: 'Kitchen', shortLabel: 'Kitchen', icon: '👨‍🍳', description: 'Prep queue and handoff', end: false },
+  { to: '/staff', label: 'Staff', shortLabel: 'Staff', icon: '💳', description: 'Cashier and inventory', end: false },
+  { to: '/admin/orders', label: 'Admin', shortLabel: 'Admin', icon: '📊', description: 'Operations and settings', end: false },
 ] as const
 
 export function AppShell() {
@@ -84,7 +84,22 @@ export function AppShell() {
           ))}
         </nav>
       </header>
-      <main className="page">
+
+      <nav className="mobile-bottom-nav" aria-label="Primary mobile">
+        {navItems.map((item) => (
+          <NavLink
+            key={`mobile-${item.to}`}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) => (isActive ? 'mobile-bottom-link mobile-bottom-link-active' : 'mobile-bottom-link')}
+          >
+            <span className="mobile-bottom-link-icon" aria-hidden="true">{item.icon}</span>
+            <span className="mobile-bottom-link-label">{item.shortLabel}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      <main className="page page-with-mobile-nav">
         <Outlet />
       </main>
     </div>

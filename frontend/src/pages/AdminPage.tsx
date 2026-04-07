@@ -74,7 +74,7 @@ export function AdminPage() {
           <span className="info-chip">Responsive quick access</span>
         </div>
 
-        <nav className="admin-subnav" aria-label="Admin sections">
+        <nav className="admin-subnav admin-subnav-mobile-rail" aria-label="Admin sections">
           {adminNavItems.map((item) => (
             <NavLink
               key={item.to}

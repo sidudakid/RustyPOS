@@ -50,6 +50,7 @@ export function CustomerPage() {
   )
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
   const recommendedItems = useMemo(() => {
     const cartIds = new Set(cartItems.map((item) => item.id))
@@ -232,7 +233,7 @@ export function CustomerPage() {
   }
 
   return (
-    <section className="two-column page-layout-customer">
+    <section className="two-column page-layout-customer customer-order-page-shell">
       <div>
         <SectionCard>
           <div className="hero-row customer-order-hero-row">
@@ -242,7 +243,7 @@ export function CustomerPage() {
               <p className="muted customer-order-hero-text">Browse what’s live right now, add items quickly, and send the order straight from your phone without losing table context.</p>
             </div>
             <div className="hero-chip-group customer-order-hero-chips">
-              <span className="info-chip">Token: {token}</span>
+              <span className="info-chip">Table ready</span>
               <span className="info-chip">{hotPicks.length} hot picks</span>
               <span className="info-chip">{menuItems.length} menu items</span>
             </div>
@@ -290,7 +291,7 @@ export function CustomerPage() {
         <SectionCard>
           <div className="section-heading-row">
             <h3 className="section-title">Your cart</h3>
-            <span className="info-chip">{cartItems.length} items</span>
+            <span className="info-chip">{cartItemCount} items</span>
           </div>
           {checkoutMessage ? <NotificationBanner message={checkoutMessage} tone={checkoutTone} /> : null}
           {cartItems.length === 0 ? (
@@ -372,9 +373,9 @@ export function CustomerPage() {
       </div>
 
       {cartItems.length > 0 ? (
-        <div className="mobile-cart-bar">
-          <div>
-            <div className="mobile-cart-count">{cartItems.length} items in cart</div>
+        <div className="mobile-cart-bar" role="region" aria-label="Cart summary">
+          <div className="mobile-cart-summary">
+            <div className="mobile-cart-count">{cartItemCount} items in cart</div>
             <strong>{money(cartTotal, currency_code)}</strong>
           </div>
           <button onClick={submitOrder} disabled={interactionsDisabled || cartItems.length === 0}>

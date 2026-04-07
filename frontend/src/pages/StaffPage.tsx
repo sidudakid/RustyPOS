@@ -213,7 +213,7 @@ export function StaffPage() {
   }
 
   return (
-    <section className="two-column page-layout-admin">
+    <section className="two-column page-layout-admin staff-page-shell">
       <div>
         <SectionCard>
           <div className="hero-row">
@@ -280,7 +280,7 @@ export function StaffPage() {
             </div>
             <span className="info-chip">{activeTables.length} active tables</span>
           </div>
-          <div className="inventory-summary-grid">
+          <div className="inventory-summary-grid staff-summary-grid">
             <div className="inventory-summary-card inventory-summary-card-out">
               <span className="inventory-summary-label">Open checks</span>
               <strong>{openTables.length}</strong>
@@ -424,7 +424,7 @@ export function StaffPage() {
             </div>
             <span className="info-chip">{inventoryAttention.length} flagged</span>
           </div>
-          <div className="inventory-summary-grid">
+          <div className="inventory-summary-grid staff-summary-grid">
             <div className="inventory-summary-card inventory-summary-card-out">
               <span className="inventory-summary-label">Out of stock</span>
               <strong>{inventoryOut.length}</strong>
