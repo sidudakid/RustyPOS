@@ -320,6 +320,12 @@ pre {
   min-height: 100%;
 }
 
+.menu-item-elevated {
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.96), rgba(17, 24, 39, 0.92));
+  border-color: rgba(71, 85, 105, 0.72);
+}
+
 .menu-item-image-shell {
   width: calc(100% + 2rem);
   margin: -1rem -1rem 0;
@@ -343,6 +349,14 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+}
+
+.menu-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .menu-header-row {
@@ -539,6 +553,51 @@ pre {
   gap: 1rem;
   align-items: flex-start;
   flex-wrap: wrap;
+}
+
+.customer-order-hero-row {
+  align-items: start;
+}
+
+.customer-order-hero-copy {
+  max-width: 700px;
+}
+
+.customer-order-hero-text {
+  max-width: 58ch;
+  line-height: 1.65;
+}
+
+.customer-order-hero-chips {
+  align-self: start;
+}
+
+.customer-order-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.customer-order-hero-stat {
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: rgba(15, 23, 42, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.customer-order-hero-stat span {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.customer-order-hero-stat strong {
+  color: #f8fafc;
 }
 
 .hero-chip-group {
@@ -1109,6 +1168,7 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-height: 100%;
 }
 
 .admin-inventory-card-inactive {
@@ -1118,6 +1178,7 @@ pre {
 .admin-inventory-card-top {
   align-items: flex-start;
   margin-bottom: 0;
+  min-height: 124px;
 }
 
 .admin-inventory-card-copy {
@@ -1208,6 +1269,10 @@ pre {
 
 .admin-inventory-actions-secondary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-inventory-actions button {
+  min-height: 44px;
 }
 
 .inventory-grid {
@@ -1698,7 +1763,8 @@ pre {
   .admin-overview-kpi-grid,
   .admin-inventory-grid,
   .settings-summary-grid,
-  .recommended-inline-list {
+  .recommended-inline-list,
+  .customer-order-hero-stats {
     grid-template-columns: 1fr;
   }
 

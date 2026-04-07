@@ -167,7 +167,7 @@ export function CustomerPage() {
     const quantity = quantities[item.id] ?? 0
 
     return (
-      <div key={item.id} className="card menu-item">
+      <div key={item.id} className="card menu-item menu-item-elevated">
         {item.image_url ? (
           <div className="menu-item-image-shell">
             <img src={item.image_url} alt={item.name} className="menu-item-image" />
@@ -179,7 +179,10 @@ export function CustomerPage() {
             <div className="menu-price">{money(item.price, currency_code)}</div>
           </div>
           {item.description ? <p className="menu-description">{item.description}</p> : null}
-          <div className="muted menu-category">{item.category}</div>
+          <div className="menu-card-footer">
+            <div className="muted menu-category">{item.category}</div>
+            {quantity > 0 ? <span className="info-chip info-chip-success">{quantity} in cart</span> : null}
+          </div>
         </div>
         <div className="quantity-row">
           <button onClick={() => setItemQuantity(item.id, quantity - 1)} disabled={interactionsDisabled}>-</button>
@@ -232,16 +235,30 @@ export function CustomerPage() {
     <section className="two-column page-layout-customer">
       <div>
         <SectionCard>
-          <div className="hero-row">
-            <div>
+          <div className="hero-row customer-order-hero-row">
+            <div className="customer-order-hero-copy">
               <p className="eyebrow">Table service</p>
               <h2 className="section-title">Order at your table</h2>
-              <p className="muted">Browse the menu, add items, and place your order in seconds.</p>
+              <p className="muted customer-order-hero-text">Browse what’s live right now, add items quickly, and send the order straight from your phone without losing table context.</p>
             </div>
-            <div className="hero-chip-group">
+            <div className="hero-chip-group customer-order-hero-chips">
               <span className="info-chip">Token: {token}</span>
               <span className="info-chip">{hotPicks.length} hot picks</span>
               <span className="info-chip">{menuItems.length} menu items</span>
+            </div>
+          </div>
+          <div className="customer-order-hero-stats">
+            <div className="customer-order-hero-stat">
+              <span>Ordering flow</span>
+              <strong>Table-aware</strong>
+            </div>
+            <div className="customer-order-hero-stat">
+              <span>Popular now</span>
+              <strong>{hotPicks.length || 0} picks</strong>
+            </div>
+            <div className="customer-order-hero-stat">
+              <span>Current total</span>
+              <strong>{money(cartTotal, currency_code)}</strong>
             </div>
           </div>
           {menuQuery.isLoading ? <p className="muted">Loading menu…</p> : null}
