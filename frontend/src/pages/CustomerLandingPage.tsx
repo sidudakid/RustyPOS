@@ -46,9 +46,24 @@ export function CustomerLandingPage() {
         <SectionCard>
           <div className="hero-row customer-landing-hero-row">
             <div className="customer-landing-copy">
-              <p className="eyebrow">Guest ordering</p>
-              <h2 className="section-title customer-landing-title">{heroTitle}</h2>
-              <p className="muted customer-landing-tagline">{tagline}</p>
+              <div className="customer-landing-title-row">
+                <div className="customer-landing-title-copy">
+                  <p className="eyebrow">Guest ordering</p>
+                  <h2 className="section-title customer-landing-title">{heroTitle}</h2>
+                  <p className="muted customer-landing-tagline">{tagline}</p>
+                </div>
+
+                <div className="customer-landing-brand-tile" aria-hidden={!settings.image_url?.trim()}>
+                  {settings.image_url?.trim() ? (
+                    <img src={settings.image_url} alt={settings.name} className="customer-landing-brand-image" />
+                  ) : (
+                    <div className="customer-landing-brand-placeholder">
+                      <span aria-hidden="true">☕</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <p className="muted customer-landing-intro">
                 The fastest way to order is right from your seat. Scan the QR code on your table, tap the NFC link if available,
                 or open the exact table link shared by staff.
@@ -77,31 +92,17 @@ export function CustomerLandingPage() {
               </div>
             </div>
 
-            <div className="customer-landing-media-card">
-              <div className="customer-landing-image-shell">
-                {settings.image_url?.trim() ? (
-                  <img src={settings.image_url} alt={settings.name} className="customer-landing-image" />
-                ) : (
-                  <div className="customer-landing-placeholder">
-                    <span aria-hidden="true">☕</span>
-                    <strong>{settings.name || 'Cafe'}</strong>
-                    <p className="muted">Add a restaurant photo in Admin → Settings to make this feel more like your place.</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="customer-landing-floating-card" id="guest-start">
-                <p className="eyebrow">Start here</p>
-                <h3>Open your exact table</h3>
-                <ol className="customer-landing-step-list">
-                  <li>Find the QR code or tap point at your seat</li>
-                  <li>Open the table-specific menu on your phone</li>
-                  <li>Add items and track the order without flagging staff down</li>
-                </ol>
-                <p className="muted customer-landing-floating-note">
-                  Don&apos;t have the code? Ask staff for the link for <strong>your table</strong>, not a nearby one.
-                </p>
-              </div>
+            <div className="customer-landing-floating-card" id="guest-start">
+              <p className="eyebrow">Start here</p>
+              <h3>Open your exact table</h3>
+              <ol className="customer-landing-step-list">
+                <li>Find the QR code or tap point at your seat</li>
+                <li>Open the table-specific menu on your phone</li>
+                <li>Add items and track the order without flagging staff down</li>
+              </ol>
+              <p className="muted customer-landing-floating-note">
+                Don&apos;t have the code? Ask staff for the link for <strong>your table</strong>, not a nearby one.
+              </p>
             </div>
           </div>
         </SectionCard>
