@@ -113,6 +113,12 @@ export type CafeSettingsResponse = CafeSettings & {
   table_access: AdminTableAccessArtifact[]
 }
 
+export type MenuRecommendation = {
+  item: MenuItem
+  score: number
+  paired_order_count: number
+}
+
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers)
 

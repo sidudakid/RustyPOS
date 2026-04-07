@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { fetchJson, MenuItem, OrderWithItemsView } from '../api'
+import { fetchJson, MenuItem, MenuRecommendation, OrderWithItemsView } from '../api'
 import { NotificationBanner, SectionCard } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 import { money } from '../lib'
@@ -9,6 +9,7 @@ import { money } from '../lib'
 type CustomerMenuResponse = {
   hot_picks: MenuItem[]
   menu: MenuItem[]
+  recommendations: MenuRecommendation[]
 }
 
 export function CustomerPage() {
@@ -27,6 +28,7 @@ export function CustomerPage() {
 
   const menuItems = menuQuery.data?.menu ?? []
   const hotPicks = menuQuery.data?.hot_picks ?? []
+  const recommendationPool = menuQuery.data?.recommendations ?? []
 
   const grouped = useMemo(() => {
     return menuItems.reduce<Record<string, MenuItem[]>>((acc, item) => {
@@ -46,6 +48,16 @@ export function CustomerPage() {
   )
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  const recommendedItems = useMemo(() => {
+    const cartIds = new Set(cartItems.map((item) => item.id))
+    if (!cartIds.size) return recommendationPool.slice(0, 4)
+
+    return recommendationPool
+      .filter((entry) => !cartIds.has(entry.item.id))
+      .sort((left, right) => right.score - left.score || right.paired_order_count - left.paired_order_count)
+      .slice(0, 4)
+  }, [cartItems, recommendationPool])
 
   const createOrder = useMutation({
     mutationFn: async () => {
@@ -224,6 +236,18 @@ export function CustomerPage() {
               <span className="muted">Popular right now</span>
             </div>
             <div className="grid">{hotPicks.map(renderMenuCard)}</div>
+          </SectionCard>
+        ) : null}
+
+        {recommendedItems.length > 0 ? (
+          <SectionCard>
+            <div className="section-heading-row">
+              <h3 className="section-title">🧠 People also pick</h3>
+              <span className="muted">
+                {cartItems.length > 0 ? 'Based on what is already in your cart' : 'Popular add-ons guests often choose together'}
+              </span>
+            </div>
+            <div className="grid">{recommendedItems.map((entry) => renderMenuCard(entry.item))}</div>
           </SectionCard>
         ) : null}
 

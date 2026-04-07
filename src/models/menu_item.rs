@@ -79,9 +79,17 @@ pub struct InventoryUpdateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MenuRecommendation {
+    pub item: MenuItem,
+    pub score: i64,
+    pub paired_order_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomerMenuResponse {
     pub hot_picks: Vec<MenuItem>,
     pub menu: Vec<MenuItem>,
+    pub recommendations: Vec<MenuRecommendation>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

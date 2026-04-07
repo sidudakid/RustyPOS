@@ -3,7 +3,7 @@
 use crate::{
     errors::AppError,
     models::{
-        menu_item::{AdminRevenueSummary, CustomerMenuResponse, MenuItem},
+        menu_item::{AdminRevenueSummary, CustomerMenuResponse, MenuItem, MenuRecommendation},
         order::{
             CreateOrderRequest, OpenTableSummary, Order, OrderItem, OrderItemView, OrderRow, OrderStatus,
             OrderWithItems, OrderWithItemsView, TableOperationalSummary,
@@ -84,7 +84,70 @@ pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid) -> Result<Custome
         hot_picks
     };
 
-    Ok(CustomerMenuResponse { hot_picks, menu })
+    let recommendations = sqlx::query_as::<_, (uuid::Uuid, String, String, String, i64, String, bool, bool, i32, i32, bool, i64, i64)>(
+        "WITH recent_pairs AS (
+            SELECT
+                oi1.menu_item_id AS anchor_item_id,
+                oi2.menu_item_id AS recommended_item_id,
+                COUNT(DISTINCT oi1.order_id)::BIGINT AS paired_order_count,
+                SUM(LEAST(oi1.quantity, oi2.quantity))::BIGINT AS pair_strength
+            FROM order_items oi1
+            JOIN order_items oi2 ON oi1.order_id = oi2.order_id AND oi1.menu_item_id <> oi2.menu_item_id
+            JOIN orders o ON o.id = oi1.order_id
+            WHERE o.created_at >= NOW() - INTERVAL '90 days'
+            GROUP BY oi1.menu_item_id, oi2.menu_item_id
+        ), ranked AS (
+            SELECT
+                recommended_item_id,
+                SUM(pair_strength)::BIGINT AS score,
+                SUM(paired_order_count)::BIGINT AS paired_order_count
+            FROM recent_pairs
+            GROUP BY recommended_item_id
+            ORDER BY SUM(pair_strength) DESC, SUM(paired_order_count) DESC
+            LIMIT 8
+        )
+        SELECT
+            mi.id,
+            mi.name,
+            mi.description,
+            mi.image_url,
+            mi.price,
+            mi.category,
+            mi.active,
+            mi.available,
+            mi.stock_count,
+            mi.low_stock_threshold,
+            mi.restock_needed,
+            ranked.score,
+            ranked.paired_order_count
+        FROM ranked
+        JOIN menu_items mi ON mi.id = ranked.recommended_item_id
+        WHERE mi.active = true AND mi.available = true AND mi.stock_count > 0
+        ORDER BY ranked.score DESC, ranked.paired_order_count DESC, mi.name ASC",
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|(id, name, description, image_url, price, category, active, available, stock_count, low_stock_threshold, restock_needed, score, paired_order_count)| MenuRecommendation {
+        item: MenuItem {
+            id,
+            name,
+            description,
+            image_url,
+            price,
+            category,
+            active,
+            available,
+            stock_count,
+            low_stock_threshold,
+            restock_needed,
+        },
+        score,
+        paired_order_count,
+    })
+    .collect();
+
+    Ok(CustomerMenuResponse { hot_picks, menu, recommendations })
 }
 
 pub async fn create_order(state: &AppState, payload: CreateOrderRequest) -> Result<OrderWithItemsView, AppError> {
