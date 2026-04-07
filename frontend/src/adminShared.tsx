@@ -24,6 +24,13 @@ export type RevenueSummary = {
 export type AnalyticsSummary = {
   monthly_revenue: { month: string; revenue: number; order_count: number }[]
   peak_hours: { hour: number; order_count: number; revenue: number }[]
+  monthly_profit_loss?: {
+    month: string
+    revenue: number
+    costs: number
+    profit: number
+    margin_percent?: number | null
+  }[]
 }
 
 const defaultSettingsDraft: CafeSettings = {
