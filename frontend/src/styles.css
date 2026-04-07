@@ -1813,7 +1813,9 @@ pre {
   .topbar-main {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
+    gap: 0.75rem;
   }
 
   .topbar-row {
@@ -1821,12 +1823,15 @@ pre {
     justify-content: space-between;
     flex-wrap: nowrap;
     width: 100%;
+    min-height: 52px;
   }
 
   .brand-block {
     width: 100%;
     min-width: 0;
     flex: 1 1 auto;
+    display: flex;
+    align-items: center;
   }
 
   .brand-link {
@@ -1839,6 +1844,9 @@ pre {
   .brand-link > div {
     min-width: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .brand-link h1 {
