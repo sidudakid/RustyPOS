@@ -19,6 +19,7 @@ export function CustomerPage() {
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [checkoutTone, setCheckoutTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
+  const [cartExpanded, setCartExpanded] = useState(false)
 
   const selectedIds = useMemo(() => Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([id]) => id), [quantities])
 
@@ -116,6 +117,12 @@ export function CustomerPage() {
       setCheckoutMessage('Your cart is empty. Add a few items to start checkout.')
     }
   }, [cartItems.length, createOrder.isError, createOrder.isPending, createOrder.isSuccess])
+
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      setCartExpanded(false)
+    }
+  }, [cartItems.length])
 
   const setItemQuantity = (itemId: string, nextQuantity: number) => {
     if (interactionsDisabled) {
@@ -287,11 +294,18 @@ export function CustomerPage() {
         ))}
       </div>
 
-      <div className="sidebar-sticky cart-sidebar">
+      <div className={cartExpanded ? 'cart-drawer-backdrop cart-drawer-backdrop-open' : 'cart-drawer-backdrop'} onClick={() => setCartExpanded(false)} />
+
+      <div className={cartExpanded ? 'sidebar-sticky cart-sidebar cart-sidebar-open' : 'sidebar-sticky cart-sidebar'}>
         <SectionCard>
           <div className="section-heading-row">
             <h3 className="section-title">Your cart</h3>
             <span className="info-chip">{cartItemCount} items</span>
+          </div>
+          <div className="cart-mobile-toolbar">
+            <button className="secondary-button" type="button" onClick={() => setCartExpanded(false)}>
+              Close cart
+            </button>
           </div>
           {checkoutMessage ? <NotificationBanner message={checkoutMessage} tone={checkoutTone} /> : null}
           {cartItems.length === 0 ? (
@@ -374,12 +388,12 @@ export function CustomerPage() {
 
       {cartItems.length > 0 ? (
         <div className="mobile-cart-bar" role="region" aria-label="Cart summary">
-          <div className="mobile-cart-summary">
+          <button type="button" className="mobile-cart-summary mobile-cart-summary-button" onClick={() => setCartExpanded(true)}>
             <div className="mobile-cart-count">{cartItemCount} items in cart</div>
             <strong>{money(cartTotal, currency_code)}</strong>
-          </div>
-          <button onClick={submitOrder} disabled={interactionsDisabled || cartItems.length === 0}>
-            {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : 'Checkout'}
+          </button>
+          <button onClick={() => setCartExpanded(true)} disabled={interactionsDisabled || cartItems.length === 0}>
+            {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : 'Open cart'}
           </button>
         </div>
       ) : null}

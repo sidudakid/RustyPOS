@@ -22,6 +22,18 @@ export function AppShell() {
     setMenuOpen(false)
   }, [location.pathname])
 
+  useEffect(() => {
+    if (!menuOpen) {
+      document.body.style.overflow = ''
+      return
+    }
+
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
+
   const activeNavItem = useMemo(
     () =>
       navItems.find((item) =>
@@ -83,6 +95,8 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+
+        {menuOpen ? <button type="button" className="topnav-backdrop" aria-label="Close navigation menu" onClick={closeMenu} /> : null}
       </header>
 
       <nav className="mobile-bottom-nav" aria-label="Primary mobile">
