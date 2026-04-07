@@ -3,11 +3,11 @@ import { AuthTokenInput, SectionCard } from '../components'
 import { adminShellTitle, setupProgressLabel, useAdminState } from '../adminShared'
 
 const adminNavItems = [
-  { to: '/admin/orders', label: 'Overview', description: 'Management hub, setup health, and database controls' },
-  { to: '/admin/menu', label: 'Menu', description: 'Create, edit, archive, and organize catalog data' },
-  { to: '/admin/inventory', label: 'Inventory', description: 'Stock values, availability, and item maintenance' },
-  { to: '/admin/analytics', label: 'Analytics', description: 'Revenue trends and reporting only' },
-  { to: '/admin/settings', label: 'Settings', description: 'Branding, tables, links, and tenant config' },
+  { to: '/admin/orders', label: 'Overview', shortLabel: 'Overview', description: 'Management hub, setup health, and database controls' },
+  { to: '/admin/menu', label: 'Menu', shortLabel: 'Menu', description: 'Create, edit, archive, and organize catalog data' },
+  { to: '/admin/inventory', label: 'Inventory', shortLabel: 'Inventory', description: 'Stock values, availability, and item maintenance' },
+  { to: '/admin/analytics', label: 'Analytics', shortLabel: 'Analytics', description: 'Revenue trends and reporting only' },
+  { to: '/admin/settings', label: 'Settings', shortLabel: 'Settings', description: 'Branding, tables, links, and tenant config' },
 ] as const
 
 export function AdminPage() {
@@ -88,6 +88,19 @@ export function AdminPage() {
           ))}
         </nav>
       </SectionCard>
+
+      <nav className="admin-bottom-nav" aria-label="Admin mobile sections">
+        {adminNavItems.map((item) => (
+          <NavLink
+            key={`admin-mobile-${item.to}`}
+            to={item.to}
+            end={item.to === '/admin/orders'}
+            className={({ isActive }) => (isActive ? 'admin-bottom-link admin-bottom-link-active' : 'admin-bottom-link')}
+          >
+            <span>{item.shortLabel}</span>
+          </NavLink>
+        ))}
+      </nav>
 
       <Outlet context={admin} />
     </section>

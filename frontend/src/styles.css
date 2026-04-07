@@ -718,6 +718,10 @@ pre {
   background: rgba(15, 23, 42, 0.42);
 }
 
+.admin-bottom-nav {
+  display: none;
+}
+
 .admin-subnav-item strong {
   color: #f8fafc;
 }
@@ -2040,7 +2044,8 @@ pre {
   }
 
   .brand-subtitle,
-  .topbar-context {
+  .topbar-context,
+  .admin-subnav-mobile-rail {
     display: none;
   }
 
@@ -2299,6 +2304,39 @@ pre {
   .admin-inventory-chip-row-responsive {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-bottom-nav {
+    position: sticky;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding: 0.45rem;
+    border-radius: 18px;
+    border: 1px solid rgba(71, 85, 105, 0.72);
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(16px);
+  }
+
+  .admin-bottom-link {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem 0.5rem;
+    border-radius: 14px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .admin-bottom-link-active {
+    color: #dbeafe;
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.24), rgba(30, 64, 175, 0.14));
   }
 }
 
