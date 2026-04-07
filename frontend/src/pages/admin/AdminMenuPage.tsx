@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { SectionCard } from '../../components'
 import { centsToMajorUnits, majorUnitsToCents, useAdminOutletState } from '../../adminShared'
 import type { MenuCategory, MenuItem } from '../../api'
@@ -32,11 +32,7 @@ export function AdminMenuPage() {
             </button>
           </div>
 
-          <div className="admin-edit-list">
-            {admin.draftCategories.map((category) => (
-              <CategoryEditor key={category.id} category={category} />
-            ))}
-          </div>
+          <CategoryEditorList />
         </SectionCard>
       </div>
 
@@ -92,6 +88,45 @@ export function AdminMenuPage() {
   )
 }
 
+function CategoryEditorList() {
+  const admin = useAdminOutletState()
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(admin.draftCategories[0]?.id ?? null)
+
+  const selectedCategory = admin.draftCategories.find((category) => category.id === selectedCategoryId) ?? null
+
+  return (
+    <div className="admin-edit-list">
+      {admin.draftCategories.map((category) => {
+        const isSelected = category.id === selectedCategoryId
+
+        return (
+          <div key={category.id} className="admin-edit-card">
+            <div className="section-heading-row">
+              <div>
+                <strong>{category.name}</strong>
+                <p className="muted inventory-helper-text">
+                  Order {category.sort_order} · {category.hot_pick ? 'Hot pick' : 'Standard'} · {category.active ? 'Active' : 'Archived'}
+                </p>
+              </div>
+              <button className={isSelected ? 'secondary-button' : ''} onClick={() => setSelectedCategoryId(isSelected ? null : category.id)}>
+                {isSelected ? 'Close edit' : 'Edit'}
+              </button>
+            </div>
+
+            {isSelected ? <CategoryEditor category={category} /> : null}
+          </div>
+        )
+      })}
+
+      {!admin.draftCategories.length ? <p className="muted inventory-helper-text">No categories yet.</p> : null}
+
+      {admin.draftCategories.length > 0 && !selectedCategory ? (
+        <p className="muted inventory-helper-text">Choose a category to edit.</p>
+      ) : null}
+    </div>
+  )
+}
+
 function CategoryEditor({ category }: { category: MenuCategory }) {
   const admin = useAdminOutletState()
   const updateDraft = (patch: Partial<MenuCategory>) => {
@@ -101,7 +136,7 @@ function CategoryEditor({ category }: { category: MenuCategory }) {
   const draft = admin.draftCategories.find((entry) => entry.id === category.id) ?? category
 
   return (
-    <div className="admin-edit-card">
+    <div className="form-stack" style={{ marginTop: '0.85rem' }}>
       <input value={draft.name} onChange={(e) => updateDraft({ name: e.target.value })} />
       <div className="admin-inline-actions">
         <label className="inline-check">
