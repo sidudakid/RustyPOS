@@ -35,7 +35,7 @@ pub async fn analytics_summary(pool: &PgPool) -> Result<AnalyticsSummary, AppErr
     .fetch_all(pool)
     .await?;
 
-    let profit_rows: Vec<(String, i64, i64, i64, i64, i64)> = sqlx::query_as(
+    let profit_rows: Vec<(String, i64, i64, i64, Option<f64>, i64)> = sqlx::query_as(
         "WITH revenue_by_month AS (
             SELECT
                 DATE_TRUNC('month', o.created_at)::DATE AS month_start,
@@ -52,9 +52,12 @@ pub async fn analytics_summary(pool: &PgPool) -> Result<AnalyticsSummary, AppErr
         SELECT
             rbm.month,
             rbm.revenue,
-            rbm.direct_cost,
-            COALESCE(me.rent + me.payroll + me.utilities + me.marketing + me.misc, 0)::BIGINT AS operating_expenses,
-            (rbm.revenue - rbm.direct_cost - COALESCE(me.rent + me.payroll + me.utilities + me.marketing + me.misc, 0))::BIGINT AS profit_or_loss,
+            (rbm.direct_cost + COALESCE(me.rent + me.payroll + me.utilities + me.marketing + me.misc, 0))::BIGINT AS costs,
+            (rbm.revenue - rbm.direct_cost - COALESCE(me.rent + me.payroll + me.utilities + me.marketing + me.misc, 0))::BIGINT AS profit,
+            CASE
+                WHEN rbm.revenue > 0 THEN ROUND((((rbm.revenue - rbm.direct_cost - COALESCE(me.rent + me.payroll + me.utilities + me.marketing + me.misc, 0))::NUMERIC / rbm.revenue::NUMERIC) * 100.0), 1)::FLOAT8
+                ELSE NULL
+            END AS margin_percent,
             rbm.order_count
         FROM revenue_by_month rbm
         LEFT JOIN monthly_expenses me ON me.month_start = rbm.month_start
@@ -74,12 +77,12 @@ pub async fn analytics_summary(pool: &PgPool) -> Result<AnalyticsSummary, AppErr
             .collect(),
         monthly_profit_loss: profit_rows
             .into_iter()
-            .map(|(month, revenue, direct_cost, operating_expenses, profit_or_loss, order_count)| MonthlyProfitLossPoint {
+            .map(|(month, revenue, costs, profit, margin_percent, order_count)| MonthlyProfitLossPoint {
                 month,
                 revenue,
-                direct_cost,
-                operating_expenses,
-                profit_or_loss,
+                costs,
+                profit,
+                margin_percent,
                 order_count,
             })
             .collect(),

@@ -11,9 +11,9 @@ pub struct MonthlyRevenuePoint {
 pub struct MonthlyProfitLossPoint {
     pub month: String,
     pub revenue: i64,
-    pub direct_cost: i64,
-    pub operating_expenses: i64,
-    pub profit_or_loss: i64,
+    pub costs: i64,
+    pub profit: i64,
+    pub margin_percent: Option<f64>,
     pub order_count: i64,
 }
 
