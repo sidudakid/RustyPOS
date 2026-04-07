@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { SectionCard } from '../../components'
+import { AuthTokenInput, SectionCard } from '../../components'
 import { money, useAdminOutletState } from '../../adminShared'
 
 export function AdminOverviewPage() {
@@ -30,6 +30,46 @@ export function AdminOverviewPage() {
   return (
     <div className="page-layout-admin admin-management-page admin-overview-page">
       <section className="admin-overview-hero-grid">
+        <SectionCard>
+          <div className="section-heading-row admin-overview-card-heading">
+            <div>
+              <p className="eyebrow">Workspace guidance</p>
+              <h3 className="section-title">Admin access and next steps</h3>
+            </div>
+            <span className={admin.connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
+              {admin.connected ? 'Connected' : 'Offline'}
+            </span>
+          </div>
+          <p className="muted inventory-helper-text admin-overview-intro">
+            This admin area is for ownership and database management: configure the restaurant, maintain menu and inventory records, review analytics, and manage table access. Live operational order handling belongs in Staff.
+          </p>
+          <div className="setup-callout-grid admin-overview-setup-grid">
+            <div className="setup-callout-card">
+              <strong>{admin.token ? 'Admin access is loaded' : 'Admin access still needs a token'}</strong>
+              <p className="muted inventory-helper-text">
+                {admin.token
+                  ? 'Authenticated admin CRUD actions are available. Keep this token restricted to the owner or whoever is trusted to change restaurant data.'
+                  : 'Read-only cafe settings can still load, but admin create/edit/archive actions stay blocked until a valid token is entered.'}
+              </p>
+            </div>
+            <div className="setup-callout-card">
+              <strong>Next management step</strong>
+              <p className="muted inventory-helper-text">{admin.setupChecks.nextAction}</p>
+            </div>
+          </div>
+          <AuthTokenInput
+            value={admin.token}
+            invalid={admin.tokenInvalid}
+            onChange={(value) => {
+              admin.setToken(value)
+              localStorage.setItem('adminToken', value)
+            }}
+            onReset={() => {
+              admin.setToken('')
+              localStorage.removeItem('adminToken')
+            }}
+          />
+        </SectionCard>
         <SectionCard>
           <div className="section-heading-row admin-overview-card-heading">
             <div>

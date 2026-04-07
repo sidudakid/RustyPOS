@@ -700,6 +700,15 @@ pre {
   margin-bottom: 1rem;
 }
 
+.admin-shell-hero-compact {
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.admin-subnav-header-compact {
+  margin-top: 0.35rem;
+}
+
 .admin-subnav {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -984,6 +993,10 @@ pre {
 
 .admin-overview-kpi-card-success {
   border-color: rgba(34, 197, 94, 0.35);
+}
+
+.admin-overview-setup-grid {
+  margin-top: 1rem;
 }
 
 .admin-overview-quick-links {
