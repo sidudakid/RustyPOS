@@ -1,0 +1,53 @@
+{
+  "name": "OpenClaw Cafe API",
+  "version": "0.1.0",
+  "baseUrl": "http://127.0.0.1:8081",
+  "auth": {
+    "type": "bearer",
+    "header": "Authorization",
+    "format": "Bearer <token>",
+    "seededTokens": {
+      "owner": "owner-demo-token",
+      "staff": "staff-demo-token",
+      "kitchen": "kitchen-demo-token"
+    }
+  },
+  "moneyFormat": "integer minor units (cents)",
+  "endpoints": [
+    {"method": "GET", "path": "/health", "auth": "public", "summary": "Health check"},
+    {"method": "GET", "path": "/cafe-settings", "auth": "public", "summary": "Get café settings and managed table preview"},
+    {"method": "GET", "path": "/table-tokens/{token}", "auth": "public", "summary": "Resolve table token"},
+    {"method": "GET", "path": "/table-tokens/{token}/menu", "auth": "public", "summary": "Get menu by token"},
+    {"method": "GET", "path": "/tables/{id}/menu", "auth": "public", "summary": "Get menu by table id"},
+    {"method": "POST", "path": "/orders", "auth": "public", "summary": "Create customer order by table id"},
+    {"method": "POST", "path": "/orders/by-token", "auth": "public", "summary": "Create customer order by token"},
+    {"method": "GET", "path": "/orders/{id}", "auth": "public", "summary": "Get order status"},
+    {"method": "GET", "path": "/orders", "auth": "owner", "summary": "List all orders"},
+    {"method": "GET", "path": "/admin/revenue", "auth": "owner", "summary": "Revenue summary"},
+    {"method": "GET", "path": "/admin/analytics", "auth": "owner", "summary": "Analytics summary"},
+    {"method": "GET", "path": "/admin/expenses", "auth": "owner", "summary": "List monthly expenses"},
+    {"method": "PUT", "path": "/admin/expenses", "auth": "owner", "summary": "Create or update monthly expenses"},
+    {"method": "POST", "path": "/orders/manual", "auth": "owner", "summary": "Create manual order"},
+    {"method": "PATCH", "path": "/admin/cafe-settings", "auth": "owner", "summary": "Update cafe settings"},
+    {"method": "GET", "path": "/admin/tables", "auth": "owner", "summary": "List admin table access"},
+    {"method": "GET", "path": "/admin/tables/operations", "auth": "owner", "summary": "List table operations"},
+    {"method": "GET", "path": "/admin/categories", "auth": "owner", "summary": "List categories"},
+    {"method": "POST", "path": "/admin/categories", "auth": "owner", "summary": "Create category"},
+    {"method": "PATCH", "path": "/admin/categories/{id}", "auth": "owner", "summary": "Update category"},
+    {"method": "POST", "path": "/admin/categories/{id}/archive", "auth": "owner", "summary": "Archive category"},
+    {"method": "GET", "path": "/admin/menu-items", "auth": "owner", "summary": "List menu items"},
+    {"method": "POST", "path": "/admin/menu-items", "auth": "owner", "summary": "Create menu item"},
+    {"method": "PATCH", "path": "/admin/menu-items/{id}", "auth": "owner", "summary": "Update menu item"},
+    {"method": "POST", "path": "/admin/menu-items/{id}/archive", "auth": "owner", "summary": "Archive menu item"},
+    {"method": "PATCH", "path": "/admin/menu-items/{id}/availability", "auth": "owner", "summary": "Toggle availability"},
+    {"method": "GET", "path": "/admin/inventory", "auth": "owner", "summary": "Owner inventory summary"},
+    {"method": "GET", "path": "/inventory", "auth": "owner|staff|kitchen", "summary": "List inventory items"},
+    {"method": "PATCH", "path": "/inventory/{id}", "auth": "owner|staff|kitchen", "summary": "Update inventory item"},
+    {"method": "GET", "path": "/kitchen/orders", "auth": "owner|staff|kitchen", "summary": "List active kitchen orders"},
+    {"method": "PATCH", "path": "/orders/{id}/status", "auth": "owner|staff|kitchen", "summary": "Update order status"},
+    {"method": "GET", "path": "/staff/open-tables", "auth": "owner", "summary": "List open tables"},
+    {"method": "GET", "path": "/staff/tables", "auth": "owner", "summary": "List staff table operational summary"},
+    {"method": "POST", "path": "/staff/tables/{id}/settle", "auth": "owner", "summary": "Settle a table"},
+    {"method": "GET", "path": "/ws/orders", "auth": "websocket", "summary": "Order event websocket"}
+  ]
+}
