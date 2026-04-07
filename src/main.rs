@@ -56,7 +56,7 @@ async fn main() -> std::io::Result<()> {
     };
 
     let cors_allowed_origins = std::env::var("CORS_ALLOWED_ORIGINS")
-        .unwrap_or_else(|_| "http://localhost:5173,http://127.0.0.1:5173".to_string());
+        .unwrap_or_else(|_| "http://localhost:5173,http://127.0.0.1:5173,http://192.168.1.81:5173".to_string());
     let cors_origins: Vec<String> = cors_allowed_origins
         .split(',')
         .map(|origin| origin.trim().to_string())
@@ -65,7 +65,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         let mut cors = Cors::default()
-            .allowed_methods(vec!["GET", "POST", "PATCH", "OPTIONS"])
+            .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "OPTIONS"])
             .allowed_headers(vec![actix_web::http::header::AUTHORIZATION, actix_web::http::header::CONTENT_TYPE])
             .supports_credentials();
 
