@@ -298,7 +298,7 @@ export function CustomerPage() {
 
       <div className={cartExpanded ? 'sidebar-sticky cart-sidebar cart-sidebar-open' : 'sidebar-sticky cart-sidebar'}>
         <SectionCard>
-          <div className="section-heading-row">
+          <div className="section-heading-row" id="mobile-cart-heading">
             <h3 className="section-title">Your cart</h3>
             <span className="info-chip">{cartItemCount} items</span>
           </div>
@@ -392,7 +392,17 @@ export function CustomerPage() {
             <div className="mobile-cart-count">{cartItemCount} items in cart</div>
             <strong>{money(cartTotal, currency_code)}</strong>
           </button>
-          <button onClick={() => setCartExpanded(true)} disabled={interactionsDisabled || cartItems.length === 0}>
+          <button
+            type="button"
+            onClick={() => {
+              setCartExpanded(true)
+              window.setTimeout(() => {
+                const cartHeading = document.getElementById('mobile-cart-heading')
+                cartHeading?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+              }, 50)
+            }}
+            disabled={interactionsDisabled || cartItems.length === 0}
+          >
             {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : 'Open cart'}
           </button>
         </div>
