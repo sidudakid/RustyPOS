@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AppShell } from './ui/AppShell'
 import { CustomerPage } from './pages/CustomerPage'
+import { CustomerLandingPage } from './pages/CustomerLandingPage'
 import { CustomerOrderPage } from './pages/CustomerOrderPage'
 import { KitchenPage } from './pages/KitchenPage'
 import { StaffPage } from './pages/StaffPage'
@@ -24,7 +25,7 @@ const router = createBrowserRouter([
     element: <AppShell />,
     errorElement: <ErrorPage />,
     children: [
-      { index: true, element: <CustomerPage /> },
+      { index: true, element: <CustomerLandingPage /> },
       { path: 't/:token', element: <CustomerPage /> },
       { path: 't/:token/order/:orderId', element: <CustomerOrderPage /> },
       { path: 'kitchen', element: <KitchenPage /> },

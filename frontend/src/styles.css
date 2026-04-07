@@ -1569,3 +1569,118 @@ textarea {
 .admin-subnav-item {
   min-width: 220px;
 }
+
+.customer-landing-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.customer-landing-hero-row {
+  align-items: stretch;
+}
+
+.customer-landing-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 720px;
+}
+
+.customer-landing-tagline {
+  font-size: 1.05rem;
+  color: #e2e8f0;
+}
+
+.customer-landing-intro {
+  max-width: 60ch;
+}
+
+.customer-landing-media-card {
+  min-width: min(340px, 100%);
+  display: flex;
+  align-items: stretch;
+}
+
+.customer-landing-image,
+.customer-landing-placeholder {
+  width: 100%;
+  min-height: 280px;
+  border-radius: 18px;
+  border: 1px solid rgba(71, 85, 105, 0.65);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.55));
+}
+
+.customer-landing-image {
+  object-fit: cover;
+}
+
+.customer-landing-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.customer-landing-placeholder span {
+  font-size: 3rem;
+}
+
+.customer-landing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.customer-landing-bottom-grid {
+  align-items: start;
+}
+
+.customer-landing-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.customer-landing-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.customer-landing-info-row span {
+  color: #94a3b8;
+}
+
+.customer-landing-info-row strong {
+  text-align: right;
+  color: #f8fafc;
+}
+
+.admin-inventory-summary-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 920px) {
+  .customer-landing-grid,
+  .admin-inventory-summary-grid-three {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-landing-info-row {
+    flex-direction: column;
+  }
+
+  .customer-landing-info-row strong {
+    text-align: left;
+  }
+}
+

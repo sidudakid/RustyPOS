@@ -68,7 +68,7 @@ export function AdminInventoryPage() {
 
   return (
     <div className="admin-management-page admin-inventory-page">
-      <section className="inventory-summary-grid admin-inventory-summary-grid">
+      <section className="inventory-summary-grid admin-inventory-summary-grid admin-inventory-summary-grid-three">
         <SectionCard>
           <p className="eyebrow">Inventory</p>
           <h3 className="section-title">Tracked items</h3>
@@ -77,15 +77,9 @@ export function AdminInventoryPage() {
         </SectionCard>
         <SectionCard>
           <p className="eyebrow">Attention</p>
-          <h3 className="section-title">Low stock</h3>
-          <strong className="stat-value">{low.length}</strong>
-          <p className="muted">Threshold or restock flag</p>
-        </SectionCard>
-        <SectionCard>
-          <p className="eyebrow">Critical</p>
-          <h3 className="section-title">Out of stock</h3>
-          <strong className="stat-value">{out.length}</strong>
-          <p className="muted">Unavailable or zero on hand</p>
+          <h3 className="section-title">Needs attention</h3>
+          <strong className="stat-value">{out.length + low.length}</strong>
+          <p className="muted">{out.length} critical · {low.length} low stock</p>
         </SectionCard>
         <SectionCard>
           <p className="eyebrow">Healthy</p>
