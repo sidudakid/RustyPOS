@@ -198,29 +198,30 @@ export function AdminSettingsPage() {
 
   return (
     <>
-      <section className="two-column page-layout-admin admin-settings-page">
-        <div>
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
-                <p className="eyebrow">Settings map</p>
-                <h3 className="section-title">Admin settings sections</h3>
-              </div>
+      <section className="admin-settings-page admin-settings-page-single">
+        <SectionCard>
+          <div className="admin-settings-top-strip">
+            <div>
+              <p className="eyebrow">Settings</p>
+              <h3 className="section-title">Admin settings</h3>
+            </div>
+            <div className="admin-settings-top-strip-meta">
               <span className="info-chip">{activeSection}</span>
+              <span className="info-chip">{activeTableAccess.length} live tables</span>
             </div>
-            <div className="admin-settings-section-nav">
-              <button type="button" className={activeSection === 'general' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('general')}>
-                General
-              </button>
-              <button type="button" className={activeSection === 'tables' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('tables')}>
-                Tables
-              </button>
-              <button type="button" className={activeSection === 'access' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('access')}>
-                Access
-              </button>
-            </div>
-          </SectionCard>
-        </div>
+          </div>
+          <div className="admin-settings-section-nav admin-settings-section-nav-compact">
+            <button type="button" className={activeSection === 'general' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('general')}>
+              General
+            </button>
+            <button type="button" className={activeSection === 'tables' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('tables')}>
+              Tables
+            </button>
+            <button type="button" className={activeSection === 'access' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('access')}>
+              Access
+            </button>
+          </div>
+        </SectionCard>
 
         <div className="admin-settings-main-stack">
           {activeSection === 'general' ? (
@@ -370,18 +371,16 @@ export function AdminSettingsPage() {
                   </div>
                   <span className="info-chip">Fast actions</span>
                 </div>
-                <div className="admin-settings-quick-grid">
-                  <button type="button" className="admin-settings-quick-card" onClick={() => setTableFilter('all')}>
+                <div className="admin-settings-access-summary-row">
+                  <button type="button" className="admin-settings-quick-card admin-settings-quick-card-inline" onClick={() => setTableFilter('all')}>
                     <span className="inventory-summary-label">Live access</span>
                     <strong>{activeTableAccess.length} tables</strong>
-                    <small>Search, filter, and open table access modals.</small>
                   </button>
-                  <button type="button" className="admin-settings-quick-card" onClick={() => setTableQuery('TABLE-')}>
+                  <button type="button" className="admin-settings-quick-card admin-settings-quick-card-inline" onClick={() => setTableQuery('TABLE-')}>
                     <span className="inventory-summary-label">Generated names</span>
                     <strong>{admin.tablePreview.length} previews</strong>
-                    <small>Preview table labels without digging through the page.</small>
                   </button>
-                  <div className="admin-settings-address-card admin-settings-address-card-compact">
+                  <div className="admin-settings-address-card admin-settings-address-card-compact admin-settings-address-card-inline">
                     <span className="inventory-summary-label">Address summary</span>
                     <strong>{admin.setupAddress || 'No address configured yet.'}</strong>
                   </div>
@@ -419,14 +418,15 @@ export function AdminSettingsPage() {
                   {filteredTableAccess.map((table) => {
                     const ops = tableOperations.find((entry) => entry.table_id === table.id)
                     return (
-                      <button key={table.id} type="button" className="admin-settings-table-row" onClick={() => setTableModal({ tableId: table.id })}>
-                        <div>
+                      <button key={table.id} type="button" className="admin-settings-table-row admin-settings-table-row-rich" onClick={() => setTableModal({ tableId: table.id })}>
+                        <div className="admin-settings-table-row-copy">
                           <strong>{table.name}</strong>
                           <div className="muted">Table #{table.table_number} · {table.token_label}</div>
                         </div>
-                        <div className="admin-settings-table-row-meta">
-                          <span className={ops?.open_order_count ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
-                            {ops?.open_order_count ? `${ops.open_order_count} open` : 'Live token'}
+                        <div className="admin-settings-table-row-meta admin-settings-table-row-meta-rich">
+                          {ops?.open_order_count ? <span className="info-chip info-chip-danger">{ops.open_order_count} open</span> : null}
+                          <span className={ops?.open_order_count ? 'info-chip' : 'info-chip info-chip-success'}>
+                            Live token
                           </span>
                         </div>
                       </button>
