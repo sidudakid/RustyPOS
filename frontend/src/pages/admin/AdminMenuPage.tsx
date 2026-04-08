@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
-import { SectionCard } from '../../components'
+import { AdminEntityList, AdminListToolbar, SectionCard } from '../../components'
 import { centsToMajorUnits, majorUnitsToCents, useAdminOutletState } from '../../adminShared'
 import type { MenuCategory, MenuItem } from '../../api'
 
@@ -95,7 +95,7 @@ export function AdminMenuPage() {
             </div>
             <span className="info-chip">{filteredItems.length} shown</span>
           </div>
-          <div className="admin-settings-toolbar">
+          <AdminListToolbar>
             <label>
               Search items
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
@@ -109,8 +109,8 @@ export function AdminMenuPage() {
                 <option value="unavailable">Unavailable</option>
               </select>
             </label>
-          </div>
-          <div className="admin-settings-table-list">
+          </AdminListToolbar>
+          <AdminEntityList>
             {filteredItems.map((item) => (
               <button key={item.id} type="button" className="admin-settings-table-row" onClick={() => setModal({ itemId: item.id })}>
                 <div>
@@ -125,7 +125,7 @@ export function AdminMenuPage() {
               </button>
             ))}
             {!filteredItems.length ? <p className="muted">No items match the current search/filter.</p> : null}
-          </div>
+          </AdminEntityList>
         </SectionCard>
       </div>
 

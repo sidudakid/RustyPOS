@@ -30,6 +30,18 @@ export function SectionCard({ children }: PropsWithChildren) {
   return <div className="card">{children}</div>
 }
 
+export function AdminListToolbar({ children }: PropsWithChildren) {
+  return <div className="admin-list-toolbar">{children}</div>
+}
+
+export function AdminEntityList({ children }: PropsWithChildren) {
+  return <div className="admin-entity-list">{children}</div>
+}
+
+export function AdminEntityRow({ children }: PropsWithChildren) {
+  return <div className="admin-entity-row">{children}</div>
+}
+
 export function StatusBadge({ status }: { status: OrderStatus }) {
   return <span className={statusClass(status)}>{status}</span>
 }

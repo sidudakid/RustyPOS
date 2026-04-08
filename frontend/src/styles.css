@@ -833,6 +833,39 @@ pre {
   gap: 0.6rem;
 }
 
+.admin-list-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.6fr);
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.admin-list-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.admin-entity-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  text-align: left;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.64);
+  background: rgba(15, 23, 42, 0.42);
+}
+
 .admin-inline-actions button {
   width: auto;
 }
@@ -2041,7 +2074,8 @@ pre {
   .admin-settings-toolbar,
   .admin-settings-table-preview-grid,
   .admin-settings-quick-grid,
-  .admin-settings-section-nav {
+  .admin-settings-section-nav,
+  .admin-list-toolbar {
     grid-template-columns: 1fr;
   }
 

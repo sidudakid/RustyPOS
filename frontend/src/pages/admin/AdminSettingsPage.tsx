@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { SectionCard } from '../../components'
+import { AdminEntityList, AdminListToolbar, SectionCard } from '../../components'
 import { useAdminOutletState } from '../../adminShared'
 import { PUBLIC_ORIGIN, type CafeSettings, type TableOperationalSummary } from '../../api'
 import { shortId } from '../../lib'
@@ -397,7 +397,7 @@ export function AdminSettingsPage() {
                   <span className="info-chip">{filteredTableAccess.length} shown</span>
                 </div>
 
-                <div className="admin-settings-toolbar">
+                <AdminListToolbar>
                   <label>
                     Search tables
                     <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name, label, or token" />
@@ -410,12 +410,12 @@ export function AdminSettingsPage() {
                       <option value="inactive">Inactive / hidden</option>
                     </select>
                   </label>
-                </div>
+                </AdminListToolbar>
 
                 {admin.settingsQuery.isLoading ? <p className="muted">Loading table access data…</p> : null}
                 {admin.settingsQuery.isError ? <p className="connection-bad">Failed to load live table access data.</p> : null}
 
-                <div className="admin-settings-table-list">
+                <AdminEntityList>
                   {filteredTableAccess.map((table) => {
                     const ops = tableOperations.find((entry) => entry.table_id === table.id)
                     return (
@@ -433,7 +433,7 @@ export function AdminSettingsPage() {
                     )
                   })}
                   {!filteredTableAccess.length ? <p className="muted">No tables match the current search/filter.</p> : null}
-                </div>
+                </AdminEntityList>
               </SectionCard>
             </>
           ) : null}
