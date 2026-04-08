@@ -200,13 +200,12 @@ export function AdminSettingsPage() {
     <>
       <section className="admin-settings-page admin-settings-page-single">
         <SectionCard>
-          <div className="admin-settings-top-strip">
+          <div className="admin-settings-top-strip admin-settings-top-strip-slim">
             <div>
               <p className="eyebrow">Settings</p>
               <h3 className="section-title">Admin settings</h3>
             </div>
-            <div className="admin-settings-top-strip-meta">
-              <span className="info-chip">{activeSection}</span>
+            <div className="admin-settings-top-strip-meta admin-settings-top-strip-meta-slim">
               <span className="info-chip">{activeTableAccess.length} live tables</span>
             </div>
           </div>
