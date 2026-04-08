@@ -22,6 +22,8 @@ type TableAccessModalState = {
   tableId: string
 } | null
 
+type SettingsSection = 'general' | 'tables' | 'access'
+
 function sanitizeFilePart(value: string) {
   return value
     .trim()
@@ -151,6 +153,7 @@ export function AdminSettingsPage() {
   const [tableModal, setTableModal] = useState<TableAccessModalState>(null)
   const [tableQuery, setTableQuery] = useState('')
   const [tableFilter, setTableFilter] = useState<'all' | 'open' | 'inactive'>('all')
+  const [activeSection, setActiveSection] = useState<SettingsSection>('general')
 
   const updateDraft = <K extends keyof CafeSettings>(key: K, value: CafeSettings[K]) => {
     admin.setSettingsDraft((current) => ({ ...current, [key]: value }))
@@ -200,206 +203,240 @@ export function AdminSettingsPage() {
           <SectionCard>
             <div className="section-heading-row">
               <div>
-                <p className="eyebrow">Brand and tenant</p>
-                <h3 className="section-title">Cafe settings</h3>
+                <p className="eyebrow">Settings map</p>
+                <h3 className="section-title">Admin settings sections</h3>
               </div>
-              <span className="info-chip">Slug: {draft.slug}</span>
+              <span className="info-chip">{activeSection}</span>
             </div>
-
-            <div className="form-stack admin-settings-form-stack">
-              <input value={draft.name} onChange={(e) => updateDraft('name', e.target.value)} placeholder="Cafe name" />
-              <input value={draft.legal_name} onChange={(e) => updateDraft('legal_name', e.target.value)} placeholder="Legal name" />
-              <input value={draft.slug} onChange={(e) => updateDraft('slug', e.target.value)} placeholder="Slug" />
-              <input value={draft.tagline} onChange={(e) => updateDraft('tagline', e.target.value)} placeholder="Tagline" />
-              <input value={draft.image_url} onChange={(e) => updateDraft('image_url', e.target.value)} placeholder="Image URL" />
-              <div className="two-column admin-settings-inline-grid">
-                <input value={draft.currency_code} onChange={(e) => updateDraft('currency_code', e.target.value)} placeholder="Currency" />
-                <input value={draft.timezone} onChange={(e) => updateDraft('timezone', e.target.value)} placeholder="Timezone" />
-              </div>
-              <div className="two-column admin-settings-inline-grid">
-                <input value={draft.primary_color} onChange={(e) => updateDraft('primary_color', e.target.value)} placeholder="Primary color" />
-                <input value={draft.accent_color} onChange={(e) => updateDraft('accent_color', e.target.value)} placeholder="Accent color" />
-              </div>
-              <input value={draft.support_email} onChange={(e) => updateDraft('support_email', e.target.value)} placeholder="Support email" />
-              <input value={draft.support_phone} onChange={(e) => updateDraft('support_phone', e.target.value)} placeholder="Support phone" />
+            <div className="admin-settings-section-nav">
+              <button type="button" className={activeSection === 'general' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('general')}>
+                General
+              </button>
+              <button type="button" className={activeSection === 'tables' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('tables')}>
+                Tables
+              </button>
+              <button type="button" className={activeSection === 'access' ? 'admin-settings-section-tab admin-settings-section-tab-active' : 'admin-settings-section-tab'} onClick={() => setActiveSection('access')}>
+                Access
+              </button>
             </div>
           </SectionCard>
         </div>
 
         <div className="admin-settings-main-stack">
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
-                <p className="eyebrow">Quick access</p>
-                <h3 className="section-title">Tables, links, and previews</h3>
-              </div>
-              <span className="info-chip">Fast actions</span>
-            </div>
-            <div className="admin-settings-quick-grid">
-              <button type="button" className="admin-settings-quick-card" onClick={() => setTableFilter('all')}>
-                <span className="inventory-summary-label">Live access</span>
-                <strong>{activeTableAccess.length} tables</strong>
-                <small>Search, filter, and open table access modals.</small>
-              </button>
-              <button type="button" className="admin-settings-quick-card" onClick={() => setTableQuery('TABLE-')}>
-                <span className="inventory-summary-label">Generated names</span>
-                <strong>{admin.tablePreview.length} previews</strong>
-                <small>Preview table labels without digging through the page.</small>
-              </button>
-              <div className="admin-settings-address-card admin-settings-address-card-compact">
-                <span className="inventory-summary-label">Address summary</span>
-                <strong>{admin.setupAddress || 'No address configured yet.'}</strong>
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
-                <p className="eyebrow">Setup health</p>
-                <h3 className="section-title">Restaurant setup status</h3>
-              </div>
-              <span className={tableCountMismatch ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
-                {tableCountMismatch ? 'Needs provisioning' : 'Tables aligned'}
-              </span>
-            </div>
-
-            <div className="settings-summary-grid">
-              <div className="settings-summary-card">
-                <span className="inventory-summary-label">Configured tables</span>
-                <strong>{configuredTableCount}</strong>
-              </div>
-              <div className="settings-summary-card">
-                <span className="inventory-summary-label">Actual backend tables</span>
-                <strong>{actualTableCount}</strong>
-              </div>
-              <div className="settings-summary-card">
-                <span className="inventory-summary-label">Tables with access tokens</span>
-                <strong>{activeTableAccess.length}</strong>
-              </div>
-              <div className="settings-summary-card">
-                <span className="inventory-summary-label">Missing table links</span>
-                <strong>{Math.max(configuredTableCount - activeTableAccess.length, 0)}</strong>
-              </div>
-            </div>
-
-            <p className="muted inventory-helper-text">
-              {tableCountMismatch
-                ? `Settings are configured for ${configuredTableCount} tables, but the backend currently has ${actualTableCount} active table records. Save settings to provision or reconcile the managed table set.`
-                : 'Configured table count matches the currently provisioned backend tables.'}
-            </p>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
-                <p className="eyebrow">Service flow</p>
-                <h3 className="section-title">Tables and address</h3>
-              </div>
-              <span className="info-chip">{admin.tablePreview.length} preview names</span>
-            </div>
-
-            <div className="form-stack admin-settings-form-stack">
-              <input value={draft.address_line_1} onChange={(e) => updateDraft('address_line_1', e.target.value)} placeholder="Address line 1" />
-              <input value={draft.address_line_2} onChange={(e) => updateDraft('address_line_2', e.target.value)} placeholder="Address line 2" />
-              <div className="two-column admin-settings-inline-grid">
-                <input value={draft.city} onChange={(e) => updateDraft('city', e.target.value)} placeholder="City" />
-                <input value={draft.state_region} onChange={(e) => updateDraft('state_region', e.target.value)} placeholder="State / region" />
-              </div>
-              <div className="two-column admin-settings-inline-grid">
-                <input value={draft.postal_code} onChange={(e) => updateDraft('postal_code', e.target.value)} placeholder="Postal code" />
-                <input value={draft.country_code} onChange={(e) => updateDraft('country_code', e.target.value)} placeholder="Country code" />
-              </div>
-              <select value={draft.service_mode} onChange={(e) => updateDraft('service_mode', e.target.value as CafeSettings['service_mode'])}>
-                <option value="table_service">Table service</option>
-                <option value="counter_service">Counter service</option>
-                <option value="hybrid">Hybrid</option>
-              </select>
-              <div className="two-column admin-settings-inline-grid">
-                <input
-                  type="number"
-                  min="1"
-                  value={draft.table_count}
-                  onChange={(e) => updateDraft('table_count', Number(e.target.value))}
-                  placeholder="Table count"
-                />
-                <input value={draft.table_prefix} onChange={(e) => updateDraft('table_prefix', e.target.value)} placeholder="Table prefix" />
-              </div>
-              <select value={draft.table_name_style} onChange={(e) => updateDraft('table_name_style', e.target.value as CafeSettings['table_name_style'])}>
-                <option value="numeric">Numeric</option>
-                <option value="padded">Padded</option>
-                <option value="hyphenated">Hyphenated</option>
-              </select>
-              <button onClick={() => admin.updateCafeSettings.mutate()} disabled={admin.updateCafeSettings.isPending}>
-                {admin.updateCafeSettings.isPending ? 'Saving settings…' : 'Save settings'}
-              </button>
-            </div>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
-                <p className="eyebrow">Preview</p>
-                <h3 className="section-title">Generated table names</h3>
-              </div>
-              <span className="info-chip">{admin.tablePreview.length} names</span>
-            </div>
-            <div className="admin-settings-table-preview-grid">
-              {admin.tablePreview.map((tableName) => (
-                <div className="admin-settings-table-preview-card" key={tableName}>
-                  <strong>{tableName}</strong>
+          {activeSection === 'general' ? (
+            <>
+              <SectionCard>
+                <div className="section-heading-row">
+                  <div>
+                    <p className="eyebrow">Brand and tenant</p>
+                    <h3 className="section-title">Cafe settings</h3>
+                  </div>
+                  <span className="info-chip">Slug: {draft.slug}</span>
                 </div>
-              ))}
-            </div>
-          </SectionCard>
 
-          <SectionCard>
-            <div className="section-heading-row">
-              <div>
-                <p className="eyebrow">Live access</p>
-                <h3 className="section-title">Table links and tokens</h3>
-              </div>
-              <span className="info-chip">{filteredTableAccess.length} shown</span>
-            </div>
-
-            <div className="admin-settings-toolbar">
-              <label>
-                Search tables
-                <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name, label, or token" />
-              </label>
-              <label>
-                Filter
-                <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value as 'all' | 'open' | 'inactive')}>
-                  <option value="all">All live tables</option>
-                  <option value="open">Open orders</option>
-                  <option value="inactive">Inactive / hidden</option>
-                </select>
-              </label>
-            </div>
-
-            {admin.settingsQuery.isLoading ? <p className="muted">Loading table access data…</p> : null}
-            {admin.settingsQuery.isError ? <p className="connection-bad">Failed to load live table access data.</p> : null}
-
-            <div className="admin-settings-table-list">
-              {filteredTableAccess.map((table) => {
-                const ops = tableOperations.find((entry) => entry.table_id === table.id)
-                return (
-                  <button key={table.id} type="button" className="admin-settings-table-row" onClick={() => setTableModal({ tableId: table.id })}>
-                    <div>
-                      <strong>{table.name}</strong>
-                      <div className="muted">Table #{table.table_number} · {table.token_label}</div>
-                    </div>
-                    <div className="admin-settings-table-row-meta">
-                      <span className={ops?.open_order_count ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
-                        {ops?.open_order_count ? `${ops.open_order_count} open` : 'Live token'}
-                      </span>
-                    </div>
+                <div className="form-stack admin-settings-form-stack">
+                  <input value={draft.name} onChange={(e) => updateDraft('name', e.target.value)} placeholder="Cafe name" />
+                  <input value={draft.legal_name} onChange={(e) => updateDraft('legal_name', e.target.value)} placeholder="Legal name" />
+                  <input value={draft.slug} onChange={(e) => updateDraft('slug', e.target.value)} placeholder="Slug" />
+                  <input value={draft.tagline} onChange={(e) => updateDraft('tagline', e.target.value)} placeholder="Tagline" />
+                  <input value={draft.image_url} onChange={(e) => updateDraft('image_url', e.target.value)} placeholder="Image URL" />
+                  <div className="two-column admin-settings-inline-grid">
+                    <input value={draft.currency_code} onChange={(e) => updateDraft('currency_code', e.target.value)} placeholder="Currency" />
+                    <input value={draft.timezone} onChange={(e) => updateDraft('timezone', e.target.value)} placeholder="Timezone" />
+                  </div>
+                  <div className="two-column admin-settings-inline-grid">
+                    <input value={draft.primary_color} onChange={(e) => updateDraft('primary_color', e.target.value)} placeholder="Primary color" />
+                    <input value={draft.accent_color} onChange={(e) => updateDraft('accent_color', e.target.value)} placeholder="Accent color" />
+                  </div>
+                  <input value={draft.support_email} onChange={(e) => updateDraft('support_email', e.target.value)} placeholder="Support email" />
+                  <input value={draft.support_phone} onChange={(e) => updateDraft('support_phone', e.target.value)} placeholder="Support phone" />
+                  <button onClick={() => admin.updateCafeSettings.mutate()} disabled={admin.updateCafeSettings.isPending}>
+                    {admin.updateCafeSettings.isPending ? 'Saving settings…' : 'Save settings'}
                   </button>
-                )
-              })}
-              {!filteredTableAccess.length ? <p className="muted">No tables match the current search/filter.</p> : null}
-            </div>
-          </SectionCard>
+                </div>
+              </SectionCard>
+
+              <SectionCard>
+                <div className="section-heading-row">
+                  <div>
+                    <p className="eyebrow">Setup health</p>
+                    <h3 className="section-title">Restaurant setup status</h3>
+                  </div>
+                  <span className={tableCountMismatch ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
+                    {tableCountMismatch ? 'Needs provisioning' : 'Tables aligned'}
+                  </span>
+                </div>
+
+                <div className="settings-summary-grid">
+                  <div className="settings-summary-card">
+                    <span className="inventory-summary-label">Configured tables</span>
+                    <strong>{configuredTableCount}</strong>
+                  </div>
+                  <div className="settings-summary-card">
+                    <span className="inventory-summary-label">Actual backend tables</span>
+                    <strong>{actualTableCount}</strong>
+                  </div>
+                  <div className="settings-summary-card">
+                    <span className="inventory-summary-label">Tables with access tokens</span>
+                    <strong>{activeTableAccess.length}</strong>
+                  </div>
+                  <div className="settings-summary-card">
+                    <span className="inventory-summary-label">Missing table links</span>
+                    <strong>{Math.max(configuredTableCount - activeTableAccess.length, 0)}</strong>
+                  </div>
+                </div>
+              </SectionCard>
+            </>
+          ) : null}
+
+          {activeSection === 'tables' ? (
+            <>
+              <SectionCard>
+                <div className="section-heading-row">
+                  <div>
+                    <p className="eyebrow">Service flow</p>
+                    <h3 className="section-title">Tables and address</h3>
+                  </div>
+                  <span className="info-chip">{admin.tablePreview.length} preview names</span>
+                </div>
+
+                <div className="form-stack admin-settings-form-stack">
+                  <input value={draft.address_line_1} onChange={(e) => updateDraft('address_line_1', e.target.value)} placeholder="Address line 1" />
+                  <input value={draft.address_line_2} onChange={(e) => updateDraft('address_line_2', e.target.value)} placeholder="Address line 2" />
+                  <div className="two-column admin-settings-inline-grid">
+                    <input value={draft.city} onChange={(e) => updateDraft('city', e.target.value)} placeholder="City" />
+                    <input value={draft.state_region} onChange={(e) => updateDraft('state_region', e.target.value)} placeholder="State / region" />
+                  </div>
+                  <div className="two-column admin-settings-inline-grid">
+                    <input value={draft.postal_code} onChange={(e) => updateDraft('postal_code', e.target.value)} placeholder="Postal code" />
+                    <input value={draft.country_code} onChange={(e) => updateDraft('country_code', e.target.value)} placeholder="Country code" />
+                  </div>
+                  <select value={draft.service_mode} onChange={(e) => updateDraft('service_mode', e.target.value as CafeSettings['service_mode'])}>
+                    <option value="table_service">Table service</option>
+                    <option value="counter_service">Counter service</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                  <div className="two-column admin-settings-inline-grid">
+                    <input
+                      type="number"
+                      min="1"
+                      value={draft.table_count}
+                      onChange={(e) => updateDraft('table_count', Number(e.target.value))}
+                      placeholder="Table count"
+                    />
+                    <input value={draft.table_prefix} onChange={(e) => updateDraft('table_prefix', e.target.value)} placeholder="Table prefix" />
+                  </div>
+                  <select value={draft.table_name_style} onChange={(e) => updateDraft('table_name_style', e.target.value as CafeSettings['table_name_style'])}>
+                    <option value="numeric">Numeric</option>
+                    <option value="padded">Padded</option>
+                    <option value="hyphenated">Hyphenated</option>
+                  </select>
+                  <button onClick={() => admin.updateCafeSettings.mutate()} disabled={admin.updateCafeSettings.isPending}>
+                    {admin.updateCafeSettings.isPending ? 'Saving settings…' : 'Save table settings'}
+                  </button>
+                </div>
+              </SectionCard>
+
+              <SectionCard>
+                <div className="section-heading-row">
+                  <div>
+                    <p className="eyebrow">Preview</p>
+                    <h3 className="section-title">Generated table names</h3>
+                  </div>
+                  <span className="info-chip">{admin.tablePreview.length} names</span>
+                </div>
+                <div className="admin-settings-table-preview-grid">
+                  {admin.tablePreview.map((tableName) => (
+                    <div className="admin-settings-table-preview-card" key={tableName}>
+                      <strong>{tableName}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="admin-settings-address-card">
+                  <span className="inventory-summary-label">Address summary</span>
+                  <strong>{admin.setupAddress || 'No address configured yet.'}</strong>
+                </div>
+              </SectionCard>
+            </>
+          ) : null}
+
+          {activeSection === 'access' ? (
+            <>
+              <SectionCard>
+                <div className="section-heading-row">
+                  <div>
+                    <p className="eyebrow">Quick access</p>
+                    <h3 className="section-title">Tables, links, and previews</h3>
+                  </div>
+                  <span className="info-chip">Fast actions</span>
+                </div>
+                <div className="admin-settings-quick-grid">
+                  <button type="button" className="admin-settings-quick-card" onClick={() => setTableFilter('all')}>
+                    <span className="inventory-summary-label">Live access</span>
+                    <strong>{activeTableAccess.length} tables</strong>
+                    <small>Search, filter, and open table access modals.</small>
+                  </button>
+                  <button type="button" className="admin-settings-quick-card" onClick={() => setTableQuery('TABLE-')}>
+                    <span className="inventory-summary-label">Generated names</span>
+                    <strong>{admin.tablePreview.length} previews</strong>
+                    <small>Preview table labels without digging through the page.</small>
+                  </button>
+                  <div className="admin-settings-address-card admin-settings-address-card-compact">
+                    <span className="inventory-summary-label">Address summary</span>
+                    <strong>{admin.setupAddress || 'No address configured yet.'}</strong>
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard>
+                <div className="section-heading-row">
+                  <div>
+                    <p className="eyebrow">Live access</p>
+                    <h3 className="section-title">Table links and tokens</h3>
+                  </div>
+                  <span className="info-chip">{filteredTableAccess.length} shown</span>
+                </div>
+
+                <div className="admin-settings-toolbar">
+                  <label>
+                    Search tables
+                    <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name, label, or token" />
+                  </label>
+                  <label>
+                    Filter
+                    <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value as 'all' | 'open' | 'inactive')}>
+                      <option value="all">All live tables</option>
+                      <option value="open">Open orders</option>
+                      <option value="inactive">Inactive / hidden</option>
+                    </select>
+                  </label>
+                </div>
+
+                {admin.settingsQuery.isLoading ? <p className="muted">Loading table access data…</p> : null}
+                {admin.settingsQuery.isError ? <p className="connection-bad">Failed to load live table access data.</p> : null}
+
+                <div className="admin-settings-table-list">
+                  {filteredTableAccess.map((table) => {
+                    const ops = tableOperations.find((entry) => entry.table_id === table.id)
+                    return (
+                      <button key={table.id} type="button" className="admin-settings-table-row" onClick={() => setTableModal({ tableId: table.id })}>
+                        <div>
+                          <strong>{table.name}</strong>
+                          <div className="muted">Table #{table.table_number} · {table.token_label}</div>
+                        </div>
+                        <div className="admin-settings-table-row-meta">
+                          <span className={ops?.open_order_count ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
+                            {ops?.open_order_count ? `${ops.open_order_count} open` : 'Live token'}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                  {!filteredTableAccess.length ? <p className="muted">No tables match the current search/filter.</p> : null}
+                </div>
+              </SectionCard>
+            </>
+          ) : null}
         </div>
       </section>
 

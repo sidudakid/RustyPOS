@@ -1505,6 +1505,28 @@ pre {
   gap: 1rem;
 }
 
+.admin-settings-section-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.admin-settings-section-tab {
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.64);
+  background: rgba(15, 23, 42, 0.42);
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.admin-settings-section-tab-active {
+  color: #dbeafe;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.24), rgba(30, 64, 175, 0.14));
+  border-color: rgba(147, 197, 253, 0.32);
+}
+
 .admin-settings-form-stack {
   gap: 0.85rem;
 }
@@ -2005,7 +2027,8 @@ pre {
   .admin-settings-inline-grid,
   .admin-settings-toolbar,
   .admin-settings-table-preview-grid,
-  .admin-settings-quick-grid {
+  .admin-settings-quick-grid,
+  .admin-settings-section-nav {
     grid-template-columns: 1fr;
   }
 
