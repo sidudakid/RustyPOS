@@ -938,6 +938,12 @@ pre {
   gap: 1rem;
 }
 
+.admin-overview-top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+  gap: 1rem;
+}
+
 .admin-overview-hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.95fr);
@@ -1000,10 +1006,15 @@ pre {
   margin-top: 1rem;
 }
 
+.admin-overview-action-grid,
 .admin-overview-quick-links {
   display: grid;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+
+.admin-overview-action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .admin-overview-quick-link {
@@ -1994,10 +2005,12 @@ pre {
   .three-column,
   .inventory-staff-metrics,
   .table-qr-panel,
+  .admin-overview-top-grid,
   .admin-overview-hero-grid,
   .admin-inventory-toolbar,
   .admin-inventory-hero-strip,
-  .admin-inventory-grid {
+  .admin-inventory-grid,
+  .admin-overview-action-grid {
     grid-template-columns: 1fr;
   }
 

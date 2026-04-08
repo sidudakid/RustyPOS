@@ -29,47 +29,59 @@ export function AdminOverviewPage() {
 
   return (
     <div className="page-layout-admin admin-management-page admin-overview-page">
-      <section className="admin-overview-hero-grid">
+      <section className="admin-overview-top-grid">
         <SectionCard>
           <div className="section-heading-row admin-overview-card-heading">
             <div>
-              <p className="eyebrow">Workspace guidance</p>
-              <h3 className="section-title">Admin access and next steps</h3>
+              <p className="eyebrow">Quick actions</p>
+              <h3 className="section-title">Jump into work</h3>
             </div>
             <span className={admin.connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
               {admin.connected ? 'Connected' : 'Offline'}
             </span>
           </div>
-          <p className="muted inventory-helper-text admin-overview-intro">
-            This admin area is for ownership and database management: configure the restaurant, maintain menu and inventory records, review analytics, and manage table access. Live operational order handling belongs in Staff.
-          </p>
-          <div className="setup-callout-grid admin-overview-setup-grid">
-            <div className="setup-callout-card">
-              <strong>{admin.token ? 'Admin access is loaded' : 'Admin access still needs a token'}</strong>
-              <p className="muted inventory-helper-text">
-                {admin.token
-                  ? 'Authenticated admin CRUD actions are available. Keep this token restricted to the owner or whoever is trusted to change restaurant data.'
-                  : 'Read-only cafe settings can still load, but admin create/edit/archive actions stay blocked until a valid token is entered.'}
-              </p>
-            </div>
-            <div className="setup-callout-card">
-              <strong>Next management step</strong>
-              <p className="muted inventory-helper-text">{admin.setupChecks.nextAction}</p>
-            </div>
+          <div className="admin-overview-action-grid">
+            <NavLink className="admin-overview-quick-link" to="/admin/menu">
+              <strong>Edit menu</strong>
+              <span>{menuItems.length} items across {categories.length} categories</span>
+            </NavLink>
+            <NavLink className="admin-overview-quick-link" to="/admin/inventory">
+              <strong>Review inventory</strong>
+              <span>{lowStockItems.length} items need attention</span>
+            </NavLink>
+            <NavLink className="admin-overview-quick-link" to="/admin/settings">
+              <strong>Manage tables & links</strong>
+              <span>{activeTableAccess.length} live table links</span>
+            </NavLink>
+            <NavLink className="admin-overview-quick-link" to="/admin/analytics">
+              <strong>Check analytics</strong>
+              <span>{revenue ? `${revenue.order_count} paid orders tracked` : 'Analytics available'}</span>
+            </NavLink>
           </div>
-          <AuthTokenInput
-            value={admin.token}
-            invalid={admin.tokenInvalid}
-            onChange={(value) => {
-              admin.setToken(value)
-              localStorage.setItem('adminToken', value)
-            }}
-            onReset={() => {
-              admin.setToken('')
-              localStorage.removeItem('adminToken')
-            }}
-          />
         </SectionCard>
+
+        <SectionCard>
+          <div className="section-heading-row admin-overview-card-heading">
+            <div>
+              <p className="eyebrow">Readiness</p>
+              <h3 className="section-title">Setup pulse</h3>
+            </div>
+            <span className={admin.setupChecks.isComplete ? 'info-chip info-chip-success' : 'info-chip'}>
+              {admin.setupChecks.completed}/{admin.setupChecks.total}
+            </span>
+          </div>
+          <p className="muted inventory-helper-text">{admin.setupChecks.nextAction}</p>
+          <div className="pill-list">
+            <span className={admin.setupChecks.identityReady ? 'info-chip info-chip-success' : 'info-chip'}>Identity</span>
+            <span className={admin.setupChecks.locationReady ? 'info-chip info-chip-success' : 'info-chip'}>Location</span>
+            <span className={admin.setupChecks.tableRecordsReady ? 'info-chip info-chip-success' : 'info-chip'}>Tables</span>
+            <span className={admin.setupChecks.tableLinksReady ? 'info-chip info-chip-success' : 'info-chip'}>Links</span>
+            <span className={admin.setupChecks.supportReady ? 'info-chip info-chip-success' : 'info-chip'}>Support</span>
+          </div>
+        </SectionCard>
+      </section>
+
+      <section className="admin-overview-hero-grid">
         <SectionCard>
           <div className="section-heading-row admin-overview-card-heading">
             <div>
@@ -78,9 +90,6 @@ export function AdminOverviewPage() {
             </div>
             <span className="info-chip">CRUD workspace</span>
           </div>
-          <p className="muted inventory-helper-text admin-overview-intro">
-            Keep this area focused on restaurant setup, menu records, stock hygiene, and reporting. Staff owns the live service rail.
-          </p>
           <div className="admin-overview-kpi-grid">
             <div className="admin-overview-kpi-card">
               <span className="inventory-summary-label">Tracked catalog</span>
@@ -108,31 +117,25 @@ export function AdminOverviewPage() {
         <SectionCard>
           <div className="section-heading-row admin-overview-card-heading">
             <div>
-              <p className="eyebrow">Setup pulse</p>
-              <h3 className="section-title">Readiness</h3>
+              <p className="eyebrow">Access</p>
+              <h3 className="section-title">Admin token</h3>
             </div>
-            <span className={admin.setupChecks.isComplete ? 'info-chip info-chip-success' : 'info-chip'}>
-              {admin.setupChecks.completed}/{admin.setupChecks.total}
+            <span className={admin.token ? 'info-chip info-chip-success' : 'info-chip'}>
+              {admin.token ? 'Loaded' : 'Missing'}
             </span>
           </div>
-          <p className="muted inventory-helper-text">{admin.setupChecks.nextAction}</p>
-          <div className="pill-list">
-            <span className={admin.setupChecks.identityReady ? 'info-chip info-chip-success' : 'info-chip'}>Identity</span>
-            <span className={admin.setupChecks.locationReady ? 'info-chip info-chip-success' : 'info-chip'}>Location</span>
-            <span className={admin.setupChecks.tableRecordsReady ? 'info-chip info-chip-success' : 'info-chip'}>Tables</span>
-            <span className={admin.setupChecks.tableLinksReady ? 'info-chip info-chip-success' : 'info-chip'}>Links</span>
-            <span className={admin.setupChecks.supportReady ? 'info-chip info-chip-success' : 'info-chip'}>Support</span>
-          </div>
-          <div className="admin-overview-quick-links">
-            <NavLink className="admin-overview-quick-link" to="/admin/settings">
-              <strong>Open settings</strong>
-              <span>Branding, address, table counts, and QR links.</span>
-            </NavLink>
-            <NavLink className="admin-overview-quick-link" to="/admin/menu">
-              <strong>Review menu database</strong>
-              <span>Names, pricing, categories, and catalog cleanup.</span>
-            </NavLink>
-          </div>
+          <AuthTokenInput
+            value={admin.token}
+            invalid={admin.tokenInvalid}
+            onChange={(value) => {
+              admin.setToken(value)
+              localStorage.setItem('adminToken', value)
+            }}
+            onReset={() => {
+              admin.setToken('')
+              localStorage.removeItem('adminToken')
+            }}
+          />
         </SectionCard>
       </section>
 
@@ -141,29 +144,26 @@ export function AdminOverviewPage() {
           <SectionCard>
             <div className="section-heading-row">
               <div>
-                <p className="eyebrow">Management lanes</p>
-                <h3 className="section-title">What belongs here</h3>
+                <p className="eyebrow">Priority panel</p>
+                <h3 className="section-title">What needs action</h3>
               </div>
-              <span className="info-chip">No live floor ops</span>
+              <span className="info-chip">Owner focus</span>
             </div>
             <div className="admin-edit-list admin-lane-grid">
               <div className="admin-edit-card">
-                <strong>Menu & categories</strong>
-                <p className="muted inventory-helper-text">
-                  Register new categories and items, edit names, prices, images, and archive stale records without crowding staff workflows.
-                </p>
+                <strong>Low-stock items</strong>
+                <p className="muted inventory-helper-text">{lowStockItems.length} records need inventory review.</p>
+                <NavLink className="admin-overview-inline-link" to="/admin/inventory">Open inventory</NavLink>
               </div>
               <div className="admin-edit-card">
-                <strong>Inventory values</strong>
-                <p className="muted inventory-helper-text">
-                  Maintain counts, thresholds, availability, and restock flags as durable data — not as a live rush board.
-                </p>
+                <strong>Table links</strong>
+                <p className="muted inventory-helper-text">{activeTableAccess.length}/{admin.settingsDraft.table_count} customer entry links are live.</p>
+                <NavLink className="admin-overview-inline-link" to="/admin/settings">Open settings</NavLink>
               </div>
               <div className="admin-edit-card">
-                <strong>Restaurant identity & table access</strong>
-                <p className="muted inventory-helper-text">
-                  Update branding, address, service mode, managed table counts, customer links, and support details from Settings.
-                </p>
+                <strong>Catalog hygiene</strong>
+                <p className="muted inventory-helper-text">{archivedItems.length} archived items and {archivedCategories.length} archived categories are stored.</p>
+                <NavLink className="admin-overview-inline-link" to="/admin/menu">Open menu</NavLink>
               </div>
             </div>
           </SectionCard>
@@ -196,9 +196,6 @@ export function AdminOverviewPage() {
                 <strong>{inactiveOperationalTables.length}</strong>
               </div>
             </div>
-            <p className="muted inventory-helper-text">
-              Admin manages structure and records. Staff handles live service activity separately in the Staff workspace.
-            </p>
           </SectionCard>
         </div>
 
