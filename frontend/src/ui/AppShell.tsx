@@ -16,9 +16,7 @@ export function AppShell() {
 
   const cafeName = settings.name || 'OpenClaw Café'
   const cafeImage = settings.image_url?.trim() || ''
-  const isCustomerRoute =
-    location.pathname === '/' ||
-    location.pathname.startsWith('/t/')
+  const customerFacing = location.pathname === '/' || location.pathname.startsWith('/t/')
 
   useEffect(() => {
     setMobileNavOpen(false)
@@ -43,13 +41,13 @@ export function AppShell() {
   )
 
   return (
-    <div className={isCustomerRoute ? 'app-shell app-shell-customer' : 'app-shell'}>
+    <div className={customerFacing ? 'app-shell app-shell-customer' : 'app-shell'}>
       <a className="skip-link" href="#main-content">Skip to content</a>
 
-      <header className={isCustomerRoute ? 'topbar topbar-customer' : 'topbar'}>
+      <header className={customerFacing ? 'topbar topbar-customer' : 'topbar'}>
         <div className="topbar-main">
           <div className="brand-block topbar-row">
-            <Link to="/" className="brand-link">
+            <Link to={customerFacing ? location.pathname : '/'} className="brand-link">
               <span className="brand-media-frame">
                 {cafeImage ? <img src={cafeImage} alt={cafeName} className="brand-image" /> : <span className="brand-mark">☕</span>}
               </span>
@@ -59,20 +57,22 @@ export function AppShell() {
               </div>
             </Link>
 
-            <button
-              type="button"
-              className="secondary-button hamburger-button"
-              aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={mobileNavOpen}
-              aria-controls="primary-navigation"
-              onClick={() => setMobileNavOpen((open) => !open)}
-            >
-              <span aria-hidden="true">{mobileNavOpen ? '✕' : '☰'}</span>
-              <span className="hamburger-button-label">Menu</span>
-            </button>
+            {!customerFacing ? (
+              <button
+                type="button"
+                className="secondary-button hamburger-button"
+                aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={mobileNavOpen}
+                aria-controls="primary-navigation"
+                onClick={() => setMobileNavOpen((open) => !open)}
+              >
+                <span aria-hidden="true">{mobileNavOpen ? '✕' : '☰'}</span>
+                <span className="hamburger-button-label">Menu</span>
+              </button>
+            ) : null}
           </div>
 
-          {!isCustomerRoute ? (
+          {!customerFacing ? (
             <div className="topbar-context" aria-live="polite">
               <span className="topbar-context-label">Current workspace</span>
               <strong>
@@ -80,15 +80,17 @@ export function AppShell() {
               </strong>
               <span>{activeNavItem.description}</span>
             </div>
-          ) : null}
+          ) : (
+            <div className="topbar-context topbar-context-customer" aria-live="polite">
+              <span className="topbar-context-label">Guest view</span>
+              <strong>Table ordering</strong>
+              <span>Browse the menu, track your order, and add extras without leaving the table flow.</span>
+            </div>
+          )}
         </div>
 
-        {!isCustomerRoute ? (
-          <nav
-            id="primary-navigation"
-            className={mobileNavOpen ? 'topnav topnav-open' : 'topnav'}
-            aria-label="Primary"
-          >
+        {!customerFacing ? (
+          <nav id="primary-navigation" className={mobileNavOpen ? 'topnav topnav-open' : 'topnav'} aria-label="Primary">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -109,9 +111,9 @@ export function AppShell() {
         ) : null}
       </header>
 
-      {!isCustomerRoute && mobileNavOpen ? <button type="button" className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} /> : null}
+      {!customerFacing && mobileNavOpen ? <button type="button" className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} /> : null}
 
-      {!isCustomerRoute ? (
+      {!customerFacing ? (
         <nav className="mobile-bottom-nav" aria-label="Primary mobile">
           {navItems.map((item) => (
             <NavLink
@@ -127,7 +129,7 @@ export function AppShell() {
         </nav>
       ) : null}
 
-      <main id="main-content" className={isCustomerRoute ? 'page page-customer' : 'page page-with-mobile-nav'}>
+      <main id="main-content" className={customerFacing ? 'page page-customer-focus' : 'page page-with-mobile-nav'}>
         <Outlet />
       </main>
     </div>

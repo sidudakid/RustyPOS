@@ -4287,3 +4287,88 @@ textarea {
     width: 100%;
   }
 }
+
+.app-shell-customer {
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.14), transparent 24%),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+}
+
+.topbar-customer {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.topbar-context-customer {
+  display: flex;
+  width: 100%;
+  max-width: 460px;
+}
+
+.page-customer-focus {
+  max-width: 1240px;
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+.customer-current-order-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(30, 64, 175, 0.22));
+}
+
+.customer-current-order-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.customer-current-order-copy {
+  margin: 0.35rem 0 0.7rem;
+}
+
+.customer-current-order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.customer-current-order-actions button {
+  width: auto;
+}
+
+.customer-follow-up-callout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  background: rgba(21, 128, 61, 0.12);
+}
+
+.kitchen-follow-up-pills {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 920px) {
+  .topbar-context-customer {
+    max-width: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .customer-current-order-actions,
+  .customer-current-order-actions button {
+    width: 100%;
+  }
+}

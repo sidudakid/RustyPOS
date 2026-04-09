@@ -262,9 +262,9 @@ pub async fn create_order(state: &AppState, payload: CreateOrderRequest) -> Resu
     ensure_table_exists(&mut tx, payload.table_id).await?;
 
     let order: Order = sqlx::query_as::<_, OrderRow>(
-        "INSERT INTO orders (id, table_id, status, created_at)
-         VALUES ($1, $2, $3, NOW())
-         RETURNING id, table_id, status, created_at, paid_at",
+        "INSERT INTO orders (id, table_id, status, created_at, updated_at, follow_up_additions_count)
+         VALUES ($1, $2, $3, NOW(), NOW(), 0)
+         RETURNING id, table_id, status, created_at, updated_at, paid_at, follow_up_additions_count",
     )
     .bind(Uuid::new_v4())
     .bind(payload.table_id)
@@ -359,6 +359,16 @@ pub async fn add_items_to_order(
         }
     }
 
+    sqlx::query(
+        "UPDATE orders
+         SET updated_at = NOW(),
+             follow_up_additions_count = follow_up_additions_count + 1
+         WHERE id = $1",
+    )
+    .bind(order_id)
+    .execute(&mut *tx)
+    .await?;
+
     tx.commit().await?;
 
     state.order_events.send(OrderEventMessage::NewOrder {
@@ -372,6 +382,25 @@ pub async fn add_items_to_order(
 
 pub async fn get_order(pool: &PgPool, order_id: Uuid) -> Result<OrderWithItemsView, AppError> {
     get_order_view(pool, order_id).await
+}
+
+pub async fn get_current_order_for_token(pool: &PgPool, token: &str) -> Result<Option<OrderWithItemsView>, AppError> {
+    let table_id = resolve_table_id_by_token(pool, token).await?;
+    let order_id = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id
+         FROM orders
+         WHERE table_id = $1 AND status != 'paid'
+         ORDER BY updated_at DESC, created_at DESC
+         LIMIT 1",
+    )
+    .bind(table_id)
+    .fetch_optional(pool)
+    .await?;
+
+    match order_id {
+        Some(order_id) => Ok(Some(get_order_view(pool, order_id).await?)),
+        None => Ok(None),
+    }
 }
 
 pub async fn list_active_orders(pool: &PgPool) -> Result<Vec<OrderWithItemsView>, AppError> {
@@ -455,7 +484,7 @@ pub async fn list_open_tables(pool: &PgPool) -> Result<Vec<OpenTableSummary>, Ap
 pub async fn settle_table(pool: &PgPool, table_id: Uuid) -> Result<Vec<OrderWithItemsView>, AppError> {
     let order_ids = sqlx::query_scalar::<_, Uuid>(
         "UPDATE orders
-         SET status = 'paid', paid_at = NOW()
+         SET status = 'paid', paid_at = NOW(), updated_at = NOW()
          WHERE table_id = $1 AND status != 'paid'
          RETURNING id",
     )
@@ -532,7 +561,7 @@ pub async fn update_order_status(
     status: OrderStatus,
 ) -> Result<OrderWithItemsView, AppError> {
     let updated: Option<(Uuid,)> = sqlx::query_as(
-        "UPDATE orders SET status = $2 WHERE id = $1 RETURNING id",
+        "UPDATE orders SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id",
     )
     .bind(order_id)
     .bind(status)
@@ -552,7 +581,7 @@ pub async fn update_order_status(
 
 async fn get_order_view(pool: &PgPool, order_id: Uuid) -> Result<OrderWithItemsView, AppError> {
     let order: Order = sqlx::query_as::<_, OrderRow>(
-        "SELECT id, table_id, status, created_at, paid_at FROM orders WHERE id = $1",
+        "SELECT id, table_id, status, created_at, updated_at, paid_at, follow_up_additions_count FROM orders WHERE id = $1",
     )
     .bind(order_id)
     .fetch_optional(pool)
@@ -572,7 +601,7 @@ async fn get_order_view(pool: &PgPool, order_id: Uuid) -> Result<OrderWithItemsV
 
 async fn list_orders_by_clause(pool: &PgPool, clause: &str) -> Result<Vec<OrderWithItemsView>, AppError> {
     let query = format!(
-        "SELECT id, table_id, status, created_at, paid_at FROM orders {} ORDER BY created_at DESC",
+        "SELECT id, table_id, status, created_at, updated_at, paid_at, follow_up_additions_count FROM orders {} ORDER BY updated_at DESC, created_at DESC",
         clause
     );
 

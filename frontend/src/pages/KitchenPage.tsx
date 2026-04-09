@@ -192,6 +192,12 @@ export function KitchenPage() {
                       </div>
                       <StatusBadge status={entry.order.status} />
                     </div>
+                    {entry.order.is_follow_up ? (
+                      <div className="pill-list kitchen-follow-up-pills">
+                        <span className="info-chip info-chip-success">Follow-up to active table order</span>
+                        <span className="info-chip">{entry.order.follow_up_additions_count} add-on update{entry.order.follow_up_additions_count === 1 ? '' : 's'}</span>
+                      </div>
+                    ) : null}
                     <ul>
                       {entry.items.map((item) => (
                         <li key={item.id}>

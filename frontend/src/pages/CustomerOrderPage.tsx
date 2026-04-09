@@ -58,6 +58,7 @@ export function CustomerOrderPage() {
     queryKey: ['order', orderId],
     queryFn: () => fetchJson<OrderWithItemsView>(`/orders/${orderId}`),
     enabled: Boolean(orderId),
+    refetchInterval: 12000,
   })
 
   const selectedItemIds = useMemo(
@@ -165,6 +166,9 @@ export function CustomerOrderPage() {
   const createdAtLabel = orderQuery.data.order.created_at
     ? new Date(orderQuery.data.order.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : null
+  const lastUpdatedLabel = orderQuery.data.order.updated_at
+    ? new Date(orderQuery.data.order.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : null
   const recommendedItems = recommendationsQuery.data?.recommendations ?? []
   const orderIsClosed = resolvedStatus === 'paid'
 
@@ -197,7 +201,20 @@ export function CustomerOrderPage() {
             <span>Placed</span>
             <strong>{createdAtLabel ?? 'Just now'}</strong>
           </div>
+          <div className="customer-order-summary-card">
+            <span>Latest update</span>
+            <strong>{lastUpdatedLabel ?? createdAtLabel ?? 'Just now'}</strong>
+          </div>
         </div>
+
+        {orderQuery.data.order.is_follow_up ? (
+          <div className="customer-follow-up-callout">
+            <strong>Follow-up order update</strong>
+            <span>
+              This table added more items after the first submit. Kitchen and staff are seeing this order as an add-on to the same visit.
+            </span>
+          </div>
+        ) : null}
 
         <div className="customer-order-stage-strip" aria-label="Order progress">
           {(['pending', 'preparing', 'ready'] as OrderStatus[]).map((stage) => {

@@ -12,6 +12,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/admin/tables", web::get().to(controllers::cafe_settings::list_admin_tables))
             .route("/admin/tables/operations", web::get().to(controllers::cafe_settings::list_admin_table_operations))
             .route("/table-tokens/{token}", web::get().to(controllers::table_tokens::resolve_table_token))
+            .route("/table-tokens/{token}/current-order", web::get().to(controllers::customer::get_current_token_order))
             .route("/table-tokens/{token}/menu", web::get().to(controllers::customer::get_token_menu))
             .route("/tables/{id}/menu", web::get().to(controllers::customer::get_table_menu))
             .route("/orders", web::post().to(controllers::customer::place_order))

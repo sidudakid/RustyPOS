@@ -405,6 +405,7 @@ export function StaffPage() {
                   </div>
                   <div className="pill-list">
                     <StatusBadge status={entry.order.status} />
+                    {entry.order.is_follow_up ? <span className="info-chip info-chip-success">Follow-up add-on</span> : null}
                     {entry.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip">Unpaid</span>}
                   </div>
                 </div>

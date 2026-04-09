@@ -23,7 +23,9 @@ pub struct Order {
     pub table_id: Uuid,
     pub status: OrderStatus,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub paid_at: Option<DateTime<Utc>>,
+    pub follow_up_additions_count: i32,
 }
 
 #[derive(Debug, Clone, FromRow)]
@@ -32,7 +34,9 @@ pub struct OrderRow {
     pub table_id: Uuid,
     pub status: OrderStatus,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub paid_at: Option<DateTime<Utc>>,
+    pub follow_up_additions_count: i32,
 }
 
 impl From<OrderRow> for Order {
@@ -42,7 +46,9 @@ impl From<OrderRow> for Order {
             table_id: value.table_id,
             status: value.status,
             created_at: value.created_at,
+            updated_at: value.updated_at,
             paid_at: value.paid_at,
+            follow_up_additions_count: value.follow_up_additions_count,
         }
     }
 }
@@ -73,7 +79,10 @@ pub struct OrderView {
     pub table_name: Option<String>,
     pub status: OrderStatus,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub paid_at: Option<DateTime<Utc>>,
+    pub follow_up_additions_count: i32,
+    pub is_follow_up: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,7 +158,10 @@ impl OrderWithItems {
                 table_name,
                 status: self.order.status,
                 created_at: self.order.created_at,
+                updated_at: self.order.updated_at,
                 paid_at: self.order.paid_at,
+                follow_up_additions_count: self.order.follow_up_additions_count,
+                is_follow_up: self.order.follow_up_additions_count > 0,
             },
             items,
         }

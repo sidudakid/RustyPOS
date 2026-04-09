@@ -48,7 +48,10 @@ export type OrderWithItemsView = {
     table_name?: string | null
     status: OrderStatus
     created_at: string
+    updated_at: string
     paid_at?: string | null
+    follow_up_additions_count: number
+    is_follow_up: boolean
   }
   items: OrderItemView[]
 }

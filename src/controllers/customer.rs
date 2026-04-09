@@ -35,6 +35,15 @@ pub async fn get_token_menu(
     Ok(HttpResponse::Ok().json(menu))
 }
 
+
+pub async fn get_current_token_order(
+    state: web::Data<AppState>,
+    token: web::Path<String>,
+) -> Result<HttpResponse, AppError> {
+    let current = order_service::get_current_order_for_token(&state.db, &token.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(current))
+}
+
 pub async fn place_order(
     state: web::Data<AppState>,
     payload: web::Json<CreateOrderRequest>,

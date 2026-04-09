@@ -17,6 +17,7 @@ export function AdminOverviewPage() {
   const unavailableItems = inventoryItems.filter((item) => !item.available || item.stock_count <= 0)
   const archivedItems = menuItems.filter((item) => !item.active)
   const archivedCategories = categories.filter((category) => !category.active)
+  const followUpOrders = (admin.ordersQuery.data ?? []).filter((entry) => entry.order.is_follow_up)
   const topRiskItems = [...inventoryItems]
     .filter((item) => item.active)
     .sort((left, right) => {
@@ -105,6 +106,11 @@ export function AdminOverviewPage() {
               <span className="inventory-summary-label">Table access links</span>
               <strong>{activeTableAccess.length}</strong>
               <small>{admin.settingsDraft.table_count} configured</small>
+            </div>
+            <div className="admin-overview-kpi-card">
+              <span className="inventory-summary-label">Follow-up adds</span>
+              <strong>{followUpOrders.length}</strong>
+              <small>Orders updated after first submit</small>
             </div>
             <div className="admin-overview-kpi-card admin-overview-kpi-card-success">
               <span className="inventory-summary-label">Reported revenue</span>

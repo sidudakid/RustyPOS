@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { fetchJson, MenuItem, MenuRecommendation, OrderWithItemsView } from '../api'
-import { NotificationBanner, SectionCard } from '../components'
+import { NotificationBanner, SectionCard, StatusBadge } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 import { money } from '../lib'
 
@@ -15,7 +15,7 @@ type CustomerMenuResponse = {
 export function CustomerPage() {
   const { token } = useParams()
   const navigate = useNavigate()
-  const { currency_code, table_access } = useCafeSettings()
+  const { currency_code } = useCafeSettings()
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [checkoutTone, setCheckoutTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
@@ -27,9 +27,19 @@ export function CustomerPage() {
     enabled: Boolean(token),
   })
 
+  const currentOrderQuery = useQuery({
+    queryKey: ['current-order', token],
+    queryFn: () => fetchJson<OrderWithItemsView | null>(`/table-tokens/${token}/current-order`),
+    enabled: Boolean(token),
+    refetchInterval: 12000,
+  })
+
   const menuItems = menuQuery.data?.menu ?? []
   const hotPicks = menuQuery.data?.hot_picks ?? []
   const recommendationPool = menuQuery.data?.recommendations ?? []
+  const activeOrder = currentOrderQuery.data
+  const activeOrderItemCount = activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0
+  const activeOrderTotal = activeOrder?.items.reduce((sum, item) => sum + item.menu_item_price * item.quantity, 0) ?? 0
 
   const grouped = useMemo(() => {
     return menuItems.reduce<Record<string, MenuItem[]>>((acc, item) => {
@@ -60,11 +70,6 @@ export function CustomerPage() {
       })),
     [menuItems, quantities],
   )
-
-  const tableLabel = useMemo(() => {
-    const matchedTable = table_access.find((entry) => entry.token === token)
-    return matchedTable?.name ?? 'Your table'
-  }, [table_access, token])
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
@@ -117,6 +122,7 @@ export function CustomerPage() {
       setQuantities({})
       setCheckoutTone('success')
       setCheckoutMessage('Order placed! Taking you to your order tracker…')
+      void currentOrderQuery.refetch()
       window.setTimeout(() => navigate(`/t/${token}/order/${data.order.id}`), 900)
     },
     onError: () => {
@@ -139,21 +145,6 @@ export function CustomerPage() {
       setCartExpanded(false)
     }
   }, [cartItems.length])
-
-  useEffect(() => {
-    if (!cartExpanded) {
-      return
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setCartExpanded(false)
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [cartExpanded])
 
   const setItemQuantity = (itemId: string, nextQuantity: number) => {
     if (interactionsDisabled) {
@@ -259,41 +250,7 @@ export function CustomerPage() {
   }
 
   if (!token) {
-    return (
-      <section className="page-layout-customer">
-        <SectionCard>
-          <div className="hero-row">
-            <div>
-              <p className="eyebrow">Customer ordering</p>
-              <h2 className="section-title">Open your table link to start ordering</h2>
-              <p className="muted">
-                This restaurant uses table-specific QR or NFC links. Scan the code at your table, or ask staff for your direct link.
-              </p>
-            </div>
-            <div className="hero-chip-group">
-              <span className="info-chip">No table selected</span>
-              <span className="info-chip">Menu stays table-aware</span>
-            </div>
-          </div>
-
-          <div className="setup-callout-grid">
-            <div className="setup-callout-card">
-              <strong>Guests</strong>
-              <p className="muted">Scan the QR code on the table to load the right menu and send orders to the correct station.</p>
-            </div>
-            <div className="setup-callout-card">
-              <strong>Staff</strong>
-              <p className="muted">Need a direct URL? Grab it from Admin → Settings → Table access links.</p>
-            </div>
-          </div>
-
-          <div className="admin-inline-actions">
-            <Link to="/staff" className="secondary-button">Open staff station</Link>
-            <Link to="/admin/settings" className="secondary-button">Open setup dashboard</Link>
-          </div>
-        </SectionCard>
-      </section>
-    )
+    return null
   }
 
   return (
@@ -315,10 +272,6 @@ export function CustomerPage() {
 
           <div className="customer-menu-top-strip">
             <div className="customer-menu-top-stat">
-              <span>Your table</span>
-              <strong>{tableLabel}</strong>
-            </div>
-            <div className="customer-menu-top-stat">
               <span>Popular now</span>
               <strong>{hotPicks.length || 0} picks</strong>
             </div>
@@ -331,6 +284,26 @@ export function CustomerPage() {
               <strong>{money(cartTotal, currency_code)}</strong>
             </div>
           </div>
+
+          {activeOrder ? (
+            <div className="customer-current-order-banner">
+              <div>
+                <p className="eyebrow">Current table order</p>
+                <div className="customer-current-order-title-row">
+                  <h3 className="section-title">Resume your active order</h3>
+                  <StatusBadge status={activeOrder.order.status} />
+                </div>
+                <p className="muted customer-current-order-copy">
+                  {activeOrderItemCount} items · {money(activeOrderTotal, currency_code)} · last updated {new Date(activeOrder.order.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                </p>
+                {activeOrder.order.is_follow_up ? <span className="info-chip info-chip-success">Follow-up additions attached</span> : null}
+              </div>
+              <div className="customer-current-order-actions">
+                <button type="button" onClick={() => navigate(`/t/${token}/order/${activeOrder.order.id}`)}>Open order tracker</button>
+                <button type="button" className="secondary-button" onClick={() => setCartExpanded(true)}>Keep adding from menu</button>
+              </div>
+            </div>
+          ) : null}
 
           {menuQuery.isLoading ? <p className="muted">Loading menu…</p> : null}
           {menuQuery.isError ? <p className="connection-bad">Failed to load menu.</p> : null}
@@ -380,21 +353,12 @@ export function CustomerPage() {
         ))}
       </div>
 
-      <div
-        className={cartExpanded ? 'cart-drawer-backdrop cart-drawer-backdrop-open' : 'cart-drawer-backdrop'}
-        onClick={() => setCartExpanded(false)}
-        aria-hidden="true"
-      />
+      <div className={cartExpanded ? 'cart-drawer-backdrop cart-drawer-backdrop-open' : 'cart-drawer-backdrop'} onClick={() => setCartExpanded(false)} />
 
-      <div
-        className={cartExpanded ? 'sidebar-sticky cart-sidebar cart-sidebar-open' : 'sidebar-sticky cart-sidebar'}
-        role={cartExpanded ? 'dialog' : undefined}
-        aria-modal={cartExpanded ? 'true' : undefined}
-        aria-labelledby={cartExpanded ? 'mobile-cart-heading' : undefined}
-      >
+      <div className={cartExpanded ? 'sidebar-sticky cart-sidebar cart-sidebar-open' : 'sidebar-sticky cart-sidebar'}>
         <SectionCard>
           <div className="section-heading-row" id="mobile-cart-heading">
-            <h3 className="section-title">Your cart</h3>
+            <h3 className="section-title">New items</h3>
             <span className="info-chip">{cartItemCount} items</span>
           </div>
           <div className="cart-mobile-toolbar">
@@ -423,11 +387,7 @@ export function CustomerPage() {
                         <span className="quantity-chip">{item.quantity}</span>
                         <button onClick={() => setItemQuantity(item.id, item.quantity + 1)} disabled={interactionsDisabled}>+</button>
                       </div>
-                      <button
-                        className="secondary-button cart-remove-button"
-                        onClick={() => setItemQuantity(item.id, 0)}
-                        disabled={interactionsDisabled}
-                      >
+                      <button className="secondary-button cart-remove-button" onClick={() => setItemQuantity(item.id, 0)} disabled={interactionsDisabled}>
                         Remove
                       </button>
                     </div>
@@ -476,7 +436,7 @@ export function CustomerPage() {
             <strong>{money(cartTotal, currency_code)}</strong>
           </div>
           <button onClick={submitOrder} disabled={interactionsDisabled || cartItems.length === 0}>
-            {createOrder.isPending ? 'Placing order…' : createOrder.isSuccess ? 'Order confirmed' : 'Place order'}
+            {createOrder.isPending ? 'Placing order…' : createOrder.isSuccess ? 'Order confirmed' : activeOrder ? 'Send as another order' : 'Place order'}
           </button>
         </SectionCard>
       </div>
