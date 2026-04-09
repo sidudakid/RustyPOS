@@ -10,7 +10,7 @@ export function NotificationButton({
   onClick: () => void | Promise<void>
 }) {
   return (
-    <button className="secondary-button notification-button" onClick={() => void onClick()}>
+    <button className="secondary-button notification-button" type="button" onClick={() => void onClick()}>
       <span aria-hidden="true">{enabled ? '🔕' : '🔔'}</span> {enabled ? 'Mute sound' : 'Enable sound'}
     </button>
   )
@@ -23,7 +23,7 @@ export function NotificationBanner({
   message: string
   tone?: 'info' | 'success' | 'muted' | 'alert'
 }) {
-  return <div className={`notification-banner notification-banner-${tone}`}>{message}</div>
+  return <div className={`notification-banner notification-banner-${tone}`} role="status" aria-live="polite">{message}</div>
 }
 
 export function SectionCard({ children }: PropsWithChildren) {

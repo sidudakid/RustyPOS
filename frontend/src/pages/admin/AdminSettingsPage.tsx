@@ -3,6 +3,7 @@ import { AdminEntityList, AdminListToolbar, SectionCard } from '../../components
 import { useAdminOutletState } from '../../adminShared'
 import { PUBLIC_ORIGIN, type CafeSettings, type TableOperationalSummary } from '../../api'
 import { shortId } from '../../lib'
+import { filterTableAccess, sanitizeFilePart, type TableFilter } from './adminSettingsUtils'
 
 function tableLink(token: string) {
   if (PUBLIC_ORIGIN) return `${PUBLIC_ORIGIN}/t/${token}`
@@ -23,14 +24,6 @@ type TableAccessModalState = {
 } | null
 
 type SettingsSection = 'general' | 'tables' | 'access'
-
-function sanitizeFilePart(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
 
 async function buildQrDataUrl(link: string) {
   const QRCode = await import('qrcode')
@@ -152,7 +145,7 @@ export function AdminSettingsPage() {
   const [qrModal, setQrModal] = useState<QrModalState>(null)
   const [tableModal, setTableModal] = useState<TableAccessModalState>(null)
   const [tableQuery, setTableQuery] = useState('')
-  const [tableFilter, setTableFilter] = useState<'all' | 'open' | 'inactive'>('all')
+  const [tableFilter, setTableFilter] = useState<TableFilter>('all')
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
 
   const updateDraft = <K extends keyof CafeSettings>(key: K, value: CafeSettings[K]) => {
@@ -178,22 +171,12 @@ export function AdminSettingsPage() {
     return `${qrModal.tableName} QR code`
   }, [qrModal])
 
-  const filteredTableAccess = useMemo(() => {
-    const needle = tableQuery.trim().toLowerCase()
+  const filteredTableAccess = useMemo(
+    () => filterTableAccess(tableAccess, tableOperations, tableQuery, tableFilter),
+    [tableAccess, tableFilter, tableOperations, tableQuery],
+  )
 
-    return activeTableAccess.filter((table) => {
-      const ops = tableOperations.find((entry) => entry.table_id === table.id)
-      const matchesText = !needle || [table.name, table.token_label, table.token].some((value) => value.toLowerCase().includes(needle))
-      const matchesFilter =
-        tableFilter === 'all' ||
-        (tableFilter === 'open' && Boolean(ops?.open_order_count)) ||
-        (tableFilter === 'inactive' && !ops?.active)
-
-      return matchesText && matchesFilter
-    })
-  }, [activeTableAccess, tableFilter, tableOperations, tableQuery])
-
-  const selectedTable = tableModal ? activeTableAccess.find((table) => table.id === tableModal.tableId) ?? null : null
+  const selectedTable = tableModal ? tableAccess.find((table) => table.id === tableModal.tableId) ?? null : null
   const selectedTableOps = selectedTable ? tableOperations.find((entry) => entry.table_id === selectedTable.id) ?? null : null
 
   return (
@@ -402,7 +385,7 @@ export function AdminSettingsPage() {
                   </label>
                   <label>
                     Filter
-                    <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value as 'all' | 'open' | 'inactive')}>
+                    <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value as TableFilter)}>
                       <option value="all">All live tables</option>
                       <option value="open">Open orders</option>
                       <option value="inactive">Inactive / hidden</option>
