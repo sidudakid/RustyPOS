@@ -15,7 +15,7 @@ type CustomerMenuResponse = {
 export function CustomerPage() {
   const { token } = useParams()
   const navigate = useNavigate()
-  const { currency_code } = useCafeSettings()
+  const { currency_code, table_access } = useCafeSettings()
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [checkoutTone, setCheckoutTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
@@ -60,6 +60,11 @@ export function CustomerPage() {
       })),
     [menuItems, quantities],
   )
+
+  const tableLabel = useMemo(() => {
+    const matchedTable = table_access.find((entry) => entry.token === token)
+    return matchedTable?.name ?? 'Your table'
+  }, [table_access, token])
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
@@ -134,6 +139,21 @@ export function CustomerPage() {
       setCartExpanded(false)
     }
   }, [cartItems.length])
+
+  useEffect(() => {
+    if (!cartExpanded) {
+      return
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCartExpanded(false)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [cartExpanded])
 
   const setItemQuantity = (itemId: string, nextQuantity: number) => {
     if (interactionsDisabled) {
@@ -295,6 +315,10 @@ export function CustomerPage() {
 
           <div className="customer-menu-top-strip">
             <div className="customer-menu-top-stat">
+              <span>Your table</span>
+              <strong>{tableLabel}</strong>
+            </div>
+            <div className="customer-menu-top-stat">
               <span>Popular now</span>
               <strong>{hotPicks.length || 0} picks</strong>
             </div>
@@ -356,9 +380,18 @@ export function CustomerPage() {
         ))}
       </div>
 
-      <div className={cartExpanded ? 'cart-drawer-backdrop cart-drawer-backdrop-open' : 'cart-drawer-backdrop'} onClick={() => setCartExpanded(false)} />
+      <div
+        className={cartExpanded ? 'cart-drawer-backdrop cart-drawer-backdrop-open' : 'cart-drawer-backdrop'}
+        onClick={() => setCartExpanded(false)}
+        aria-hidden="true"
+      />
 
-      <div className={cartExpanded ? 'sidebar-sticky cart-sidebar cart-sidebar-open' : 'sidebar-sticky cart-sidebar'}>
+      <div
+        className={cartExpanded ? 'sidebar-sticky cart-sidebar cart-sidebar-open' : 'sidebar-sticky cart-sidebar'}
+        role={cartExpanded ? 'dialog' : undefined}
+        aria-modal={cartExpanded ? 'true' : undefined}
+        aria-labelledby={cartExpanded ? 'mobile-cart-heading' : undefined}
+      >
         <SectionCard>
           <div className="section-heading-row" id="mobile-cart-heading">
             <h3 className="section-title">Your cart</h3>

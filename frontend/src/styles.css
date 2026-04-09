@@ -11,6 +11,24 @@ body {
     linear-gradient(180deg, #0f172a 0%, #111827 100%);
 }
 
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 200;
+  padding: 0.7rem 0.95rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.24);
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
 html,
 body,
 #root {
@@ -28,6 +46,26 @@ body,
 
 .page-with-mobile-nav {
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0));
+}
+
+.page-customer {
+  max-width: 1200px;
+}
+
+.app-shell-customer .topbar {
+  grid-template-columns: 1fr;
+}
+
+.topbar-customer {
+  gap: 0.75rem;
+}
+
+.topbar-customer .topbar-main {
+  justify-content: flex-start;
+}
+
+.topbar-customer .brand-block {
+  width: auto;
 }
 
 .topbar {
@@ -632,7 +670,7 @@ pre {
 
 .customer-menu-top-strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
   margin-top: 1rem;
 }
@@ -4003,7 +4041,7 @@ textarea {
 
 .customer-menu-top-strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
   margin-top: 1rem;
 }
@@ -4221,6 +4259,10 @@ textarea {
   .customer-menu-grid,
   .customer-menu-grid-featured {
     grid-template-columns: 1fr;
+  }
+
+  .topbar-customer {
+    padding: 0.9rem 1rem;
   }
 
   .customer-category-rail {

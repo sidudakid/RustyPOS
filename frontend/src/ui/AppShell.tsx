@@ -16,6 +16,9 @@ export function AppShell() {
 
   const cafeName = settings.name || 'OpenClaw Café'
   const cafeImage = settings.image_url?.trim() || ''
+  const isCustomerRoute =
+    location.pathname === '/' ||
+    location.pathname.startsWith('/t/')
 
   useEffect(() => {
     setMobileNavOpen(false)
@@ -40,10 +43,10 @@ export function AppShell() {
   )
 
   return (
-    <div className="app-shell">
+    <div className={isCustomerRoute ? 'app-shell app-shell-customer' : 'app-shell'}>
       <a className="skip-link" href="#main-content">Skip to content</a>
 
-      <header className="topbar">
+      <header className={isCustomerRoute ? 'topbar topbar-customer' : 'topbar'}>
         <div className="topbar-main">
           <div className="brand-block topbar-row">
             <Link to="/" className="brand-link">
@@ -69,56 +72,62 @@ export function AppShell() {
             </button>
           </div>
 
-          <div className="topbar-context" aria-live="polite">
-            <span className="topbar-context-label">Current workspace</span>
-            <strong>
-              {activeNavItem.icon} {activeNavItem.label}
-            </strong>
-            <span>{activeNavItem.description}</span>
-          </div>
+          {!isCustomerRoute ? (
+            <div className="topbar-context" aria-live="polite">
+              <span className="topbar-context-label">Current workspace</span>
+              <strong>
+                {activeNavItem.icon} {activeNavItem.label}
+              </strong>
+              <span>{activeNavItem.description}</span>
+            </div>
+          ) : null}
         </div>
 
-        <nav
-          id="primary-navigation"
-          className={mobileNavOpen ? 'topnav topnav-open' : 'topnav'}
-          aria-label="Primary"
-        >
+        {!isCustomerRoute ? (
+          <nav
+            id="primary-navigation"
+            className={mobileNavOpen ? 'topnav topnav-open' : 'topnav'}
+            aria-label="Primary"
+          >
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => (isActive ? 'nav-pill nav-pill-active' : 'nav-pill')}
+              >
+                <span className="nav-pill-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span className="nav-pill-copy">
+                  <strong>{item.label}</strong>
+                  <span>{item.description}</span>
+                </span>
+              </NavLink>
+            ))}
+          </nav>
+        ) : null}
+      </header>
+
+      {!isCustomerRoute && mobileNavOpen ? <button type="button" className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} /> : null}
+
+      {!isCustomerRoute ? (
+        <nav className="mobile-bottom-nav" aria-label="Primary mobile">
           {navItems.map((item) => (
             <NavLink
-              key={item.to}
+              key={`mobile-${item.to}`}
               to={item.to}
               end={item.end}
-              className={({ isActive }) => (isActive ? 'nav-pill nav-pill-active' : 'nav-pill')}
+              className={({ isActive }) => (isActive ? 'mobile-bottom-link mobile-bottom-link-active' : 'mobile-bottom-link')}
             >
-              <span className="nav-pill-icon" aria-hidden="true">
-                {item.icon}
-              </span>
-              <span className="nav-pill-copy">
-                <strong>{item.label}</strong>
-                <span>{item.description}</span>
-              </span>
+              <span className="mobile-bottom-link-icon" aria-hidden="true">{item.icon}</span>
+              <span className="mobile-bottom-link-label">{item.shortLabel}</span>
             </NavLink>
           ))}
         </nav>
-      </header>
+      ) : null}
 
-      {mobileNavOpen ? <button type="button" className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} /> : null}
-
-      <nav className="mobile-bottom-nav" aria-label="Primary mobile">
-        {navItems.map((item) => (
-          <NavLink
-            key={`mobile-${item.to}`}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => (isActive ? 'mobile-bottom-link mobile-bottom-link-active' : 'mobile-bottom-link')}
-          >
-            <span className="mobile-bottom-link-icon" aria-hidden="true">{item.icon}</span>
-            <span className="mobile-bottom-link-label">{item.shortLabel}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      <main id="main-content" className="page page-with-mobile-nav">
+      <main id="main-content" className={isCustomerRoute ? 'page page-customer' : 'page page-with-mobile-nav'}>
         <Outlet />
       </main>
     </div>
