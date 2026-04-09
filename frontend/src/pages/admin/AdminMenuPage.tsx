@@ -215,10 +215,41 @@ function MenuItemModal({ itemId, onClose }: { itemId: string; onClose: () => voi
   const item = admin.draftMenuItems.find((entry) => entry.id === itemId)
   if (!item) return null
 
+  const serverItem = admin.menuItemsQuery.data?.find((entry) => entry.id === item.id) ?? item
   const draft = item
+  const dirty = JSON.stringify({
+    name: draft.name,
+    description: draft.description,
+    image_url: draft.image_url,
+    price: draft.price,
+    category: draft.category,
+    active: draft.active,
+    available: draft.available,
+    stock_count: draft.stock_count,
+    low_stock_threshold: draft.low_stock_threshold,
+    restock_needed: draft.restock_needed,
+  }) !== JSON.stringify({
+    name: serverItem.name,
+    description: serverItem.description,
+    image_url: serverItem.image_url,
+    price: serverItem.price,
+    category: serverItem.category,
+    active: serverItem.active,
+    available: serverItem.available,
+    stock_count: serverItem.stock_count,
+    low_stock_threshold: serverItem.low_stock_threshold,
+    restock_needed: serverItem.restock_needed,
+  })
+  const canSave = draft.name.trim().length > 0 && draft.category.trim().length > 0 && draft.price >= 0
 
   const updateDraft = (patch: Partial<MenuItem>) => {
     admin.setDraftMenuItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, ...patch } : entry)))
+  }
+
+  const handleSave = () => {
+    admin.updateMenuItem.mutate(draft, {
+      onSuccess: () => onClose(),
+    })
   }
 
   return (
@@ -295,8 +326,8 @@ function MenuItemModal({ itemId, onClose }: { itemId: string; onClose: () => voi
             <button type="button" className="secondary-button" onClick={() => admin.toggleAvailability.mutate({ itemId: draft.id, available: !draft.available })}>
               {draft.available ? 'Mark unavailable' : 'Mark available'}
             </button>
-            <button type="button" onClick={() => admin.updateMenuItem.mutate(draft)}>
-              Save item
+            <button type="button" onClick={handleSave} disabled={!dirty || !canSave || admin.updateMenuItem.isPending}>
+              {admin.updateMenuItem.isPending ? 'Saving…' : 'Save item'}
             </button>
           </div>
         </div>
