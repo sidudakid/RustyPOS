@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useCafeSettings } from '../cafeSettings'
 
@@ -12,9 +12,24 @@ const navItems = [
 export function AppShell() {
   const location = useLocation()
   const settings = useCafeSettings()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const cafeName = settings.name || 'OpenClaw Café'
   const cafeImage = settings.image_url?.trim() || ''
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!mobileNavOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [mobileNavOpen])
 
   const activeNavItem = useMemo(
     () =>
@@ -26,6 +41,8 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+
       <header className="topbar">
         <div className="topbar-main">
           <div className="brand-block topbar-row">
@@ -38,9 +55,21 @@ export function AppShell() {
                 <p className="brand-subtitle">{settings.tagline?.trim() || 'Fast café ordering for customers, kitchen, and staff.'}</p>
               </div>
             </Link>
+
+            <button
+              type="button"
+              className="secondary-button hamburger-button"
+              aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileNavOpen}
+              aria-controls="primary-navigation"
+              onClick={() => setMobileNavOpen((open) => !open)}
+            >
+              <span aria-hidden="true">{mobileNavOpen ? '✕' : '☰'}</span>
+              <span className="hamburger-button-label">Menu</span>
+            </button>
           </div>
 
-          <div className="topbar-context">
+          <div className="topbar-context" aria-live="polite">
             <span className="topbar-context-label">Current workspace</span>
             <strong>
               {activeNavItem.icon} {activeNavItem.label}
@@ -49,7 +78,11 @@ export function AppShell() {
           </div>
         </div>
 
-        <nav className="topnav" aria-label="Primary">
+        <nav
+          id="primary-navigation"
+          className={mobileNavOpen ? 'topnav topnav-open' : 'topnav'}
+          aria-label="Primary"
+        >
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -69,6 +102,8 @@ export function AppShell() {
         </nav>
       </header>
 
+      {mobileNavOpen ? <button type="button" className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} /> : null}
+
       <nav className="mobile-bottom-nav" aria-label="Primary mobile">
         {navItems.map((item) => (
           <NavLink
@@ -83,7 +118,7 @@ export function AppShell() {
         ))}
       </nav>
 
-      <main className="page page-with-mobile-nav">
+      <main id="main-content" className="page page-with-mobile-nav">
         <Outlet />
       </main>
     </div>
