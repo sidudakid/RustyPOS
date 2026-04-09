@@ -41,6 +41,10 @@ export function CustomerPage() {
     }, {})
   }, [menuItems])
 
+  const categoryEntries = useMemo(() => Object.entries(grouped), [grouped])
+
+  const categoryId = (category: string) => `category-${category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`
+
   const cartItems = useMemo(
     () =>
       menuItems.filter((item) => (quantities[item.id] ?? 0) > 0).map((item) => ({
@@ -283,11 +287,22 @@ export function CustomerPage() {
           </SectionCard>
         ) : null}
 
-        {Object.entries(grouped).map(([category, items]) => (
+        {categoryEntries.length > 1 ? (
+          <div className="customer-category-rail" aria-label="Jump to menu category">
+            {categoryEntries.map(([category, items]) => (
+              <a key={`jump-${category}`} href={`#${categoryId(category)}`} className="customer-category-chip">
+                <span>{category}</span>
+                <strong>{items.length}</strong>
+              </a>
+            ))}
+          </div>
+        ) : null}
+
+        {categoryEntries.map(([category, items]) => (
           <SectionCard key={category}>
-            <div className="section-heading-row">
+            <div className="section-heading-row customer-category-heading" id={categoryId(category)}>
               <h3>{category}</h3>
-              <span className="muted">Freshly available</span>
+              <span className="muted">{items.length} item{items.length === 1 ? '' : 's'} ready</span>
             </div>
             <div className="grid">{items.map(renderMenuCard)}</div>
           </SectionCard>
@@ -394,16 +409,10 @@ export function CustomerPage() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              setCartExpanded(true)
-              window.setTimeout(() => {
-                const cartHeading = document.getElementById('mobile-cart-heading')
-                cartHeading?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-              }, 50)
-            }}
+            onClick={submitOrder}
             disabled={interactionsDisabled || cartItems.length === 0}
           >
-            {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : 'Open cart'}
+            {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : 'Place order'}
           </button>
         </div>
       ) : null}
