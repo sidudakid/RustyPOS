@@ -21,8 +21,6 @@ export function CustomerPage() {
   const [checkoutTone, setCheckoutTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
   const [cartExpanded, setCartExpanded] = useState(false)
 
-  const selectedIds = useMemo(() => Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([id]) => id), [quantities])
-
   const menuQuery = useQuery({
     queryKey: ['menu', token],
     queryFn: () => fetchJson<CustomerMenuResponse>(`/table-tokens/${token}/menu`),
@@ -41,9 +39,18 @@ export function CustomerPage() {
     }, {})
   }, [menuItems])
 
-  const categoryEntries = useMemo(() => Object.entries(grouped), [grouped])
+  const categoryEntries = useMemo(() => {
+    const hotPickIds = new Set(hotPicks.map((item) => item.id))
 
-  const categoryId = (category: string) => `category-${category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`
+    return Object.entries(grouped)
+      .map(([category, items]) => ({
+        category,
+        items,
+        inCart: items.reduce((sum, item) => sum + (quantities[item.id] ?? 0), 0),
+        hotCount: items.filter((item) => hotPickIds.has(item.id)).length,
+      }))
+      .sort((left, right) => right.inCart - left.inCart || right.hotCount - left.hotCount || left.category.localeCompare(right.category))
+  }, [grouped, hotPicks, quantities])
 
   const cartItems = useMemo(
     () =>
@@ -175,33 +182,59 @@ export function CustomerPage() {
     createOrder.mutate()
   }
 
-  const renderMenuCard = (item: MenuItem) => {
+  const renderMenuCard = (item: MenuItem, featured = false) => {
     const quantity = quantities[item.id] ?? 0
+    const soldOut = !item.available || item.stock_count === 0
+    const stockLabel = soldOut ? 'Unavailable' : item.restock_needed ? 'Low stock' : 'Available now'
 
     return (
-      <div key={item.id} className="card menu-item menu-item-elevated">
-        {item.image_url ? (
-          <div className="menu-item-image-shell">
-            <img src={item.image_url} alt={item.name} className="menu-item-image" />
+      <article key={item.id} className={`card menu-item menu-item-elevated ${featured ? 'menu-item-featured' : ''} ${quantity > 0 ? 'menu-item-selected' : ''}`}>
+        <div className="menu-item-visual-shell">
+          {item.image_url ? (
+            <div className="menu-item-image-shell">
+              <img src={item.image_url} alt={item.name} className="menu-item-image" />
+            </div>
+          ) : (
+            <div className="menu-item-image-shell menu-item-image-shell-fallback" aria-hidden="true">
+              <span>{item.category.slice(0, 1).toUpperCase()}</span>
+            </div>
+          )}
+          <div className="menu-item-overlay-row">
+            <span className="menu-item-badge">{featured ? 'Hot pick' : item.category}</span>
+            <span className={`menu-item-stock ${soldOut ? 'menu-item-stock-off' : ''}`}>{stockLabel}</span>
           </div>
-        ) : null}
-        <div className="menu-copy">
-          <div className="menu-header-row">
-            <strong>{item.name}</strong>
+        </div>
+
+        <div className="menu-copy menu-copy-rich">
+          <div className="menu-header-row menu-header-row-rich">
+            <div>
+              <strong className="menu-item-title">{item.name}</strong>
+              {item.description ? <p className="menu-description">{item.description}</p> : null}
+            </div>
             <div className="menu-price">{money(item.price, currency_code)}</div>
           </div>
-          {item.description ? <p className="menu-description">{item.description}</p> : null}
-          <div className="menu-card-footer">
-            <div className="muted menu-category">{item.category}</div>
-            {quantity > 0 ? <span className="info-chip info-chip-success">{quantity} in cart</span> : null}
+
+          <div className="menu-card-footer menu-card-footer-rich">
+            <div className="menu-meta-inline">
+              {quantity > 0 ? <span className="info-chip info-chip-success">{quantity} in cart</span> : <span className="info-chip">Tap + to add</span>}
+            </div>
+            <button
+              type="button"
+              className="secondary-button menu-quick-add"
+              onClick={() => setItemQuantity(item.id, quantity + 1)}
+              disabled={interactionsDisabled || soldOut}
+            >
+              {quantity > 0 ? 'Add another' : 'Quick add'}
+            </button>
           </div>
         </div>
-        <div className="quantity-row">
-          <button onClick={() => setItemQuantity(item.id, quantity - 1)} disabled={interactionsDisabled}>-</button>
+
+        <div className="quantity-row quantity-row-rich">
+          <button type="button" onClick={() => setItemQuantity(item.id, quantity - 1)} disabled={interactionsDisabled || quantity === 0}>−</button>
           <span className="quantity-chip">{quantity}</span>
-          <button onClick={() => setItemQuantity(item.id, quantity + 1)} disabled={interactionsDisabled}>+</button>
+          <button type="button" onClick={() => setItemQuantity(item.id, quantity + 1)} disabled={interactionsDisabled || soldOut}>+</button>
         </div>
-      </div>
+      </article>
     )
   }
 
@@ -244,67 +277,81 @@ export function CustomerPage() {
   }
 
   return (
-    <section className="two-column page-layout-customer customer-order-page-shell">
-      <div>
+    <section className="two-column page-layout-customer customer-order-page-shell customer-menu-page">
+      <div className="customer-menu-main">
         <SectionCard>
-          <div className="hero-row customer-order-hero-row">
-            <div className="customer-order-hero-copy">
+          <div className="hero-row customer-order-hero-row customer-menu-hero-row">
+            <div className="customer-order-hero-copy customer-menu-hero-copy">
               <p className="eyebrow">Table service</p>
-              <h2 className="section-title">Order at your table</h2>
-              <p className="muted customer-order-hero-text">Browse what’s live right now, add items quickly, and send the order straight from your phone without losing table context.</p>
+              <h2 className="section-title customer-menu-hero-title">Order at your table</h2>
+              <p className="muted customer-order-hero-text">A faster mobile menu: browse by section, add in one tap, then check out when your cart feels right.</p>
             </div>
-            <div className="hero-chip-group customer-order-hero-chips">
+            <div className="hero-chip-group customer-order-hero-chips customer-menu-hero-chips">
               <span className="info-chip">Table ready</span>
-              <span className="info-chip">{hotPicks.length} hot picks</span>
-              <span className="info-chip">{menuItems.length} menu items</span>
+              <span className="info-chip">{hotPicks.length} chef picks</span>
+              <span className="info-chip">{menuItems.length} items live</span>
             </div>
           </div>
-          <div className="customer-order-hero-stats">
-            <div className="customer-order-hero-stat">
-              <span>Ordering flow</span>
-              <strong>Table-aware</strong>
-            </div>
-            <div className="customer-order-hero-stat">
+
+          <div className="customer-menu-top-strip">
+            <div className="customer-menu-top-stat">
               <span>Popular now</span>
               <strong>{hotPicks.length || 0} picks</strong>
             </div>
-            <div className="customer-order-hero-stat">
+            <div className="customer-menu-top-stat">
+              <span>In your cart</span>
+              <strong>{cartItemCount} items</strong>
+            </div>
+            <div className="customer-menu-top-stat">
               <span>Current total</span>
               <strong>{money(cartTotal, currency_code)}</strong>
             </div>
           </div>
+
           {menuQuery.isLoading ? <p className="muted">Loading menu…</p> : null}
           {menuQuery.isError ? <p className="connection-bad">Failed to load menu.</p> : null}
         </SectionCard>
 
-        {hotPicks.length > 0 ? (
-          <SectionCard>
-            <div className="section-heading-row">
-              <h3 className="section-title">🔥 Hot picks</h3>
-              <span className="muted">Popular right now</span>
-            </div>
-            <div className="grid">{hotPicks.map(renderMenuCard)}</div>
-          </SectionCard>
-        ) : null}
-
-        {categoryEntries.length > 1 ? (
-          <div className="customer-category-rail" aria-label="Jump to menu category">
-            {categoryEntries.map(([category, items]) => (
-              <a key={`jump-${category}`} href={`#${categoryId(category)}`} className="customer-category-chip">
-                <span>{category}</span>
-                <strong>{items.length}</strong>
+        {categoryEntries.length > 0 ? (
+          <div className="customer-category-rail" aria-label="Menu categories">
+            {hotPicks.length > 0 ? (
+              <a href="#hot-picks" className="customer-category-chip">
+                <strong>Hot picks</strong>
+                <span>{hotPicks.length}</span>
+              </a>
+            ) : null}
+            {categoryEntries.map(({ category, items, inCart }) => (
+              <a key={`chip-${category}`} href={`#category-${encodeURIComponent(category)}`} className="customer-category-chip">
+                <strong>{category}</strong>
+                <span>{inCart > 0 ? `${inCart} in cart` : `${items.length} items`}</span>
               </a>
             ))}
           </div>
         ) : null}
 
-        {categoryEntries.map(([category, items]) => (
-          <SectionCard key={category}>
-            <div className="section-heading-row customer-category-heading" id={categoryId(category)}>
-              <h3>{category}</h3>
-              <span className="muted">{items.length} item{items.length === 1 ? '' : 's'} ready</span>
+        {hotPicks.length > 0 ? (
+          <SectionCard>
+            <div className="section-heading-row customer-section-heading" id="hot-picks">
+              <div>
+                <h3 className="section-title">🔥 Hot picks</h3>
+                <p className="muted customer-section-subcopy">Fastest way to order what people are reaching for most.</p>
+              </div>
+              <span className="info-chip">Popular right now</span>
             </div>
-            <div className="grid">{items.map(renderMenuCard)}</div>
+            <div className="grid customer-menu-grid customer-menu-grid-featured">{hotPicks.map((item) => renderMenuCard(item, true))}</div>
+          </SectionCard>
+        ) : null}
+
+        {categoryEntries.map(({ category, items, inCart }) => (
+          <SectionCard key={category}>
+            <div className="section-heading-row customer-section-heading" id={`category-${encodeURIComponent(category)}`}>
+              <div>
+                <h3 className="section-title customer-category-heading">{category}</h3>
+                <p className="muted customer-section-subcopy">{inCart > 0 ? `${inCart} already in your cart from this section.` : `${items.length} items ready to order.`}</p>
+              </div>
+              <span className="info-chip">{items.length} choices</span>
+            </div>
+            <div className="grid customer-menu-grid">{items.map((item) => renderMenuCard(item))}</div>
           </SectionCard>
         ))}
       </div>
@@ -402,17 +449,14 @@ export function CustomerPage() {
       </div>
 
       {cartItems.length > 0 ? (
-        <div className="mobile-cart-bar" role="region" aria-label="Cart summary">
+        <div className="mobile-cart-bar mobile-cart-bar-premium" role="region" aria-label="Cart summary">
           <button type="button" className="mobile-cart-summary mobile-cart-summary-button" onClick={() => setCartExpanded(true)}>
             <div className="mobile-cart-count">{cartItemCount} items in cart</div>
             <strong>{money(cartTotal, currency_code)}</strong>
+            <span className="mobile-cart-hint">Review items or keep browsing categories</span>
           </button>
-          <button
-            type="button"
-            onClick={submitOrder}
-            disabled={interactionsDisabled || cartItems.length === 0}
-          >
-            {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : 'Place order'}
+          <button type="button" onClick={submitOrder} disabled={interactionsDisabled || cartItems.length === 0}>
+            {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : `Checkout · ${money(cartTotal, currency_code)}`}
           </button>
         </div>
       ) : null}
