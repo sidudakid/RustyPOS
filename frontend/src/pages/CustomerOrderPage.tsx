@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { API_BASE, fetchJson, OrderStatus, OrderWithItemsView } from '../api'
+import { AddOrderItemsRequest, API_BASE, fetchJson, MenuRecommendation, OrderStatus, OrderWithItemsView } from '../api'
 import { NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 import { money } from '../lib'
@@ -15,6 +15,10 @@ import {
   playAlertTone,
   showBrowserNotification,
 } from '../notifications'
+
+type CustomerMenuResponse = {
+  recommendations: MenuRecommendation[]
+}
 
 const ORDER_STAGE_META: Record<OrderStatus, { step: number; label: string; description: string }> = {
   pending: {
@@ -56,6 +60,17 @@ export function CustomerOrderPage() {
     enabled: Boolean(orderId),
   })
 
+  const selectedItemIds = useMemo(
+    () => Array.from(new Set((orderQuery.data?.items ?? []).map((item) => item.menu_item_id))),
+    [orderQuery.data?.items],
+  )
+
+  const recommendationsQuery = useQuery({
+    queryKey: ['order-recommendations', token, selectedItemIds],
+    queryFn: () => fetchJson<CustomerMenuResponse>(`/table-tokens/${token}/menu?${new URLSearchParams(selectedItemIds.map((id) => ['selected', id]))}`),
+    enabled: Boolean(token) && selectedItemIds.length > 0,
+  })
+
   useEffect(() => {
     const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
     const socket = new WebSocket(`${wsBase}/ws/orders`)
@@ -64,11 +79,12 @@ export function CustomerOrderPage() {
       const payload = JSON.parse(event.data) as { order_id?: string; status?: OrderStatus }
       if (payload.order_id === orderId && payload.status) {
         setLiveStatus(payload.status)
+        void orderQuery.refetch()
       }
     }
 
     return () => socket.close()
-  }, [orderId])
+  }, [orderId, orderQuery])
 
   const showBanner = (message: string, tone: 'info' | 'success' | 'muted' | 'alert') => {
     setBanner(message)
@@ -98,7 +114,7 @@ export function CustomerOrderPage() {
     }
 
     lastPlayedStatusRef.current = status
-  }, [status])
+  }, [status, orderId])
 
   useEffect(() => {
     return () => {
@@ -107,6 +123,36 @@ export function CustomerOrderPage() {
       }
     }
   }, [])
+
+  const addToOrder = useMutation({
+    mutationFn: async (menuItemId: string) => {
+      if (!orderId) {
+        throw new Error('Order not found.')
+      }
+
+      const payload: AddOrderItemsRequest = {
+        token,
+        items: [{ menu_item_id: menuItemId, quantity: 1 }],
+      }
+
+      return fetchJson<OrderWithItemsView>(`/orders/${orderId}/items`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+    },
+    onMutate: () => {
+      showBanner('Adding that to your current order…', 'info')
+    },
+    onSuccess: async (updatedOrder) => {
+      await orderQuery.refetch()
+      await recommendationsQuery.refetch()
+      const lastItem = updatedOrder.items[updatedOrder.items.length - 1]
+      showBanner(`✅ Added ${lastItem?.menu_item_name ?? 'item'} to this order.`, 'success')
+    },
+    onError: (error) => {
+      showBanner(error instanceof Error ? error.message : 'We could not update your order right now.', 'alert')
+    },
+  })
 
   if (orderQuery.isLoading) return <SectionCard>Loading order…</SectionCard>
   if (orderQuery.isError || !orderQuery.data) return <SectionCard>Order not found.</SectionCard>
@@ -119,9 +165,11 @@ export function CustomerOrderPage() {
   const createdAtLabel = orderQuery.data.order.created_at
     ? new Date(orderQuery.data.order.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : null
+  const recommendedItems = recommendationsQuery.data?.recommendations ?? []
+  const orderIsClosed = resolvedStatus === 'paid'
 
   return (
-    <div className="customer-order-page-shell">
+    <div className="customer-order-page-shell customer-order-tracker-page">
       <SectionCard>
         <div className="customer-order-tracker-hero">
           <div>
@@ -233,6 +281,52 @@ export function CustomerOrderPage() {
       </SectionCard>
 
       <SectionCard>
+        <div className="section-heading-row customer-order-upsell-heading">
+          <div>
+            <p className="eyebrow">Add to this order</p>
+            <h3 className="section-title">Recommended right now</h3>
+            <p className="muted customer-order-upsell-copy">
+              Pick something extra and we’ll attach it to this same order tracker.
+            </p>
+          </div>
+          <span className="info-chip">No restart required</span>
+        </div>
+
+        {orderIsClosed ? (
+          <p className="muted">This order is already settled, so new items need a fresh order.</p>
+        ) : recommendationsQuery.isLoading ? (
+          <p className="muted">Loading recommendations…</p>
+        ) : recommendedItems.length === 0 ? (
+          <p className="muted">No recommendations yet, but you can still browse the full menu.</p>
+        ) : (
+          <div className="customer-order-upsell-list">
+            {recommendedItems.map((entry) => (
+              <div key={`tracker-rec-${entry.item.id}`} className="customer-order-upsell-card">
+                <div className="customer-order-upsell-copy-block">
+                  <div className="customer-order-upsell-title-row">
+                    <strong>{entry.item.name}</strong>
+                    <strong>{money(entry.item.price, currency_code)}</strong>
+                  </div>
+                  <div className="customer-order-upsell-meta-row">
+                    <span className="info-chip">{entry.matched_cart_items > 0 || entry.score > 0 ? 'Recommended pair' : 'Popular add-on'}</span>
+                    <span className="muted">{entry.reason}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="secondary-button customer-order-upsell-button"
+                  onClick={() => addToOrder.mutate(entry.item.id)}
+                  disabled={addToOrder.isPending}
+                >
+                  {addToOrder.isPending ? 'Adding…' : 'Add to this order'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard>
         <div className="section-heading-row">
           <div>
             <p className="eyebrow">Next steps</p>
@@ -240,7 +334,7 @@ export function CustomerOrderPage() {
           </div>
         </div>
         <div className="customer-order-actions-grid">
-          <button onClick={() => navigate(`/t/${token}`)}>Add more items</button>
+          <button onClick={() => navigate(`/t/${token}`)}>{orderIsClosed ? 'Start a new order' : 'Browse full menu'}</button>
           <button className="secondary-button" onClick={() => navigate('/')}>Back to start</button>
         </div>
       </SectionCard>

@@ -2,7 +2,7 @@
 
 use crate::{
     errors::AppError,
-    models::order::{CreateOrderRequest, CreateTokenOrderRequest, OrderWithItemsView},
+    models::order::{AddOrderItemsRequest, CreateOrderRequest, CreateTokenOrderRequest, OrderWithItemsView},
     services::order_service,
     AppState,
 };
@@ -58,6 +58,23 @@ pub async fn place_token_order(
     )
     .await?;
     Ok(HttpResponse::Created().json(created))
+}
+
+pub async fn add_order_items(
+    state: web::Data<AppState>,
+    order_id: web::Path<Uuid>,
+    payload: web::Json<AddOrderItemsRequest>,
+) -> Result<HttpResponse, AppError> {
+    let payload = payload.into_inner();
+    let table_id = order_service::resolve_table_id_by_token(&state.db, &payload.token).await?;
+    let updated = order_service::add_items_to_order(
+        &state,
+        order_id.into_inner(),
+        table_id,
+        payload.items,
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(updated))
 }
 
 pub async fn get_order_status(

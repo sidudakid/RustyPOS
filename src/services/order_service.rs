@@ -5,8 +5,8 @@ use crate::{
     models::{
         menu_item::{AdminRevenueSummary, CustomerMenuResponse, MenuItem, MenuRecommendation},
         order::{
-            CreateOrderRequest, OpenTableSummary, Order, OrderItem, OrderItemView, OrderRow, OrderStatus,
-            OrderWithItems, OrderWithItemsView, TableOperationalSummary,
+            CreateOrderItemRequest, CreateOrderRequest, OpenTableSummary, Order, OrderItem, OrderItemView, OrderRow,
+            OrderStatus, OrderWithItems, OrderWithItemsView, TableOperationalSummary,
         },
         table::CafeTable,
     },
@@ -298,6 +298,76 @@ pub async fn create_order(state: &AppState, payload: CreateOrderRequest) -> Resu
     });
 
     get_order_view(&state.db, order.id).await
+}
+
+pub async fn add_items_to_order(
+    state: &AppState,
+    order_id: Uuid,
+    table_id: Uuid,
+    items: Vec<CreateOrderItemRequest>,
+) -> Result<OrderWithItemsView, AppError> {
+    let payload = CreateOrderRequest { table_id, items };
+    validate_items(&payload)?;
+
+    let mut tx = state.db.begin().await?;
+    let existing_order: Option<(Uuid, OrderStatus, Uuid)> = sqlx::query_as(
+        "SELECT id, status, table_id FROM orders WHERE id = $1",
+    )
+    .bind(order_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    let (_existing_id, status, existing_table_id) = existing_order.ok_or(AppError::NotFound)?;
+
+    if existing_table_id != table_id {
+        return Err(AppError::Unauthorized("order does not belong to this table token".into()));
+    }
+
+    if matches!(status, OrderStatus::Paid) {
+        return Err(AppError::BadRequest("this order is already settled and can no longer be updated".into()));
+    }
+
+    for item in &payload.items {
+        ensure_menu_item_exists(&mut tx, item.menu_item_id).await?;
+
+        let existing_line: Option<(Uuid, i32)> = sqlx::query_as(
+            "SELECT id, quantity FROM order_items WHERE order_id = $1 AND menu_item_id = $2",
+        )
+        .bind(order_id)
+        .bind(item.menu_item_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        if let Some((line_id, current_quantity)) = existing_line {
+            sqlx::query("UPDATE order_items SET quantity = $2 WHERE id = $1")
+                .bind(line_id)
+                .bind(current_quantity + item.quantity)
+                .execute(&mut *tx)
+                .await?;
+        } else {
+            sqlx::query_as::<_, OrderItem>(
+                "INSERT INTO order_items (id, order_id, menu_item_id, quantity)
+                 VALUES ($1, $2, $3, $4)
+                 RETURNING id, order_id, menu_item_id, quantity",
+            )
+            .bind(Uuid::new_v4())
+            .bind(order_id)
+            .bind(item.menu_item_id)
+            .bind(item.quantity)
+            .fetch_one(&mut *tx)
+            .await?;
+        }
+    }
+
+    tx.commit().await?;
+
+    state.order_events.send(OrderEventMessage::NewOrder {
+        order_id,
+        table_id,
+        status,
+    });
+
+    get_order_view(&state.db, order_id).await
 }
 
 pub async fn get_order(pool: &PgPool, order_id: Uuid) -> Result<OrderWithItemsView, AppError> {

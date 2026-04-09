@@ -53,6 +53,14 @@ export type OrderWithItemsView = {
   items: OrderItemView[]
 }
 
+export type AddOrderItemsRequest = {
+  token: string
+  items: Array<{
+    menu_item_id: string
+    quantity: number
+  }>
+}
+
 export type OpenTableSummary = {
   table_id: string
   table_name: string

@@ -17,6 +17,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/orders", web::post().to(controllers::customer::place_order))
             .route("/orders/by-token", web::post().to(controllers::customer::place_token_order))
             .route("/orders/{id}", web::get().to(controllers::customer::get_order_status))
+            .route("/orders/{id}/items", web::post().to(controllers::customer::add_order_items))
             .route("/orders", web::get().to(controllers::admin::list_orders))
             .route("/admin/revenue", web::get().to(controllers::admin::revenue_summary))
             .route("/admin/analytics", web::get().to(controllers::analytics::analytics_summary))

@@ -124,6 +124,12 @@ pub struct CreateTokenOrderRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddOrderItemsRequest {
+    pub token: String,
+    pub items: Vec<CreateOrderItemRequest>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateOrderStatusRequest {
     pub status: OrderStatus,
 }
