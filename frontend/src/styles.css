@@ -3206,3 +3206,257 @@ textarea {
   }
 }
 
+.customer-landing-page-premium {
+  gap: 1.25rem;
+}
+
+.customer-landing-premium-hero .card,
+.customer-landing-showcase-grid .card,
+.customer-landing-details-grid .card {
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--landing-accent) 14%, transparent), transparent 30%),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--landing-primary) 16%, transparent), transparent 32%),
+    rgba(15, 23, 42, 0.94);
+}
+
+.customer-landing-premium-shell,
+.customer-landing-showcase-grid,
+.customer-landing-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.95fr);
+  gap: 1rem;
+}
+
+.customer-landing-premium-copy,
+.customer-landing-premium-aside,
+.customer-landing-brand-panel,
+.customer-landing-start-card,
+.customer-landing-detail-card,
+.customer-landing-summary-card,
+.customer-landing-experience-card,
+.customer-landing-guidance-row {
+  min-width: 0;
+}
+
+.customer-landing-premium-copy,
+.customer-landing-premium-aside,
+.customer-landing-brand-panel,
+.customer-landing-start-card,
+.customer-landing-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.customer-landing-badge-row,
+.customer-landing-cta-row,
+.customer-landing-metric-row,
+.customer-landing-summary-band {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.customer-landing-badge-row {
+  align-items: center;
+}
+
+.customer-landing-service-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--landing-primary) 18%, rgba(15, 23, 42, 0.96));
+  border: 1px solid color-mix(in srgb, var(--landing-primary) 35%, rgba(148, 163, 184, 0.22));
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.customer-landing-service-note,
+.customer-landing-detail-card span,
+.customer-landing-metric-card span,
+.customer-landing-summary-card span,
+.customer-landing-experience-kicker {
+  color: #94a3b8;
+}
+
+.customer-landing-premium-title {
+  font-size: clamp(2.35rem, 5vw, 4rem);
+  line-height: 0.98;
+}
+
+.customer-landing-premium-tagline {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  line-height: 1.4;
+  color: #f8fafc;
+  max-width: 34rem;
+}
+
+.customer-landing-premium-intro {
+  max-width: 60ch;
+  line-height: 1.7;
+}
+
+.customer-landing-primary-link-premium {
+  min-width: min(100%, 250px);
+}
+
+.customer-landing-primary-link:focus-visible,
+.customer-landing-support-links a:focus-visible {
+  outline: 3px solid color-mix(in srgb, white 82%, var(--landing-accent));
+  outline-offset: 3px;
+}
+
+.customer-landing-cta-support,
+.customer-landing-trust-card,
+.customer-landing-brand-panel,
+.customer-landing-start-card,
+.customer-landing-detail-card,
+.customer-landing-summary-card,
+.customer-landing-experience-card,
+.customer-landing-guidance-row,
+.customer-landing-metric-card {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(71, 85, 105, 0.58);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.customer-landing-cta-support {
+  flex: 1 1 220px;
+}
+
+.customer-landing-cta-support strong,
+.customer-landing-brand-panel-copy h3,
+.customer-landing-start-card h3,
+.customer-landing-detail-card strong,
+.customer-landing-summary-card strong,
+.customer-landing-experience-card strong,
+.customer-landing-guidance-row strong,
+.customer-landing-metric-card strong {
+  color: #f8fafc;
+}
+
+.customer-landing-cta-support span,
+.customer-landing-brand-panel-copy p,
+.customer-landing-step-list-premium li span,
+.customer-landing-guidance-row p,
+.customer-landing-experience-card p {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.customer-landing-trust-grid,
+.customer-landing-experience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.customer-landing-trust-card,
+.customer-landing-guidance-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.customer-landing-trust-card > span,
+.customer-landing-guidance-row > span {
+  font-size: 1.2rem;
+  line-height: 1.4;
+}
+
+.customer-landing-brand-visual {
+  width: min(100%, 220px);
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(71, 85, 105, 0.65);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(30, 41, 59, 0.55));
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.18);
+}
+
+.customer-landing-brand-panel-copy h3,
+.customer-landing-start-card h3 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.customer-landing-brand-placeholder small {
+  margin-top: 0.35rem;
+  color: #cbd5e1;
+}
+
+.customer-landing-metric-card,
+.customer-landing-summary-card,
+.customer-landing-detail-card,
+.customer-landing-experience-card {
+  flex: 1 1 0;
+}
+
+.customer-landing-step-list-premium {
+  padding-left: 1.15rem;
+}
+
+.customer-landing-step-list-premium li + li {
+  margin-top: 0.75rem;
+}
+
+.customer-landing-warning {
+  margin: 0.25rem 0 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--landing-accent) 42%, rgba(148, 163, 184, 0.28));
+  background: color-mix(in srgb, var(--landing-accent) 14%, rgba(15, 23, 42, 0.82));
+  color: #fef3c7;
+  line-height: 1.5;
+}
+
+.customer-landing-support-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.customer-landing-support-links a {
+  color: inherit;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
+}
+
+.customer-landing-empty-state {
+  display: inline-flex;
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+@media (max-width: 980px) {
+  .customer-landing-premium-shell,
+  .customer-landing-showcase-grid,
+  .customer-landing-details-grid,
+  .customer-landing-trust-grid,
+  .customer-landing-experience-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .customer-landing-premium-title {
+    font-size: 2.25rem;
+  }
+
+  .customer-landing-cta-row {
+    align-items: stretch;
+  }
+
+  .customer-landing-support-links {
+    justify-content: flex-start;
+  }
+}
+
