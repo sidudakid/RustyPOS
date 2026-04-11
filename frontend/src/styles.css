@@ -4401,6 +4401,139 @@ textarea {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.customer-menu-hero-row-compact {
+  margin-bottom: 0;
+}
+
+.customer-menu-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.customer-menu-shortcut-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.28rem;
+  min-height: 82px;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(71, 85, 105, 0.64);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.54), rgba(15, 23, 42, 0.32));
+  color: #e2e8f0;
+  text-decoration: none;
+}
+
+.customer-menu-shortcut-card span {
+  color: #93c5fd;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.customer-menu-shortcut-card strong {
+  color: #f8fafc;
+  line-height: 1.3;
+}
+
+.customer-menu-shortcut-card-button {
+  width: 100%;
+  text-align: left;
+  box-shadow: none;
+}
+
+.customer-menu-shortcut-card-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.customer-menu-shortcut-card-muted {
+  border-style: dashed;
+}
+
+.customer-menu-page .customer-current-order-banner {
+  margin-top: 0.9rem;
+}
+
+.admin-inventory-workspace-heading {
+  align-items: flex-start;
+}
+
+.admin-inventory-workspace-copy {
+  margin: 0.35rem 0 0;
+  max-width: 62ch;
+}
+
+.admin-inventory-results-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.admin-inventory-priority-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.admin-inventory-priority-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.admin-inventory-priority-pill span {
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-inventory-priority-pill strong {
+  color: #f8fafc;
+  font-size: 1.5rem;
+}
+
+.admin-inventory-priority-pill small {
+  color: #94a3b8;
+}
+
+.admin-inventory-priority-pill-danger {
+  border-color: rgba(239, 68, 68, 0.34);
+}
+
+.admin-inventory-priority-pill-warning {
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.admin-inventory-results-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+
+.admin-inventory-results-title {
+  margin-bottom: 0.2rem;
+}
+
+.admin-inventory-results-copy {
+  margin: 0;
+  max-width: 44ch;
+  text-align: right;
+}
+
 .customer-order-tracker-page .customer-order-summary-grid {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
@@ -4479,13 +4612,26 @@ textarea {
 
 @media (max-width: 920px) {
   .customer-menu-page .customer-menu-top-strip,
-  .customer-order-tracker-page .customer-order-summary-grid {
+  .customer-order-tracker-page .customer-order-summary-grid,
+  .customer-menu-quick-actions,
+  .admin-inventory-priority-bar {
     grid-template-columns: 1fr 1fr;
   }
 
   .customer-menu-page .customer-current-order-banner,
-  .customer-order-tracker-page .customer-order-upsell-card {
+  .customer-order-tracker-page .customer-order-upsell-card,
+  .admin-inventory-results-header {
     align-items: stretch;
+  }
+
+  .admin-inventory-results-header {
+    flex-direction: column;
+  }
+
+  .admin-inventory-results-copy,
+  .admin-inventory-results-meta {
+    text-align: left;
+    justify-content: flex-start;
   }
 }
 
@@ -4514,7 +4660,9 @@ textarea {
   .customer-landing-page-premium .customer-landing-trust-grid,
   .customer-landing-page-premium .customer-landing-experience-grid,
   .customer-landing-page-premium .customer-landing-metric-row,
-  .customer-landing-page-premium .customer-landing-summary-band {
+  .customer-landing-page-premium .customer-landing-summary-band,
+  .customer-menu-quick-actions,
+  .admin-inventory-priority-bar {
     grid-template-columns: 1fr;
   }
 
@@ -4561,7 +4709,8 @@ textarea {
   .customer-menu-page .menu-quick-add,
   .customer-order-tracker-page .customer-order-upsell-button,
   .customer-order-tracker-page .notification-button,
-  .customer-landing-page-premium .customer-landing-primary-link-premium {
+  .customer-landing-page-premium .customer-landing-primary-link-premium,
+  .customer-menu-shortcut-card-button {
     width: 100%;
   }
 

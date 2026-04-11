@@ -92,32 +92,35 @@ export function AdminInventoryPage() {
       </section>
 
       <SectionCard>
-        <div className="section-heading-row">
+        <div className="section-heading-row admin-inventory-workspace-heading">
           <div>
             <p className="eyebrow">Stock controls</p>
             <h3 className="section-title">Inventory workspace</h3>
+            <p className="muted inventory-helper-text admin-inventory-workspace-copy">
+              Database maintenance only: adjust stock counts, thresholds, availability, and archived records without mixing this screen into the live staff flow.
+            </p>
           </div>
-          <span className="info-chip">{filteredItems.length} shown</span>
+          <div className="admin-inventory-results-meta">
+            <span className="info-chip">{filteredItems.length} shown</span>
+            <span className="info-chip">{filter === 'attention' ? 'Attention view' : filter === 'healthy' ? 'Healthy view' : filter === 'inactive' ? 'Inactive view' : 'All records'}</span>
+          </div>
         </div>
-        <p className="muted inventory-helper-text">
-          This view is for database maintenance: stock counts, thresholds, availability, and archived records. It intentionally stays separate from live staff handling.
-        </p>
 
-        <div className="admin-inventory-hero-strip">
-          <div className="admin-inventory-hero-card admin-inventory-hero-card-danger">
-            <span className="inventory-summary-label">Critical stock-outs</span>
+        <div className="admin-inventory-priority-bar" aria-label="Inventory priority summary">
+          <div className="admin-inventory-priority-pill admin-inventory-priority-pill-danger">
+            <span>Critical</span>
             <strong>{out.length}</strong>
-            <p className="muted">Items unavailable or fully out of stock.</p>
+            <small>Out of stock or unavailable</small>
           </div>
-          <div className="admin-inventory-hero-card admin-inventory-hero-card-warning">
-            <span className="inventory-summary-label">Low stock</span>
+          <div className="admin-inventory-priority-pill admin-inventory-priority-pill-warning">
+            <span>Low stock</span>
             <strong>{low.length}</strong>
-            <p className="muted">Items approaching threshold and needing attention soon.</p>
+            <small>Near threshold</small>
           </div>
-          <div className="admin-inventory-hero-card">
-            <span className="inventory-summary-label">Healthy active items</span>
+          <div className="admin-inventory-priority-pill">
+            <span>Healthy</span>
             <strong>{healthy.length}</strong>
-            <p className="muted">Sellable records with no active warning right now.</p>
+            <small>No warning</small>
           </div>
         </div>
 
@@ -159,6 +162,18 @@ export function AdminInventoryPage() {
           <button type="button" className={filter === 'inactive' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('inactive')}>
             Inactive {inactiveItems.length}
           </button>
+        </div>
+
+        <div className="admin-inventory-results-header">
+          <div>
+            <p className="eyebrow">Results</p>
+            <h4 className="section-title admin-inventory-results-title">{filter === 'attention' ? 'Priority queue' : filter === 'healthy' ? 'Healthy stock list' : filter === 'inactive' ? 'Inactive records' : 'All inventory records'}</h4>
+          </div>
+          <p className="muted admin-inventory-results-copy">
+            {query.trim()
+              ? `Filtered by “${query.trim()}” and sorted ${sort === 'attention' ? 'by urgency' : sort === 'name' ? 'alphabetically' : sort === 'stock-low' ? 'from lowest stock upward' : 'from highest stock downward'}.`
+              : `Sorted ${sort === 'attention' ? 'by urgency so the riskiest items stay near the top' : sort === 'name' ? 'alphabetically for quick scanning' : sort === 'stock-low' ? 'from lowest stock upward' : 'from highest stock downward'}.`}
+          </p>
         </div>
 
         {admin.inventoryQuery.isLoading ? (

@@ -73,6 +73,7 @@ export function CustomerPage() {
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const firstCategoryAnchor = categoryEntries[0] ? `#category-${encodeURIComponent(categoryEntries[0].category)}` : undefined
 
   const recommendedItems = useMemo(() => {
     const cartIds = new Set(cartItems.map((item) => item.id))
@@ -257,11 +258,11 @@ export function CustomerPage() {
     <section className="two-column page-layout-customer customer-order-page-shell customer-menu-page">
       <div className="customer-menu-main">
         <SectionCard>
-          <div className="hero-row customer-order-hero-row customer-menu-hero-row">
+          <div className="hero-row customer-order-hero-row customer-menu-hero-row customer-menu-hero-row-compact">
             <div className="customer-order-hero-copy customer-menu-hero-copy">
               <p className="eyebrow">Table service</p>
               <h2 className="section-title customer-menu-hero-title">Order at your table</h2>
-              <p className="muted customer-order-hero-text">A faster mobile menu: browse by section, add in one tap, then check out when your cart feels right.</p>
+              <p className="muted customer-order-hero-text">Browse by section, add in one tap, and send the order when your cart feels right.</p>
             </div>
             <div className="hero-chip-group customer-order-hero-chips customer-menu-hero-chips">
               <span className="info-chip">Table ready</span>
@@ -283,6 +284,32 @@ export function CustomerPage() {
               <span>Current total</span>
               <strong>{money(cartTotal, currency_code)}</strong>
             </div>
+          </div>
+
+          <div className="customer-menu-quick-actions" aria-label="Ordering shortcuts">
+            {hotPicks.length > 0 ? (
+              <a href="#hot-picks" className="customer-menu-shortcut-card">
+                <span>Start fast</span>
+                <strong>Jump to hot picks</strong>
+              </a>
+            ) : firstCategoryAnchor ? (
+              <a href={firstCategoryAnchor} className="customer-menu-shortcut-card">
+                <span>Start ordering</span>
+                <strong>Jump to the first menu section</strong>
+              </a>
+            ) : null}
+
+            {activeOrder ? (
+              <button type="button" className="secondary-button customer-menu-shortcut-card customer-menu-shortcut-card-button" onClick={() => navigate(`/t/${token}/order/${activeOrder.order.id}`)}>
+                <span>Already ordered?</span>
+                <strong>Open your order tracker</strong>
+              </button>
+            ) : (
+              <div className="customer-menu-shortcut-card customer-menu-shortcut-card-muted">
+                <span>Ordering path</span>
+                <strong>Pick a section below and add items to your cart</strong>
+              </div>
+            )}
           </div>
 
           {activeOrder ? (
