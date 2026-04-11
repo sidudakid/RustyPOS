@@ -16,7 +16,7 @@ import {
 } from '../notifications'
 
 type InventoryTone = 'out' | 'low' | 'ok'
-type StaffView = 'all' | 'attention' | 'idle'
+type StaffView = 'all' | 'attention' | 'cashier' | 'ready' | 'idle'
 
 function inventoryTone(item: MenuItem): InventoryTone {
   if (item.stock_count <= 0) return 'out'
@@ -29,6 +29,24 @@ function inventoryLabel(item: MenuItem): string {
   if (tone === 'out') return 'Out of stock'
   if (tone === 'low') return 'Low stock'
   return 'In stock'
+}
+
+function tablePriorityScore(table: TableOperationalSummary): number {
+  if (!table.active) return 0
+  if (table.ready_order_count > 0 && table.unpaid_total_amount > 0) return 5
+  if (table.unpaid_total_amount > 0) return 4
+  if (table.ready_order_count > 0) return 3
+  if (table.open_order_count > 0) return 2
+  return 1
+}
+
+function tablePriorityLabel(table: TableOperationalSummary): string {
+  if (!table.active) return 'Inactive'
+  if (table.ready_order_count > 0 && table.unpaid_total_amount > 0) return 'Ready + payment due'
+  if (table.unpaid_total_amount > 0) return 'Payment due'
+  if (table.ready_order_count > 0) return 'Ready to hand off'
+  if (table.open_order_count > 0) return 'Order in progress'
+  return 'Idle / can reset'
 }
 
 export function StaffPage() {
@@ -211,21 +229,31 @@ export function StaffPage() {
   const activeAttentionTables = activeTables.filter((table) => table.ready_order_count > 0 || table.open_order_count > 0)
 
   const tableNeedle = tableQuery.trim().toLowerCase()
-  const filteredTableOperations = tableOperations.filter((table) => {
-    const matchesText =
-      !tableNeedle ||
-      [table.table_name, table.table_number ? String(table.table_number) : '']
-        .join(' ')
-        .toLowerCase()
-        .includes(tableNeedle)
+  const filteredTableOperations = tableOperations
+    .filter((table) => {
+      const matchesText =
+        !tableNeedle ||
+        [table.table_name, table.table_number ? String(table.table_number) : '']
+          .join(' ')
+          .toLowerCase()
+          .includes(tableNeedle)
 
-    const matchesView =
-      staffView === 'all' ||
-      (staffView === 'attention' && table.active && (table.ready_order_count > 0 || table.open_order_count > 0)) ||
-      (staffView === 'idle' && table.active && table.open_order_count === 0)
+      const matchesView =
+        staffView === 'all' ||
+        (staffView === 'attention' && table.active && (table.ready_order_count > 0 || table.open_order_count > 0 || table.unpaid_total_amount > 0)) ||
+        (staffView === 'cashier' && table.active && table.unpaid_total_amount > 0) ||
+        (staffView === 'ready' && table.active && table.ready_order_count > 0) ||
+        (staffView === 'idle' && table.active && table.open_order_count === 0)
 
-    return matchesText && matchesView
-  })
+      return matchesText && matchesView
+    })
+    .sort((left, right) => {
+      const scoreDelta = tablePriorityScore(right) - tablePriorityScore(left)
+      if (scoreDelta !== 0) return scoreDelta
+      const leftActivity = left.last_order_at ? new Date(left.last_order_at).getTime() : 0
+      const rightActivity = right.last_order_at ? new Date(right.last_order_at).getTime() : 0
+      return rightActivity - leftActivity
+    })
 
   const filteredOpenTables = openTables.filter((table) => {
     if (!tableNeedle) return true
@@ -293,6 +321,8 @@ export function StaffPage() {
                 <select value={staffView} onChange={(event) => setStaffView(event.target.value as StaffView)}>
                   <option value="all">All floor tables</option>
                   <option value="attention">Needs attention</option>
+                  <option value="cashier">Payment due</option>
+                  <option value="ready">Ready to hand off</option>
                   <option value="idle">Idle active tables</option>
                 </select>
               </label>
@@ -341,6 +371,20 @@ export function StaffPage() {
             </div>
           </div>
           {banner ? <NotificationBanner message={banner} tone={bannerTone} /> : null}
+          <div className="staff-quick-filters" role="group" aria-label="Quick queue filters">
+            <button className={staffView === 'attention' ? 'secondary-button staff-filter-button staff-filter-button-active' : 'secondary-button staff-filter-button'} onClick={() => setStaffView('attention')}>
+              Needs attention · {activeAttentionTables.length}
+            </button>
+            <button className={staffView === 'cashier' ? 'secondary-button staff-filter-button staff-filter-button-active' : 'secondary-button staff-filter-button'} onClick={() => setStaffView('cashier')}>
+              Payment due · {openTables.length}
+            </button>
+            <button className={staffView === 'ready' ? 'secondary-button staff-filter-button staff-filter-button-active' : 'secondary-button staff-filter-button'} onClick={() => setStaffView('ready')}>
+              Ready now · {readyOrders.length}
+            </button>
+            <button className={staffView === 'idle' ? 'secondary-button staff-filter-button staff-filter-button-active' : 'secondary-button staff-filter-button'} onClick={() => setStaffView('idle')}>
+              Idle tables · {idleActiveTables.length}
+            </button>
+          </div>
         </SectionCard>
 
         <SectionCard>
@@ -400,12 +444,12 @@ export function StaffPage() {
                     {table.paid_order_count > 0 ? <span className="info-chip">{table.paid_order_count} paid</span> : null}
                   </div>
                   <div className="muted">
-                    Unpaid total: {money(table.unpaid_total_amount, currency_code)} · Last activity: {formatLastOrderAt(table.last_order_at)}
+                    Priority: {tablePriorityLabel(table)} · Unpaid total: {money(table.unpaid_total_amount, currency_code)} · Last activity: {formatLastOrderAt(table.last_order_at)}
                   </div>
                   <div className="admin-inline-actions">
                     {payableTable ? (
                       <button onClick={() => settleTable.mutate(payableTable)} disabled={settleTable.isPending}>
-                        Settle open check
+                        Confirm payment received
                       </button>
                     ) : (
                       <button className="secondary-button" disabled>
@@ -445,7 +489,7 @@ export function StaffPage() {
                 </div>
                 <div className="admin-inline-actions">
                   <button onClick={() => settleTable.mutate(table)} disabled={settleTable.isPending}>
-                    Mark table paid
+                    Confirm payment received
                   </button>
                 </div>
               </div>
@@ -488,6 +532,31 @@ export function StaffPage() {
       </div>
 
       <div className="admin-sidebar-stack">
+        <SectionCard>
+          <div className="section-heading-row">
+            <div>
+              <p className="eyebrow">Low-training workflow</p>
+              <h3 className="section-title">Staff checklist</h3>
+            </div>
+            <span className="info-chip">3-step service loop</span>
+          </div>
+          <div className="staff-checklist">
+            <div className="staff-checklist-card">
+              <strong>1. Take payment carefully</strong>
+              <p className="muted">Use the payment due queue first. Confirm the amount on screen before tapping the payment action.</p>
+            </div>
+            <div className="staff-checklist-card">
+              <strong>2. Hand off only when ready</strong>
+              <p className="muted">Use the ready queue to verify the order number, table, and whether it is already paid before handing it over.</p>
+            </div>
+            <div className="staff-checklist-card">
+              <strong>3. Reset blockers fast</strong>
+              <p className="muted">Out-of-stock and low-stock items should be updated immediately so the next cashier does not sell unavailable items.</p>
+            </div>
+          </div>
+          <p className="muted staff-helper-note">Recommended next backend step: add explicit payment method confirmation, re-open payment, and retry receipt actions so staff can recover mistakes without manager intervention.</p>
+        </SectionCard>
+
         <SectionCard>
           <div className="section-heading-row">
             <div>

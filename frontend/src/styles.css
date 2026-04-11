@@ -5199,6 +5199,40 @@ textarea {
   gap: 0.85rem;
 }
 
+.staff-quick-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.staff-filter-button {
+  min-height: 46px;
+}
+
+.staff-filter-button-active {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.34), rgba(30, 64, 175, 0.22));
+  border: 1px solid rgba(147, 197, 253, 0.34);
+}
+
+.staff-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.staff-checklist-card {
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.staff-checklist-card p,
+.staff-helper-note {
+  margin: 0.35rem 0 0;
+}
+
 .ops-order-card {
   margin-bottom: 0;
   border-radius: 18px;
@@ -5315,7 +5349,8 @@ textarea {
   }
 
   .ops-stat-strip,
-  .ops-toolbar-main {
+  .ops-toolbar-main,
+  .staff-quick-filters {
     grid-template-columns: 1fr;
   }
 }
