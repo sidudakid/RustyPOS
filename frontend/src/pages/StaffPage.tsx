@@ -14,6 +14,7 @@ import {
   playAlertTone,
   showBrowserNotification,
 } from '../notifications'
+import { OperatorAccessCard } from '../operatorAccess'
 import { clearOperatorToken, readOperatorToken, writeOperatorToken } from '../operatorTokens'
 
 type InventoryTone = 'out' | 'low' | 'ok'
@@ -406,6 +407,44 @@ export function StaffPage() {
   const formatLastOrderAt = (value?: string | null) => {
     if (!value) return 'No orders yet'
     return new Date(value).toLocaleString()
+  }
+
+  if (!token) {
+    return (
+      <section className="ops-surface ops-surface-staff">
+        <div className="ops-hero-card ops-hero-card-staff cashier-hero-card">
+          <div className="section-heading-row ops-hero-row">
+            <div>
+              <p className="eyebrow">Staff entry</p>
+              <h2 className="section-title">Open the cashier and floor station</h2>
+              <p className="muted ops-hero-copy">Pick up payments, bills, handoff, and stock alerts without making front-of-house staff deal with raw auth plumbing.</p>
+            </div>
+            <div className="hero-chip-group ops-hero-chips">
+              <span className="info-chip">Role: Staff</span>
+              <span className="info-chip">Cashier</span>
+              <span className="info-chip">Pickup</span>
+            </div>
+          </div>
+        </div>
+        <SectionCard>
+          <OperatorAccessCard
+            role="staff"
+            token={token}
+            invalid={tokenInvalid}
+            connected={connected}
+            heading="Staff station sign-in"
+            onTokenChange={(value) => {
+              setToken(value)
+              writeOperatorToken('staff', value)
+            }}
+            onReset={() => {
+              setToken('')
+              clearOperatorToken('staff')
+            }}
+          />
+        </SectionCard>
+      </section>
+    )
   }
 
   return (

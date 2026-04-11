@@ -9,6 +9,7 @@ import { KitchenPage } from './pages/KitchenPage'
 import { StaffPage } from './pages/StaffPage'
 import { AdminPage } from './pages/AdminPage'
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage'
+import { OperatorHubPage } from './operatorAccess'
 import { AdminMenuPage } from './pages/admin/AdminMenuPage'
 import { AdminInventoryPage } from './pages/admin/AdminInventoryPage'
 import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage'
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { index: true, element: <CustomerLandingPage /> },
       { path: 't/:token', element: <CustomerPage /> },
       { path: 't/:token/order/:orderId', element: <CustomerOrderPage /> },
+      { path: 'ops', element: <OperatorHubPage /> },
       { path: 'kitchen', element: <KitchenPage /> },
       { path: 'staff', element: <StaffPage /> },
       {

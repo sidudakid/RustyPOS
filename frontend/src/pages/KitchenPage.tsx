@@ -14,6 +14,7 @@ import {
 } from '../notifications'
 import { money, shortId } from '../lib'
 import { useCafeSettings } from '../cafeSettings'
+import { OperatorAccessCard } from '../operatorAccess'
 import { clearOperatorToken, readOperatorToken, writeOperatorToken } from '../operatorTokens'
 
 const kitchenStatuses: OrderStatus[] = ['pending', 'preparing', 'ready']
@@ -151,6 +152,44 @@ export function KitchenPage() {
   const preparingCount = grouped.preparing.length
   const readyCount = grouped.ready.length
   const followUps = filteredOrders.filter((entry) => entry.order.is_follow_up).length
+
+  if (!token) {
+    return (
+      <section className="ops-surface ops-surface-kitchen">
+        <div className="ops-hero-card ops-hero-card-kitchen">
+          <div className="section-heading-row ops-hero-row">
+            <div>
+              <p className="eyebrow">Kitchen entry</p>
+              <h2 className="section-title">Open the prep queue</h2>
+              <p className="muted ops-hero-copy">Sign this screen in once, then leave cooks on the live board instead of a raw token field.</p>
+            </div>
+            <div className="hero-chip-group ops-hero-chips">
+              <span className="info-chip">Role: Kitchen</span>
+              <span className="info-chip">Live orders</span>
+              <span className="info-chip">One-time access</span>
+            </div>
+          </div>
+        </div>
+        <SectionCard>
+          <OperatorAccessCard
+            role="kitchen"
+            token={token}
+            invalid={tokenInvalid}
+            connected={connected}
+            heading="Kitchen station sign-in"
+            onTokenChange={(value) => {
+              setToken(value)
+              writeOperatorToken('kitchen', value)
+            }}
+            onReset={() => {
+              setToken('')
+              clearOperatorToken('kitchen')
+            }}
+          />
+        </SectionCard>
+      </section>
+    )
+  }
 
   return (
     <section className="ops-surface ops-surface-kitchen">

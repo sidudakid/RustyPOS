@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { AuthTokenInput, SectionCard } from '../../components'
+import { SectionCard } from '../../components'
 import { money, useAdminOutletState } from '../../adminShared'
+import { OperatorAccessCard } from '../../operatorAccess'
 
 export function AdminOverviewPage() {
   const admin = useAdminOutletState()
@@ -176,20 +177,14 @@ export function AdminOverviewPage() {
               {admin.token ? 'Loaded' : 'Missing'}
             </span>
           </div>
-          <AuthTokenInput
-            value={admin.token}
+          <OperatorAccessCard
+            role="admin"
+            token={admin.token}
             invalid={admin.tokenInvalid}
             connected={admin.connected}
-            compactWhenFilled
-            loadedLabel="Owner workspace connected"
-            switchLabel="Switch token"
-            title="Owner token"
-            description="Paste the owner token to unlock menu changes, analytics, settings, and every protected management action."
-            placeholder="Paste owner token"
-            helperText="Use the owner token on management devices only. Kitchen and staff stations should use their own role token whenever possible."
-            roleHint="Owner token only"
-            invalidMessage="This token cannot open admin controls. Use the active owner token for this café."
-            onChange={(value) => {
+            heading="Admin workspace sign-in"
+            compact
+            onTokenChange={(value) => {
               admin.setToken(value)
             }}
             onReset={() => {

@@ -4,6 +4,7 @@ import { useCafeSettings } from '../cafeSettings'
 
 const navItems = [
   { to: '/', label: 'Customer', shortLabel: 'Order', icon: '🛎️', description: 'Ordering and table flow', end: true },
+  { to: '/ops', label: 'Operator', shortLabel: 'Ops', icon: '🔐', description: 'Role-based operator entry', end: false },
   { to: '/kitchen', label: 'Kitchen', shortLabel: 'Kitchen', icon: '👨‍🍳', description: 'Prep queue and handoff', end: false },
   { to: '/staff', label: 'Staff', shortLabel: 'Staff', icon: '💳', description: 'Cashier and inventory', end: false },
   { to: '/admin/orders', label: 'Admin', shortLabel: 'Admin', icon: '📊', description: 'Operations and settings', end: false },

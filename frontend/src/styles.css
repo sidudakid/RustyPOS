@@ -5119,6 +5119,121 @@ textarea {
   gap: 1rem;
 }
 
+.operator-hub-page {
+  max-width: 1100px;
+}
+
+.operator-role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.operator-role-card,
+.operator-hub-form-card,
+.operator-access-card {
+  border-radius: 20px;
+}
+
+.operator-role-card {
+  min-height: 180px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.6));
+}
+
+.operator-role-card-active {
+  border-color: rgba(147, 197, 253, 0.4);
+  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.18), 0 18px 38px rgba(2, 6, 23, 0.26);
+}
+
+.operator-role-icon {
+  font-size: 1.5rem;
+}
+
+.operator-access-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(71, 85, 105, 0.62);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.56));
+}
+
+.operator-access-header,
+.operator-access-session-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.operator-access-copy,
+.operator-access-step p,
+.operator-role-card span:last-child {
+  margin: 0;
+}
+
+.operator-access-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.operator-access-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.operator-access-step > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.18);
+  color: #dbeafe;
+  font-weight: 800;
+}
+
+.operator-access-step strong,
+.operator-role-card strong {
+  color: #f8fafc;
+}
+
+.operator-access-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.operator-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.operator-access-actions-inline {
+  justify-content: flex-end;
+}
+
+.operator-access-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .ops-hero-card {
   position: relative;
   overflow: hidden;
@@ -5480,7 +5595,9 @@ textarea {
   .ops-lane-header,
   .admin-entity-row-main,
   .cashier-success-bar,
-  .cashier-toolbar-topline {
+  .cashier-toolbar-topline,
+  .operator-access-header,
+  .operator-access-session-row {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
@@ -5488,7 +5605,9 @@ textarea {
 
   .cashier-next-grid,
   .cashier-stat-strip,
-  .cashier-primary-actions {
+  .cashier-primary-actions,
+  .operator-role-grid,
+  .operator-access-steps {
     grid-template-columns: 1fr;
   }
 
