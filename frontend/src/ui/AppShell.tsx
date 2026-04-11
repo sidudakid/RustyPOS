@@ -107,7 +107,11 @@ export function AppShell() {
       ) : null}
 
       {!customerFacing ? (
-        <nav className="mobile-bottom-nav" aria-label="Primary mobile">
+        <nav
+          className="mobile-bottom-nav"
+          aria-label="Primary mobile"
+          style={{ '--mobile-nav-count': navItems.length } as React.CSSProperties}
+        >
           {navItems.map((item) => (
             <NavLink
               key={`mobile-${item.to}`}
