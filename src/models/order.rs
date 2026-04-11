@@ -77,6 +77,8 @@ pub struct OrderView {
     pub id: Uuid,
     pub table_id: Uuid,
     pub table_name: Option<String>,
+    pub table_number: Option<i32>,
+    pub tracking_token: Option<String>,
     pub status: OrderStatus,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -95,6 +97,8 @@ pub struct OrderWithItemsView {
 pub struct OpenTableSummary {
     pub table_id: Uuid,
     pub table_name: String,
+    pub table_number: Option<i32>,
+    pub tracking_token: Option<String>,
     pub order_count: i64,
     pub total_amount: i64,
     pub statuses: Vec<OrderStatus>,
@@ -150,12 +154,14 @@ pub struct OrderWithItems {
 }
 
 impl OrderWithItems {
-    pub fn into_view(self, table_name: Option<String>, items: Vec<OrderItemView>) -> OrderWithItemsView {
+    pub fn into_view(self, table_name: Option<String>, table_number: Option<i32>, tracking_token: Option<String>, items: Vec<OrderItemView>) -> OrderWithItemsView {
         OrderWithItemsView {
             order: OrderView {
                 id: self.order.id,
                 table_id: self.order.table_id,
                 table_name,
+                table_number,
+                tracking_token,
                 status: self.order.status,
                 created_at: self.order.created_at,
                 updated_at: self.order.updated_at,

@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { SectionCard } from '../../components'
 import { money, useAdminOutletState } from '../../adminShared'
-import { OperatorAccessCard } from '../../operatorAccess'
 
 export function AdminOverviewPage() {
   const admin = useAdminOutletState()
@@ -171,26 +170,18 @@ export function AdminOverviewPage() {
           <div className="section-heading-row admin-overview-card-heading">
             <div>
               <p className="eyebrow">Access</p>
-              <h3 className="section-title">Admin token</h3>
+              <h3 className="section-title">Admin entry handled upstream</h3>
             </div>
             <span className={admin.token ? 'info-chip info-chip-success' : 'info-chip'}>
               {admin.token ? 'Loaded' : 'Missing'}
             </span>
           </div>
-          <OperatorAccessCard
-            role="admin"
-            token={admin.token}
-            invalid={admin.tokenInvalid}
-            connected={admin.connected}
-            heading="Admin workspace sign-in"
-            compact
-            onTokenChange={(value) => {
-              admin.setToken(value)
-            }}
-            onReset={() => {
-              admin.clearToken()
-            }}
-          />
+          <p className="muted">Use the operator entry screen to load the admin key once. The dashboard keeps only a lightweight supervisor control here.</p>
+          <div className="pill-list">
+            <span className={admin.connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>{admin.connected ? 'Admin workspace live' : 'Reconnect needed'}</span>
+            {admin.tokenInvalid ? <span className="info-chip info-chip-danger">Saved key rejected</span> : null}
+            <button type="button" className="secondary-button" onClick={() => admin.clearToken()}>Log out admin</button>
+          </div>
         </SectionCard>
       </section>
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { API_BASE, fetchJson, OrderStatus, OrderWithItemsView } from '../api'
-import { AuthTokenInput, NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
+import { NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
 import {
   browserNotificationPermission,
   canShowBrowserNotifications,
@@ -279,28 +279,11 @@ export function KitchenPage() {
                 }}
               />
             </div>
-            <AuthTokenInput
-              value={token}
-              invalid={tokenInvalid}
-              connected={connected}
-              compactWhenFilled
-              loadedLabel="Kitchen station connected"
-              switchLabel="Switch token"
-              title="Kitchen token"
-              description="Paste the active owner or kitchen token to unlock the live kitchen board and order controls on this station."
-              placeholder="Paste kitchen token"
-              helperText="Enter the token once to unlock the kitchen board. After that, this box will collapse so cooks can focus on tickets."
-              roleHint="Owner or kitchen token"
-              invalidMessage="This token cannot open the kitchen board. Use an owner or kitchen token that is still active."
-              onChange={(value) => {
-                setToken(value)
-                writeOperatorToken('kitchen', value)
-              }}
-              onReset={() => {
-                setToken('')
-                clearOperatorToken('kitchen')
-              }}
-            />
+            <div className="pill-list">
+              <span className={connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>{connected ? 'Kitchen signed in' : 'Reconnect needed'}</span>
+              {tokenInvalid ? <span className="info-chip info-chip-danger">Saved key rejected</span> : null}
+              <button type="button" className="secondary-button" onClick={() => { setToken(''); clearOperatorToken('kitchen') }}>Log out station</button>
+            </div>
           </div>
         </div>
 
@@ -325,7 +308,7 @@ export function KitchenPage() {
                     <div className="order-meta">
                       <div>
                         <strong>#{shortId(entry.order.id)}</strong>
-                        <div className="muted">{entry.order.table_name ?? shortId(entry.order.table_id)}</div>
+                        <div className="muted">{entry.order.table_name ?? shortId(entry.order.table_id)}{entry.order.table_number ? ` · Table #${entry.order.table_number}` : ''}</div>
                       </div>
                       <StatusBadge status={entry.order.status} />
                     </div>
@@ -360,9 +343,12 @@ export function KitchenPage() {
                       </button>
                     )}
                     {status === 'ready' && (
-                      <button className="secondary-button" disabled>
-                        Waiting on staff handoff
-                      </button>
+                      <div className="pill-list">
+                        <span className="info-chip info-chip-success">Front of house should switch to Pickup / Runner mode</span>
+                        <button className="secondary-button" disabled>
+                          Waiting on staff handoff
+                        </button>
+                      </div>
                     )}
                   </div>
                 )

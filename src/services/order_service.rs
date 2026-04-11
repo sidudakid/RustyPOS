@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 pub async fn get_table_by_token(pool: &PgPool, token: &str) -> Result<CafeTable, AppError> {
     let table = sqlx::query_as::<_, CafeTable>(
-        "SELECT t.id, t.name
+        "SELECT t.id, t.name, t.table_number, tt.token AS tracking_token
          FROM table_tokens tt
          JOIN tables t ON t.id = tt.table_id
          WHERE tt.token = $1 AND t.active = true",
@@ -439,26 +439,29 @@ pub async fn admin_revenue_summary(pool: &PgPool) -> Result<AdminRevenueSummary,
 }
 
 pub async fn list_open_tables(pool: &PgPool) -> Result<Vec<OpenTableSummary>, AppError> {
-    let rows = sqlx::query_as::<_, (Uuid, String, i64, i64)>(
+    let rows = sqlx::query_as::<_, (Uuid, String, Option<i32>, Option<String>, i64, i64)>(
         "SELECT
             t.id,
             t.name,
+            t.table_number,
+            MAX(tt.token) FILTER (WHERE tt.token = ('table-' || t.table_number::TEXT || '-qr')) AS tracking_token,
             COUNT(DISTINCT o.id)::BIGINT AS order_count,
             COALESCE(SUM((mi.price * oi.quantity)::BIGINT), 0)::BIGINT AS total_amount
          FROM tables t
          JOIN orders o ON o.table_id = t.id
          JOIN order_items oi ON oi.order_id = o.id
          JOIN menu_items mi ON mi.id = oi.menu_item_id
+         LEFT JOIN table_tokens tt ON tt.table_id = t.id
          WHERE o.status != 'paid'
-         GROUP BY t.id, t.name
-         ORDER BY t.name",
+         GROUP BY t.id, t.name, t.table_number
+         ORDER BY t.table_number NULLS LAST, t.name",
     )
     .fetch_all(pool)
     .await?;
 
     let mut out = Vec::with_capacity(rows.len());
 
-    for (table_id, table_name, order_count, total_amount) in rows {
+    for (table_id, table_name, table_number, tracking_token, order_count, total_amount) in rows {
         let statuses = sqlx::query_scalar::<_, OrderStatus>(
             "SELECT DISTINCT status
              FROM orders
@@ -472,6 +475,8 @@ pub async fn list_open_tables(pool: &PgPool) -> Result<Vec<OpenTableSummary>, Ap
         out.push(OpenTableSummary {
             table_id,
             table_name,
+            table_number,
+            tracking_token,
             order_count,
             total_amount,
             statuses,
@@ -589,14 +594,14 @@ async fn get_order_view(pool: &PgPool, order_id: Uuid) -> Result<OrderWithItemsV
     .map(Into::into)
     .ok_or(AppError::NotFound)?;
 
-    let table_name = get_table_name(pool, order.table_id).await?;
+    let (table_name, table_number, tracking_token) = get_table_identity(pool, order.table_id).await?;
     let items = get_order_items_view(pool, order_id).await?;
 
     Ok(OrderWithItems {
         order,
         items: vec![],
     }
-    .into_view(table_name, items))
+    .into_view(table_name, table_number, tracking_token, items))
 }
 
 async fn list_orders_by_clause(pool: &PgPool, clause: &str) -> Result<Vec<OrderWithItemsView>, AppError> {
@@ -615,26 +620,38 @@ async fn list_orders_by_clause(pool: &PgPool, clause: &str) -> Result<Vec<OrderW
     let mut out = Vec::with_capacity(orders.len());
 
     for order in orders {
-        let table_name = get_table_name(pool, order.table_id).await?;
+        let (table_name, table_number, tracking_token) = get_table_identity(pool, order.table_id).await?;
         let items = get_order_items_view(pool, order.id).await?;
         out.push(
             OrderWithItems {
                 order,
                 items: vec![],
             }
-            .into_view(table_name, items),
+            .into_view(table_name, table_number, tracking_token, items),
         );
     }
 
     Ok(out)
 }
 
-async fn get_table_name(pool: &PgPool, table_id: Uuid) -> Result<Option<String>, AppError> {
-    let table: Option<(String,)> = sqlx::query_as("SELECT name FROM tables WHERE id = $1")
+async fn get_table_identity(pool: &PgPool, table_id: Uuid) -> Result<(Option<String>, Option<i32>, Option<String>), AppError> {
+    let table: Option<(String, Option<i32>, Option<String>)> = sqlx::query_as(
+        "SELECT
+            t.name,
+            t.table_number,
+            MAX(tt.token) FILTER (WHERE tt.token = ('table-' || t.table_number::TEXT || '-qr')) AS tracking_token
+         FROM tables t
+         LEFT JOIN table_tokens tt ON tt.table_id = t.id
+         WHERE t.id = $1
+         GROUP BY t.id, t.name, t.table_number"
+    )
         .bind(table_id)
         .fetch_optional(pool)
         .await?;
-    Ok(table.map(|row| row.0))
+    Ok(match table {
+        Some((name, table_number, tracking_token)) => (Some(name), table_number, tracking_token),
+        None => (None, None, None),
+    })
 }
 
 async fn get_order_items_view(pool: &PgPool, order_id: Uuid) -> Result<Vec<OrderItemView>, AppError> {

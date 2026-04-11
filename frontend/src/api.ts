@@ -46,6 +46,8 @@ export type OrderWithItemsView = {
     id: string
     table_id: string
     table_name?: string | null
+    table_number?: number | null
+    tracking_token?: string | null
     status: OrderStatus
     created_at: string
     updated_at: string
@@ -67,6 +69,8 @@ export type AddOrderItemsRequest = {
 export type OpenTableSummary = {
   table_id: string
   table_name: string
+  table_number?: number | null
+  tracking_token?: string | null
   order_count: number
   total_amount: number
   statuses: OrderStatus[]

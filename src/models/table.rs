@@ -8,6 +8,8 @@ use uuid::Uuid;
 pub struct CafeTable {
     pub id: Uuid,
     pub name: String,
+    pub table_number: Option<i32>,
+    pub tracking_token: Option<String>,
 }
 
 
