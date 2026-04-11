@@ -941,16 +941,29 @@ pre {
   background: rgba(15, 23, 42, 0.42);
 }
 
+.auth-token-panel-compact {
+  gap: 0.7rem;
+}
+
 .auth-token-copy,
 .auth-token-helper {
   margin: 0;
 }
 
-.auth-token-row {
+.auth-token-row,
+.auth-token-compact-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: center;
+}
+
+.auth-token-row-actions,
+.auth-token-compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
 }
 
 .admin-shell-hero {

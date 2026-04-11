@@ -242,9 +242,16 @@ export function KitchenPage() {
             <AuthTokenInput
               value={token}
               invalid={tokenInvalid}
+              compactWhenFilled
+              loadedLabel="Kitchen access ready"
+              switchLabel="Switch token"
               onChange={(value) => {
                 setToken(value)
                 localStorage.setItem('adminToken', value)
+              }}
+              onReset={() => {
+                setToken('')
+                localStorage.removeItem('adminToken')
               }}
             />
           </div>

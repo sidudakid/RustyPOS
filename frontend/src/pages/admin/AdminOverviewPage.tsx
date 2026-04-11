@@ -179,6 +179,9 @@ export function AdminOverviewPage() {
           <AuthTokenInput
             value={admin.token}
             invalid={admin.tokenInvalid}
+            compactWhenFilled
+            loadedLabel="Admin access ready"
+            switchLabel="Switch token"
             onChange={(value) => {
               admin.setToken(value)
               localStorage.setItem('adminToken', value)

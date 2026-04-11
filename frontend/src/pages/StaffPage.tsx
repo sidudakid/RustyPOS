@@ -509,6 +509,9 @@ export function StaffPage() {
               <AuthTokenInput
                 value={token}
                 invalid={tokenInvalid}
+                compactWhenFilled
+                loadedLabel="Cashier access ready"
+                switchLabel="Switch token"
                 onChange={(value) => {
                   setToken(value)
                   localStorage.setItem('adminToken', value)
