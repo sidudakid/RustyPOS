@@ -14,13 +14,14 @@ import {
 } from '../notifications'
 import { money, shortId } from '../lib'
 import { useCafeSettings } from '../cafeSettings'
+import { clearOperatorToken, readOperatorToken, writeOperatorToken } from '../operatorTokens'
 
 const kitchenStatuses: OrderStatus[] = ['pending', 'preparing', 'ready']
 
 type KitchenView = 'all' | 'follow-up' | 'rush'
 
 export function KitchenPage() {
-  const [token, setToken] = useState(localStorage.getItem('adminToken') ?? '')
+  const [token, setToken] = useState(() => readOperatorToken('kitchen'))
   const { currency_code } = useCafeSettings()
   const [lastEvent, setLastEvent] = useState<string>('none yet')
   const [connected, setConnected] = useState(false)
@@ -250,13 +251,15 @@ export function KitchenPage() {
               description="Paste the active owner or kitchen token to unlock the live kitchen board and order controls on this station."
               placeholder="Paste kitchen token"
               helperText="Enter the token once to unlock the kitchen board. After that, this box will collapse so cooks can focus on tickets."
+              roleHint="Owner or kitchen token"
+              invalidMessage="This token cannot open the kitchen board. Use an owner or kitchen token that is still active."
               onChange={(value) => {
                 setToken(value)
-                localStorage.setItem('adminToken', value)
+                writeOperatorToken('kitchen', value)
               }}
               onReset={() => {
                 setToken('')
-                localStorage.removeItem('adminToken')
+                clearOperatorToken('kitchen')
               }}
             />
           </div>

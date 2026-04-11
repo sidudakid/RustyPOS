@@ -58,6 +58,8 @@ export function AuthTokenInput({
   description = 'Paste the owner token to unlock admin CRUD actions, analytics, and settings writes. Keep it private — this is the control key for the restaurant database.',
   placeholder = 'Paste admin token',
   helperText = 'First-time setup tip: save restaurant settings first, then test a live table link after the token is in place.',
+  roleHint,
+  invalidMessage = 'Token invalid. Re-enter the current owner/admin token.',
   connected,
 }: {
   value: string
@@ -71,6 +73,8 @@ export function AuthTokenInput({
   description?: string
   placeholder?: string
   helperText?: string
+  roleHint?: string
+  invalidMessage?: string
   connected?: boolean
 }) {
   const [editing, setEditing] = useState(() => !compactWhenFilled || !value || Boolean(invalid))
@@ -140,7 +144,8 @@ export function AuthTokenInput({
             </div>
           </div>
 
-          {invalid ? <p className="connection-bad">Token invalid. Re-enter the current owner/admin token.</p> : null}
+          {roleHint ? <p className="muted auth-token-helper">Accepted here: {roleHint}</p> : null}
+          {invalid ? <p className="connection-bad">{invalidMessage}</p> : null}
           {!value && !invalid ? <p className="muted auth-token-helper">{helperText}</p> : null}
         </>
       )}

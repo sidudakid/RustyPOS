@@ -14,6 +14,7 @@ import {
 } from './api'
 import { useCafeSettings } from './cafeSettings'
 import { centsToMajorUnits, majorUnitsToCents, money, shortId } from './lib'
+import { clearOperatorToken, readOperatorToken, writeOperatorToken } from './operatorTokens'
 
 export type RevenueSummary = {
   total_revenue: number
@@ -81,7 +82,7 @@ function isNonEmpty(value: string) {
 }
 
 export function useAdminState() {
-  const [token, setToken] = useState(localStorage.getItem('adminToken') ?? '')
+  const [token, setToken] = useState(() => readOperatorToken('admin'))
   const appSettings = useCafeSettings()
   const { currency_code } = appSettings
   const [lastEvent, setLastEvent] = useState('none yet')
@@ -448,7 +449,10 @@ export function useAdminState() {
 
   return {
     token,
-    setToken,
+    setToken: (value: string) => {
+      setToken(value)
+      writeOperatorToken('admin', value)
+    },
     tokenInvalid,
     connected,
     lastEvent,
@@ -500,6 +504,10 @@ export function useAdminState() {
     updateInventory,
     upsertMonthlyExpense,
     refreshAdminData,
+    clearToken: () => {
+      setToken('')
+      clearOperatorToken('admin')
+    },
   }
 }
 

@@ -14,6 +14,7 @@ import {
   playAlertTone,
   showBrowserNotification,
 } from '../notifications'
+import { clearOperatorToken, readOperatorToken, writeOperatorToken } from '../operatorTokens'
 
 type InventoryTone = 'out' | 'low' | 'ok'
 type StaffView = 'all' | 'attention' | 'idle'
@@ -135,7 +136,7 @@ function printBill({ tableName, orders, currencyCode, paid }: PrintedBillTable) 
 }
 
 export function StaffPage() {
-  const [token, setToken] = useState(localStorage.getItem('adminToken') ?? '')
+  const [token, setToken] = useState(() => readOperatorToken('staff'))
   const { currency_code } = useCafeSettings()
   const [lastEvent, setLastEvent] = useState<string>('none yet')
   const [connected, setConnected] = useState(false)
@@ -517,13 +518,15 @@ export function StaffPage() {
                 description="Paste the active owner or staff token to unlock payments, bill printing, and live floor updates on this station."
                 placeholder="Paste staff token"
                 helperText="Enter the token once to unlock the station. After that, this box will collapse so staff can stay focused on service."
+                roleHint="Owner or staff token"
+                invalidMessage="This token cannot open the staff station. Use an owner or staff token that is still active."
                 onChange={(value) => {
                   setToken(value)
-                  localStorage.setItem('adminToken', value)
+                  writeOperatorToken('staff', value)
                 }}
                 onReset={() => {
                   setToken('')
-                  localStorage.removeItem('adminToken')
+                  clearOperatorToken('staff')
                 }}
               />
             </div>

@@ -179,16 +179,21 @@ export function AdminOverviewPage() {
           <AuthTokenInput
             value={admin.token}
             invalid={admin.tokenInvalid}
+            connected={admin.connected}
             compactWhenFilled
-            loadedLabel="Admin access ready"
+            loadedLabel="Owner workspace connected"
             switchLabel="Switch token"
+            title="Owner token"
+            description="Paste the owner token to unlock menu changes, analytics, settings, and every protected management action."
+            placeholder="Paste owner token"
+            helperText="Use the owner token on management devices only. Kitchen and staff stations should use their own role token whenever possible."
+            roleHint="Owner token only"
+            invalidMessage="This token cannot open admin controls. Use the active owner token for this café."
             onChange={(value) => {
               admin.setToken(value)
-              localStorage.setItem('adminToken', value)
             }}
             onReset={() => {
-              admin.setToken('')
-              localStorage.removeItem('adminToken')
+              admin.clearToken()
             }}
           />
         </SectionCard>
