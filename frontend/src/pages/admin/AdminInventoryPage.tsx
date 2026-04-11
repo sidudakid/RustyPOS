@@ -16,9 +16,26 @@ function inventoryLabel(item: MenuItem) {
   return 'Healthy'
 }
 
+function inventoryGapLabel(item: MenuItem) {
+  if (item.stock_count <= 0 || !item.available) return 'Guest orders blocked'
+  const gap = item.stock_count - item.low_stock_threshold
+  if (gap <= 0) return 'At threshold'
+  return `${gap} above threshold`
+}
+
 type InventoryFilter = 'all' | 'attention' | 'healthy' | 'inactive'
 type InventorySort = 'attention' | 'name' | 'stock-low' | 'stock-high'
 type InventoryModalState = { itemId: string } | null
+
+function syncDraftItem(item: MenuItem, admin: ReturnType<typeof useAdminOutletState>, patch: Partial<MenuItem>) {
+  admin.setDraftMenuItems((current) => {
+    if (current.some((entry) => entry.id === item.id)) {
+      return current.map((entry) => (entry.id === item.id ? { ...entry, ...patch } : entry))
+    }
+
+    return [...current, { ...item, ...patch }]
+  })
+}
 
 export function AdminInventoryPage() {
   const admin = useAdminOutletState()
@@ -33,6 +50,7 @@ export function AdminInventoryPage() {
   const out = activeItems.filter((item) => inventoryTone(item) === 'out')
   const low = activeItems.filter((item) => inventoryTone(item) === 'low')
   const healthy = activeItems.filter((item) => inventoryTone(item) === 'ok')
+  const hidden = activeItems.filter((item) => !item.available)
 
   const filteredItems = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -69,100 +87,130 @@ export function AdminInventoryPage() {
   }, [filter, items, query, sort])
 
   return (
-    <div className="admin-management-page admin-inventory-page">
-      <section className="inventory-summary-grid admin-inventory-summary-grid admin-inventory-summary-grid-three">
-        <SectionCard>
-          <p className="eyebrow">Inventory</p>
-          <h3 className="section-title">Tracked items</h3>
-          <strong className="stat-value">{items.length}</strong>
-          <p className="muted">{activeItems.length} active · {inactiveItems.length} inactive</p>
-        </SectionCard>
-        <SectionCard>
-          <p className="eyebrow">Attention</p>
-          <h3 className="section-title">Needs attention</h3>
-          <strong className="stat-value">{out.length + low.length}</strong>
-          <p className="muted">{out.length} critical · {low.length} low stock</p>
-        </SectionCard>
-        <SectionCard>
-          <p className="eyebrow">Healthy</p>
-          <h3 className="section-title">Stable items</h3>
-          <strong className="stat-value">{healthy.length}</strong>
-          <p className="muted">Active items with no stock warning</p>
-        </SectionCard>
-      </section>
+    <div className="admin-management-page admin-inventory-page ops-surface">
+      <SectionCard>
+        <div className="ops-hero-card admin-inventory-hero-card-shell">
+          <div className="section-heading-row ops-hero-row">
+            <div>
+              <p className="eyebrow">Stock controls</p>
+              <h3 className="section-title">Inventory command center</h3>
+              <p className="muted ops-hero-copy">
+                Keep counts clean, spot risk before guests see it, and push quick adjustments without leaving the admin workspace.
+              </p>
+            </div>
+            <div className="ops-hero-chips admin-inventory-hero-chips">
+              <span className="info-chip">{filteredItems.length} shown</span>
+              <span className="info-chip">{hidden.length} hidden from guests</span>
+              <span className={out.length ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>{out.length} critical</span>
+            </div>
+          </div>
+
+          <div className="ops-stat-strip ops-stat-strip-compact">
+            <div className="ops-stat-card">
+              <span>Tracked items</span>
+              <strong>{items.length}</strong>
+              <small>{activeItems.length} active · {inactiveItems.length} inactive</small>
+            </div>
+            <div className="ops-stat-card ops-stat-card-danger">
+              <span>Critical now</span>
+              <strong>{out.length}</strong>
+              <small>Out of stock or guest-hidden</small>
+            </div>
+            <div className="ops-stat-card ops-stat-card-warning">
+              <span>Low stock</span>
+              <strong>{low.length}</strong>
+              <small>Near threshold and needs eyes</small>
+            </div>
+            <div className="ops-stat-card ops-stat-card-success">
+              <span>Healthy items</span>
+              <strong>{healthy.length}</strong>
+              <small>Safe buffer above threshold</small>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
 
       <SectionCard>
         <div className="section-heading-row admin-inventory-workspace-heading">
           <div>
-            <p className="eyebrow">Stock controls</p>
-            <h3 className="section-title">Inventory workspace</h3>
+            <p className="eyebrow">Workspace</p>
+            <h3 className="section-title">Review, filter, and adjust stock</h3>
             <p className="muted inventory-helper-text admin-inventory-workspace-copy">
-              Database maintenance only: adjust stock counts, thresholds, availability, and archived records without mixing this screen into the live staff flow.
+              Search the catalog, focus the queue, then use quick controls for common stock updates before opening full item editing.
             </p>
           </div>
           <div className="admin-inventory-results-meta">
-            <span className="info-chip">{filteredItems.length} shown</span>
             <span className="info-chip">{filter === 'attention' ? 'Attention view' : filter === 'healthy' ? 'Healthy view' : filter === 'inactive' ? 'Inactive view' : 'All records'}</span>
+            <span className="info-chip">Sort: {sort === 'attention' ? 'Urgency' : sort === 'name' ? 'Name' : sort === 'stock-low' ? 'Lowest stock' : 'Highest stock'}</span>
           </div>
         </div>
 
         <div className="admin-inventory-priority-bar" aria-label="Inventory priority summary">
-          <div className="admin-inventory-priority-pill admin-inventory-priority-pill-danger">
+          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-danger" onClick={() => setFilter('attention')}>
             <span>Critical</span>
             <strong>{out.length}</strong>
-            <small>Out of stock or unavailable</small>
-          </div>
-          <div className="admin-inventory-priority-pill admin-inventory-priority-pill-warning">
+            <small>Open the risk queue</small>
+          </button>
+          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-warning" onClick={() => setFilter('attention')}>
             <span>Low stock</span>
             <strong>{low.length}</strong>
             <small>Near threshold</small>
-          </div>
-          <div className="admin-inventory-priority-pill">
+          </button>
+          <button type="button" className="admin-inventory-priority-pill" onClick={() => setFilter('healthy')}>
             <span>Healthy</span>
             <strong>{healthy.length}</strong>
             <small>No warning</small>
-          </div>
+          </button>
         </div>
 
         <div className="admin-sticky-toolbar-shell">
           <div className="admin-inventory-toolbar admin-inventory-toolbar-responsive ops-toolbar ops-toolbar-sticky">
-          <label>
-            Search items
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
-          </label>
-          <label>
-            View
-            <select value={filter} onChange={(event) => setFilter(event.target.value as InventoryFilter)}>
-              <option value="all">All records</option>
-              <option value="attention">Needs attention</option>
-              <option value="healthy">Healthy active</option>
-              <option value="inactive">Inactive records</option>
-            </select>
-          </label>
-          <label>
-            Sort
-            <select value={sort} onChange={(event) => setSort(event.target.value as InventorySort)}>
-              <option value="attention">Attention first</option>
-              <option value="name">Name</option>
-              <option value="stock-low">Lowest stock</option>
-              <option value="stock-high">Highest stock</option>
-            </select>
-          </label>
+            <div className="ops-toolbar-main">
+              <label>
+                Search items
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
+              </label>
+              <label>
+                View
+                <select value={filter} onChange={(event) => setFilter(event.target.value as InventoryFilter)}>
+                  <option value="all">All records</option>
+                  <option value="attention">Needs attention</option>
+                  <option value="healthy">Healthy active</option>
+                  <option value="inactive">Inactive records</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="ops-toolbar-main admin-inventory-toolbar-row-secondary">
+              <label>
+                Sort
+                <select value={sort} onChange={(event) => setSort(event.target.value as InventorySort)}>
+                  <option value="attention">Attention first</option>
+                  <option value="name">Name</option>
+                  <option value="stock-low">Lowest stock</option>
+                  <option value="stock-high">Highest stock</option>
+                </select>
+              </label>
+              <div className="admin-inventory-toolbar-tip">
+                <span className="inventory-summary-label">Fastest workflow</span>
+                <strong>Use +1 / +5 / Sold out, then Save now</strong>
+              </div>
+            </div>
           </div>
 
           <div className="admin-inventory-chip-row admin-inventory-chip-row-responsive">
-          <button type="button" className={filter === 'all' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('all')}>
-            All {items.length}
-          </button>
-          <button type="button" className={filter === 'attention' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('attention')}>
-            Attention {out.length + low.length}
-          </button>
-          <button type="button" className={filter === 'healthy' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('healthy')}>
-            Healthy {healthy.length}
-          </button>
-          <button type="button" className={filter === 'inactive' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('inactive')}>
-            Inactive {inactiveItems.length}
-          </button>
+            <button type="button" className={filter === 'all' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('all')}>
+              All {items.length}
+            </button>
+            <button type="button" className={filter === 'attention' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('attention')}>
+              Attention {out.length + low.length}
+            </button>
+            <button type="button" className={filter === 'healthy' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('healthy')}>
+              Healthy {healthy.length}
+            </button>
+            <button type="button" className={filter === 'inactive' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('inactive')}>
+              Inactive {inactiveItems.length}
+            </button>
           </div>
         </div>
 
@@ -254,6 +302,13 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
     restock_needed: serverItem.restock_needed,
   })
 
+  const applyStockDelta = (delta: number) => {
+    syncDraftItem(serverItem, admin, {
+      stock_count: Math.max(0, draft.stock_count + delta),
+      available: draft.stock_count + delta > 0 ? draft.available : false,
+    })
+  }
+
   return (
     <div className={`${cardClass} admin-inventory-card ${!draft.active ? 'admin-inventory-card-inactive' : ''}`}>
       <div className="section-heading-row admin-inventory-card-top">
@@ -286,8 +341,21 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
           <strong>{draft.low_stock_threshold}</strong>
         </div>
         <div>
-          <span className="inventory-summary-label">Availability</span>
-          <strong>{draft.available ? 'Sellable' : 'Hidden'}</strong>
+          <span className="inventory-summary-label">Coverage</span>
+          <strong>{inventoryGapLabel(draft)}</strong>
+        </div>
+      </div>
+
+      <div className="admin-inventory-inline-adjustments">
+        <span className="inventory-summary-label">Quick stock</span>
+        <div className="admin-inventory-adjustment-row">
+          <button type="button" className="secondary-button" onClick={() => applyStockDelta(-1)} disabled={draft.stock_count <= 0}>-1</button>
+          <button type="button" className="secondary-button" onClick={() => applyStockDelta(1)}>+1</button>
+          <button type="button" className="secondary-button" onClick={() => applyStockDelta(5)}>+5</button>
+          <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, { stock_count: 0, available: false })}>Sold out</button>
+          <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, { available: !draft.available })}>
+            {draft.available ? 'Hide item' : 'Show item'}
+          </button>
         </div>
       </div>
 
@@ -344,12 +412,7 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
   })
 
   const updateDraft = (patch: Partial<MenuItem>) => {
-    admin.setDraftMenuItems((current) => {
-      if (current.some((entry) => entry.id === item.id)) {
-        return current.map((entry) => (entry.id === item.id ? { ...entry, ...patch } : entry))
-      }
-      return [...current, { ...serverItem, ...patch }]
-    })
+    syncDraftItem(serverItem, admin, patch)
   }
 
   const resetDraft = () => {
@@ -377,6 +440,35 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
         </div>
 
         <div className="admin-modal-body admin-modal-body-stack">
+          <div className="admin-inventory-modal-hero-strip">
+            <div className="admin-inventory-modal-hero-card">
+              <span className="inventory-summary-label">On hand</span>
+              <strong>{draft.stock_count}</strong>
+              <small>{inventoryGapLabel(draft)}</small>
+            </div>
+            <div className="admin-inventory-modal-hero-card">
+              <span className="inventory-summary-label">Threshold</span>
+              <strong>{draft.low_stock_threshold}</strong>
+              <small>Alert line for operators</small>
+            </div>
+            <div className="admin-inventory-modal-hero-card">
+              <span className="inventory-summary-label">Price</span>
+              <strong>{money(draft.price, admin.currency_code)}</strong>
+              <small>{draft.category}</small>
+            </div>
+          </div>
+
+          <div className="admin-inventory-inline-adjustments admin-inventory-inline-adjustments-modal">
+            <span className="inventory-summary-label">Quick stock actions</span>
+            <div className="admin-inventory-adjustment-row">
+              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: Math.max(0, draft.stock_count - 1), available: draft.stock_count - 1 > 0 ? draft.available : false })} disabled={draft.stock_count <= 0}>-1</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: Math.max(0, draft.stock_count - 5), available: draft.stock_count - 5 > 0 ? draft.available : false })} disabled={draft.stock_count <= 0}>-5</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: draft.stock_count + 1 })}>+1</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: draft.stock_count + 5 })}>+5</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: 0, available: false, restock_needed: true })}>Mark sold out</button>
+            </div>
+          </div>
+
           <div className="admin-modal-section-grid">
             <label>
               Item name
@@ -392,21 +484,6 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
             Description
             <textarea value={draft.description} onChange={(e) => updateDraft({ description: e.target.value })} rows={4} />
           </label>
-
-          <div className="admin-inventory-metric-strip admin-modal-kpi-strip">
-            <div>
-              <span className="inventory-summary-label">Price</span>
-              <strong>{money(draft.price, admin.currency_code)}</strong>
-            </div>
-            <div>
-              <span className="inventory-summary-label">On hand</span>
-              <strong>{draft.stock_count}</strong>
-            </div>
-            <div>
-              <span className="inventory-summary-label">Threshold</span>
-              <strong>{draft.low_stock_threshold}</strong>
-            </div>
-          </div>
 
           <div className="admin-modal-section-grid admin-modal-section-grid-three">
             <label>

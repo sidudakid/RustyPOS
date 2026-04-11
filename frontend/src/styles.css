@@ -5377,3 +5377,170 @@ textarea {
     min-height: 46px;
   }
 }
+
+.admin-overview-command-card,
+.admin-settings-hero-card,
+.admin-inventory-hero-card-shell {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-overview-command-chips,
+.admin-inventory-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.admin-overview-top-grid-polished,
+.admin-overview-hero-grid-polished {
+  align-items: stretch;
+}
+
+.admin-overview-priority-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.admin-overview-priority-card {
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.58));
+  border: 1px solid rgba(71, 85, 105, 0.52);
+}
+
+.admin-overview-priority-card-danger {
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.admin-watchlist-polished {
+  gap: 0.5rem;
+}
+
+.admin-watchlist-polished .admin-watchlist-row {
+  padding: 0.78rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.56);
+  border: 1px solid rgba(71, 85, 105, 0.42);
+}
+
+.admin-inventory-toolbar-row-secondary {
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+}
+
+.admin-inventory-toolbar-tip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.18rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  background: rgba(15, 23, 42, 0.54);
+}
+
+.admin-inventory-inline-adjustments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.admin-inventory-adjustment-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.admin-inventory-adjustment-row .secondary-button {
+  min-height: 40px;
+}
+
+.admin-inventory-modal-hero-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-inventory-modal-hero-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.52);
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.admin-inventory-modal-hero-card strong {
+  font-size: 1.5rem;
+}
+
+.admin-inventory-modal-hero-card small {
+  color: #94a3b8;
+}
+
+.admin-settings-hero-stats {
+  margin-top: 1.1rem;
+}
+
+.admin-settings-form-group-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+.admin-settings-form-group-card {
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(71, 85, 105, 0.48);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.68), rgba(15, 23, 42, 0.48));
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.admin-settings-form-group-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.admin-settings-inline-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.admin-settings-access-summary-row-polished > * {
+  min-height: 100%;
+}
+
+@media (max-width: 920px) {
+  .admin-overview-priority-grid,
+  .admin-inventory-modal-hero-strip,
+  .admin-settings-form-group-grid,
+  .admin-inventory-toolbar-row-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-overview-command-chips,
+  .admin-inventory-hero-chips {
+    justify-content: flex-start;
+  }
+
+  .admin-inventory-adjustment-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-settings-form-group-card,
+  .admin-watchlist-polished .admin-watchlist-row {
+    padding: 0.85rem;
+  }
+}

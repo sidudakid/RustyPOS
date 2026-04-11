@@ -142,6 +142,9 @@ export function AdminSettingsPage() {
   const actualTableCount = activeTableAccess.length
   const configuredTableCount = draft.table_count
   const tableCountMismatch = actualTableCount !== configuredTableCount
+  const missingLinks = Math.max(configuredTableCount - activeTableAccess.length, 0)
+  const supportReady = Boolean(draft.support_email.trim() || draft.support_phone.trim())
+  const brandReady = /^#[0-9a-f]{6}$/i.test(draft.primary_color.trim()) && /^#[0-9a-f]{6}$/i.test(draft.accent_color.trim())
   const [qrModal, setQrModal] = useState<QrModalState>(null)
   const [tableModal, setTableModal] = useState<TableAccessModalState>(null)
   const [tableQuery, setTableQuery] = useState('')
@@ -181,15 +184,45 @@ export function AdminSettingsPage() {
 
   return (
     <>
-      <section className="admin-settings-page admin-settings-page-single">
+      <section className="admin-settings-page admin-settings-page-single ops-surface">
         <SectionCard>
-          <div className="admin-settings-top-strip admin-settings-top-strip-slim">
-            <div>
-              <p className="eyebrow">Settings</p>
-              <h3 className="section-title">Admin settings</h3>
+          <div className="ops-hero-card admin-settings-hero-card">
+            <div className="section-heading-row ops-hero-row admin-settings-top-strip admin-settings-top-strip-slim">
+              <div>
+                <p className="eyebrow">Settings</p>
+                <h3 className="section-title">Admin settings</h3>
+                <p className="muted ops-hero-copy">Organize brand identity, table provisioning, and customer access links from one polished control surface.</p>
+              </div>
+              <div className="ops-hero-chips admin-settings-top-strip-meta admin-settings-top-strip-meta-slim">
+                <span className={tableCountMismatch ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
+                  {tableCountMismatch ? `${missingLinks} links missing` : 'Tables aligned'}
+                </span>
+                <span className="info-chip">{activeTableAccess.length} live tables</span>
+                <span className={supportReady ? 'info-chip info-chip-success' : 'info-chip'}>{supportReady ? 'Support ready' : 'Support missing'}</span>
+              </div>
             </div>
-            <div className="admin-settings-top-strip-meta admin-settings-top-strip-meta-slim">
-              <span className="info-chip">{activeTableAccess.length} live tables</span>
+
+            <div className="ops-stat-strip ops-stat-strip-compact admin-settings-hero-stats">
+              <div className="ops-stat-card">
+                <span>Configured tables</span>
+                <strong>{configuredTableCount}</strong>
+                <small>{admin.tablePreview.length} preview names</small>
+              </div>
+              <div className="ops-stat-card ops-stat-card-success">
+                <span>Live access links</span>
+                <strong>{activeTableAccess.length}</strong>
+                <small>{filteredTableAccess.length} currently in view</small>
+              </div>
+              <div className="ops-stat-card ops-stat-card-warning">
+                <span>Missing links</span>
+                <strong>{missingLinks}</strong>
+                <small>{tableCountMismatch ? 'Save settings to reprovision' : 'Provisioning looks aligned'}</small>
+              </div>
+              <div className="ops-stat-card">
+                <span>Brand + support</span>
+                <strong>{Number(brandReady) + Number(supportReady)}/2</strong>
+                <small>{brandReady ? 'Brand colors valid' : 'Brand colors need review'}</small>
+              </div>
             </div>
           </div>
           <div className="admin-settings-section-nav admin-settings-section-nav-compact">
@@ -217,26 +250,56 @@ export function AdminSettingsPage() {
                   <span className="info-chip">Slug: {draft.slug}</span>
                 </div>
 
-                <div className="form-stack admin-settings-form-stack">
-                  <input value={draft.name} onChange={(e) => updateDraft('name', e.target.value)} placeholder="Cafe name" />
-                  <input value={draft.legal_name} onChange={(e) => updateDraft('legal_name', e.target.value)} placeholder="Legal name" />
-                  <input value={draft.slug} onChange={(e) => updateDraft('slug', e.target.value)} placeholder="Slug" />
-                  <input value={draft.tagline} onChange={(e) => updateDraft('tagline', e.target.value)} placeholder="Tagline" />
-                  <input value={draft.image_url} onChange={(e) => updateDraft('image_url', e.target.value)} placeholder="Image URL" />
-                  <div className="two-column admin-settings-inline-grid">
-                    <input value={draft.currency_code} onChange={(e) => updateDraft('currency_code', e.target.value)} placeholder="Currency" />
-                    <input value={draft.timezone} onChange={(e) => updateDraft('timezone', e.target.value)} placeholder="Timezone" />
+                <div className="admin-settings-form-group-grid">
+                  <div className="admin-settings-form-group-card">
+                    <div className="admin-settings-form-group-heading">
+                      <strong>Identity</strong>
+                      <span className="muted">What guests and operators see</span>
+                    </div>
+                    <div className="form-stack admin-settings-form-stack">
+                      <input value={draft.name} onChange={(e) => updateDraft('name', e.target.value)} placeholder="Cafe name" />
+                      <input value={draft.legal_name} onChange={(e) => updateDraft('legal_name', e.target.value)} placeholder="Legal name" />
+                      <input value={draft.slug} onChange={(e) => updateDraft('slug', e.target.value)} placeholder="Slug" />
+                      <input value={draft.tagline} onChange={(e) => updateDraft('tagline', e.target.value)} placeholder="Tagline" />
+                      <input value={draft.image_url} onChange={(e) => updateDraft('image_url', e.target.value)} placeholder="Image URL" />
+                    </div>
                   </div>
-                  <div className="two-column admin-settings-inline-grid">
-                    <input value={draft.primary_color} onChange={(e) => updateDraft('primary_color', e.target.value)} placeholder="Primary color" />
-                    <input value={draft.accent_color} onChange={(e) => updateDraft('accent_color', e.target.value)} placeholder="Accent color" />
+
+                  <div className="admin-settings-form-group-card">
+                    <div className="admin-settings-form-group-heading">
+                      <strong>Locale and brand</strong>
+                      <span className="muted">Visual identity and local formatting</span>
+                    </div>
+                    <div className="form-stack admin-settings-form-stack">
+                      <div className="two-column admin-settings-inline-grid">
+                        <input value={draft.currency_code} onChange={(e) => updateDraft('currency_code', e.target.value)} placeholder="Currency" />
+                        <input value={draft.timezone} onChange={(e) => updateDraft('timezone', e.target.value)} placeholder="Timezone" />
+                      </div>
+                      <div className="two-column admin-settings-inline-grid">
+                        <input value={draft.primary_color} onChange={(e) => updateDraft('primary_color', e.target.value)} placeholder="Primary color" />
+                        <input value={draft.accent_color} onChange={(e) => updateDraft('accent_color', e.target.value)} placeholder="Accent color" />
+                      </div>
+                      <div className="admin-settings-inline-status-row">
+                        <span className={brandReady ? 'info-chip info-chip-success' : 'info-chip'}>{brandReady ? 'Colors valid' : 'Use full hex colors'}</span>
+                      </div>
+                    </div>
                   </div>
-                  <input value={draft.support_email} onChange={(e) => updateDraft('support_email', e.target.value)} placeholder="Support email" />
-                  <input value={draft.support_phone} onChange={(e) => updateDraft('support_phone', e.target.value)} placeholder="Support phone" />
-                  <button onClick={() => admin.updateCafeSettings.mutate()} disabled={admin.updateCafeSettings.isPending}>
-                    {admin.updateCafeSettings.isPending ? 'Saving settings…' : 'Save settings'}
-                  </button>
+
+                  <div className="admin-settings-form-group-card">
+                    <div className="admin-settings-form-group-heading">
+                      <strong>Support contacts</strong>
+                      <span className="muted">Where staff and guests can reach you</span>
+                    </div>
+                    <div className="form-stack admin-settings-form-stack">
+                      <input value={draft.support_email} onChange={(e) => updateDraft('support_email', e.target.value)} placeholder="Support email" />
+                      <input value={draft.support_phone} onChange={(e) => updateDraft('support_phone', e.target.value)} placeholder="Support phone" />
+                    </div>
+                  </div>
                 </div>
+
+                <button onClick={() => admin.updateCafeSettings.mutate()} disabled={admin.updateCafeSettings.isPending}>
+                  {admin.updateCafeSettings.isPending ? 'Saving settings…' : 'Save settings'}
+                </button>
               </SectionCard>
 
               <SectionCard>
@@ -283,41 +346,59 @@ export function AdminSettingsPage() {
                   <span className="info-chip">{admin.tablePreview.length} preview names</span>
                 </div>
 
-                <div className="form-stack admin-settings-form-stack">
-                  <input value={draft.address_line_1} onChange={(e) => updateDraft('address_line_1', e.target.value)} placeholder="Address line 1" />
-                  <input value={draft.address_line_2} onChange={(e) => updateDraft('address_line_2', e.target.value)} placeholder="Address line 2" />
-                  <div className="two-column admin-settings-inline-grid">
-                    <input value={draft.city} onChange={(e) => updateDraft('city', e.target.value)} placeholder="City" />
-                    <input value={draft.state_region} onChange={(e) => updateDraft('state_region', e.target.value)} placeholder="State / region" />
+                <div className="admin-settings-form-group-grid">
+                  <div className="admin-settings-form-group-card">
+                    <div className="admin-settings-form-group-heading">
+                      <strong>Restaurant address</strong>
+                      <span className="muted">Used in receipts, links, and setup context</span>
+                    </div>
+                    <div className="form-stack admin-settings-form-stack">
+                      <input value={draft.address_line_1} onChange={(e) => updateDraft('address_line_1', e.target.value)} placeholder="Address line 1" />
+                      <input value={draft.address_line_2} onChange={(e) => updateDraft('address_line_2', e.target.value)} placeholder="Address line 2" />
+                      <div className="two-column admin-settings-inline-grid">
+                        <input value={draft.city} onChange={(e) => updateDraft('city', e.target.value)} placeholder="City" />
+                        <input value={draft.state_region} onChange={(e) => updateDraft('state_region', e.target.value)} placeholder="State / region" />
+                      </div>
+                      <div className="two-column admin-settings-inline-grid">
+                        <input value={draft.postal_code} onChange={(e) => updateDraft('postal_code', e.target.value)} placeholder="Postal code" />
+                        <input value={draft.country_code} onChange={(e) => updateDraft('country_code', e.target.value)} placeholder="Country code" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="two-column admin-settings-inline-grid">
-                    <input value={draft.postal_code} onChange={(e) => updateDraft('postal_code', e.target.value)} placeholder="Postal code" />
-                    <input value={draft.country_code} onChange={(e) => updateDraft('country_code', e.target.value)} placeholder="Country code" />
+
+                  <div className="admin-settings-form-group-card">
+                    <div className="admin-settings-form-group-heading">
+                      <strong>Table provisioning</strong>
+                      <span className="muted">Controls generated table labels and access scale</span>
+                    </div>
+                    <div className="form-stack admin-settings-form-stack">
+                      <select value={draft.service_mode} onChange={(e) => updateDraft('service_mode', e.target.value as CafeSettings['service_mode'])}>
+                        <option value="table_service">Table service</option>
+                        <option value="counter_service">Counter service</option>
+                        <option value="hybrid">Hybrid</option>
+                      </select>
+                      <div className="two-column admin-settings-inline-grid">
+                        <input
+                          type="number"
+                          min="1"
+                          value={draft.table_count}
+                          onChange={(e) => updateDraft('table_count', Number(e.target.value))}
+                          placeholder="Table count"
+                        />
+                        <input value={draft.table_prefix} onChange={(e) => updateDraft('table_prefix', e.target.value)} placeholder="Table prefix" />
+                      </div>
+                      <select value={draft.table_name_style} onChange={(e) => updateDraft('table_name_style', e.target.value as CafeSettings['table_name_style'])}>
+                        <option value="numeric">Numeric</option>
+                        <option value="padded">Padded</option>
+                        <option value="hyphenated">Hyphenated</option>
+                      </select>
+                    </div>
                   </div>
-                  <select value={draft.service_mode} onChange={(e) => updateDraft('service_mode', e.target.value as CafeSettings['service_mode'])}>
-                    <option value="table_service">Table service</option>
-                    <option value="counter_service">Counter service</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                  <div className="two-column admin-settings-inline-grid">
-                    <input
-                      type="number"
-                      min="1"
-                      value={draft.table_count}
-                      onChange={(e) => updateDraft('table_count', Number(e.target.value))}
-                      placeholder="Table count"
-                    />
-                    <input value={draft.table_prefix} onChange={(e) => updateDraft('table_prefix', e.target.value)} placeholder="Table prefix" />
-                  </div>
-                  <select value={draft.table_name_style} onChange={(e) => updateDraft('table_name_style', e.target.value as CafeSettings['table_name_style'])}>
-                    <option value="numeric">Numeric</option>
-                    <option value="padded">Padded</option>
-                    <option value="hyphenated">Hyphenated</option>
-                  </select>
-                  <button onClick={() => admin.updateCafeSettings.mutate()} disabled={admin.updateCafeSettings.isPending}>
-                    {admin.updateCafeSettings.isPending ? 'Saving settings…' : 'Save table settings'}
-                  </button>
                 </div>
+
+                <button onClick={() => admin.updateCafeSettings.mutate()} disabled={admin.updateCafeSettings.isPending}>
+                  {admin.updateCafeSettings.isPending ? 'Saving settings…' : 'Save table settings'}
+                </button>
               </SectionCard>
 
               <SectionCard>
@@ -353,7 +434,7 @@ export function AdminSettingsPage() {
                   </div>
                   <span className="info-chip">Fast actions</span>
                 </div>
-                <div className="admin-settings-access-summary-row">
+                <div className="admin-settings-access-summary-row admin-settings-access-summary-row-polished">
                   <button type="button" className="admin-settings-quick-card admin-settings-quick-card-inline" onClick={() => setTableFilter('all')}>
                     <span className="inventory-summary-label">Live access</span>
                     <strong>{activeTableAccess.length} tables</strong>
@@ -380,18 +461,18 @@ export function AdminSettingsPage() {
 
                 <div className="admin-sticky-toolbar-shell">
                   <AdminListToolbar>
-                  <label>
-                    Search tables
-                    <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name, label, or token" />
-                  </label>
-                  <label>
-                    Filter
-                    <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value as TableFilter)}>
-                      <option value="all">All live tables</option>
-                      <option value="open">Open orders</option>
-                      <option value="inactive">Inactive / hidden</option>
-                    </select>
-                  </label>
+                    <label>
+                      Search tables
+                      <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name, label, or token" />
+                    </label>
+                    <label>
+                      Filter
+                      <select value={tableFilter} onChange={(event) => setTableFilter(event.target.value as TableFilter)}>
+                        <option value="all">All live tables</option>
+                        <option value="open">Open orders</option>
+                        <option value="inactive">Inactive / hidden</option>
+                      </select>
+                    </label>
                   </AdminListToolbar>
                 </div>
 

@@ -29,17 +29,63 @@ export function AdminOverviewPage() {
     .slice(0, 4)
 
   return (
-    <div className="page-layout-admin admin-management-page admin-overview-page">
-      <section className="admin-overview-top-grid">
+    <div className="page-layout-admin admin-management-page admin-overview-page ops-surface">
+      <SectionCard>
+        <div className="ops-hero-card admin-overview-command-card">
+          <div className="section-heading-row ops-hero-row">
+            <div>
+              <p className="eyebrow">Operations pulse</p>
+              <h3 className="section-title">Management overview</h3>
+              <p className="muted ops-hero-copy">
+                One owner view for readiness, revenue, stock risk, and live table access across the café.
+              </p>
+            </div>
+            <div className="ops-hero-chips admin-overview-command-chips">
+              <span className={admin.connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
+                {admin.connected ? 'Connected' : 'Offline'}
+              </span>
+              <span className={admin.setupChecks.isComplete ? 'info-chip info-chip-success' : 'info-chip'}>
+                Setup {admin.setupChecks.completed}/{admin.setupChecks.total}
+              </span>
+              <span className={unavailableItems.length ? 'info-chip info-chip-danger' : 'info-chip info-chip-success'}>
+                {unavailableItems.length} unavailable items
+              </span>
+            </div>
+          </div>
+
+          <div className="ops-stat-strip">
+            <div className="ops-stat-card">
+              <span>Catalog</span>
+              <strong>{menuItems.length}</strong>
+              <small>{categories.length} categories tracked</small>
+            </div>
+            <div className="ops-stat-card ops-stat-card-warning">
+              <span>Inventory attention</span>
+              <strong>{lowStockItems.length}</strong>
+              <small>{unavailableItems.length} unavailable right now</small>
+            </div>
+            <div className="ops-stat-card ops-stat-card-success">
+              <span>Revenue reported</span>
+              <strong>{revenue ? money(revenue.total_revenue, admin.currency_code) : '—'}</strong>
+              <small>{revenue ? `${revenue.order_count} paid orders` : 'Awaiting analytics data'}</small>
+            </div>
+            <div className="ops-stat-card">
+              <span>Live table links</span>
+              <strong>{activeTableAccess.length}</strong>
+              <small>{activeOperationalTables.length} active floor tables</small>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      <section className="admin-overview-top-grid admin-overview-top-grid-polished">
         <SectionCard>
           <div className="section-heading-row admin-overview-card-heading">
             <div>
               <p className="eyebrow">Quick actions</p>
               <h3 className="section-title">Jump into work</h3>
             </div>
-            <span className={admin.connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
-              {admin.connected ? 'Connected' : 'Offline'}
-            </span>
+            <span className="info-chip">Owner flow</span>
           </div>
           <div className="admin-overview-action-grid">
             <NavLink className="admin-overview-quick-link" to="/admin/menu">
@@ -82,14 +128,14 @@ export function AdminOverviewPage() {
         </SectionCard>
       </section>
 
-      <section className="admin-overview-hero-grid">
+      <section className="admin-overview-hero-grid admin-overview-hero-grid-polished">
         <SectionCard>
           <div className="section-heading-row admin-overview-card-heading">
             <div>
               <p className="eyebrow">Ownership snapshot</p>
-              <h3 className="section-title">Management overview</h3>
+              <h3 className="section-title">Operator KPIs</h3>
             </div>
-            <span className="info-chip">CRUD workspace</span>
+            <span className="info-chip">Live database view</span>
           </div>
           <div className="admin-overview-kpi-grid">
             <div className="admin-overview-kpi-card">
@@ -155,18 +201,18 @@ export function AdminOverviewPage() {
               </div>
               <span className="info-chip">Owner focus</span>
             </div>
-            <div className="admin-edit-list admin-lane-grid">
-              <div className="admin-edit-card">
+            <div className="admin-overview-priority-grid">
+              <div className="admin-edit-card admin-overview-priority-card admin-overview-priority-card-danger">
                 <strong>Low-stock items</strong>
                 <p className="muted inventory-helper-text">{lowStockItems.length} records need inventory review.</p>
                 <NavLink className="admin-overview-inline-link" to="/admin/inventory">Open inventory</NavLink>
               </div>
-              <div className="admin-edit-card">
+              <div className="admin-edit-card admin-overview-priority-card">
                 <strong>Table links</strong>
                 <p className="muted inventory-helper-text">{activeTableAccess.length}/{admin.settingsDraft.table_count} customer entry links are live.</p>
                 <NavLink className="admin-overview-inline-link" to="/admin/settings">Open settings</NavLink>
               </div>
-              <div className="admin-edit-card">
+              <div className="admin-edit-card admin-overview-priority-card">
                 <strong>Catalog hygiene</strong>
                 <p className="muted inventory-helper-text">{archivedItems.length} archived items and {archivedCategories.length} archived categories are stored.</p>
                 <NavLink className="admin-overview-inline-link" to="/admin/menu">Open menu</NavLink>
@@ -214,7 +260,7 @@ export function AdminOverviewPage() {
               </div>
               <span className="info-chip">Owner review</span>
             </div>
-            <div className="admin-watchlist">
+            <div className="admin-watchlist admin-watchlist-polished">
               <div className="admin-watchlist-row">
                 <span>Archived items</span>
                 <strong>{archivedItems.length}</strong>
