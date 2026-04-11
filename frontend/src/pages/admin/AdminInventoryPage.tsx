@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SectionCard } from '../../components'
 import { money, useAdminOutletState } from '../../adminShared'
 import type { MenuItem } from '../../api'
@@ -124,7 +124,8 @@ export function AdminInventoryPage() {
           </div>
         </div>
 
-        <div className="admin-inventory-toolbar admin-inventory-toolbar-responsive">
+        <div className="admin-sticky-toolbar-shell">
+          <div className="admin-inventory-toolbar admin-inventory-toolbar-responsive">
           <label>
             Search items
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
@@ -147,9 +148,9 @@ export function AdminInventoryPage() {
               <option value="stock-high">Highest stock</option>
             </select>
           </label>
-        </div>
+          </div>
 
-        <div className="admin-inventory-chip-row admin-inventory-chip-row-responsive">
+          <div className="admin-inventory-chip-row admin-inventory-chip-row-responsive">
           <button type="button" className={filter === 'all' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('all')}>
             All {items.length}
           </button>
@@ -162,6 +163,7 @@ export function AdminInventoryPage() {
           <button type="button" className={filter === 'inactive' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('inactive')}>
             Inactive {inactiveItems.length}
           </button>
+          </div>
         </div>
 
         <div className="admin-inventory-results-header">
@@ -305,6 +307,15 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
   const admin = useAdminOutletState()
   const [confirmArchive, setConfirmArchive] = useState(false)
   const item = admin.inventoryQuery.data?.find((entry) => entry.id === itemId) ?? admin.draftMenuItems.find((entry) => entry.id === itemId)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   if (!item) return null
 

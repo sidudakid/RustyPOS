@@ -1097,6 +1097,22 @@ pre {
   margin-top: 1rem;
 }
 
+.admin-sticky-toolbar-shell {
+  position: sticky;
+  top: 96px;
+  z-index: 18;
+  margin-top: 1rem;
+  padding: 0.85rem 0 0.75rem;
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.98), rgba(31, 41, 55, 0.88) 72%, rgba(31, 41, 55, 0));
+  backdrop-filter: blur(14px);
+}
+
+.admin-sticky-toolbar-shell .admin-list-toolbar,
+.admin-sticky-toolbar-shell .admin-inventory-toolbar,
+.admin-sticky-toolbar-shell .admin-inventory-chip-row {
+  margin-top: 0;
+}
+
 .admin-list-toolbar label {
   display: flex;
   flex-direction: column;
@@ -1578,6 +1594,26 @@ pre {
 .admin-modal-header,
 .admin-modal-footer {
   gap: 1rem;
+}
+
+.admin-modal-header {
+  position: sticky;
+  top: -1rem;
+  z-index: 3;
+  margin: -1rem -1rem 0;
+  padding: 1rem 1rem 0.9rem;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.94));
+  border-bottom: 1px solid rgba(71, 85, 105, 0.48);
+}
+
+.admin-modal-footer {
+  position: sticky;
+  bottom: -1rem;
+  z-index: 3;
+  margin: 0 -1rem -1rem;
+  padding: 0.9rem 1rem 1rem;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.98));
+  border-top: 1px solid rgba(71, 85, 105, 0.48);
 }
 
 .admin-modal-body-stack {
@@ -2545,6 +2581,10 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .admin-sticky-toolbar-shell {
+    top: 84px;
+  }
+
   .admin-sidebar-stack {
     position: static;
   }
@@ -2617,6 +2657,18 @@ pre {
     max-height: calc(100vh - 1rem);
     padding: 0.9rem;
     border-radius: 18px;
+  }
+
+  .admin-modal-header {
+    top: -0.9rem;
+    margin: -0.9rem -0.9rem 0;
+    padding: 0.9rem 0.9rem 0.8rem;
+  }
+
+  .admin-modal-footer {
+    bottom: -0.9rem;
+    margin: 0 -0.9rem -0.9rem;
+    padding: 0.8rem 0.9rem 0.9rem;
   }
 
   .page-with-mobile-nav {
@@ -5044,6 +5096,12 @@ textarea {
   .admin-inventory-page .admin-inventory-results-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .admin-sticky-toolbar-shell {
+    top: 72px;
+    padding-top: 0.7rem;
+    padding-bottom: 0.65rem;
   }
 
   .customer-menu-page .customer-menu-intro-meta,

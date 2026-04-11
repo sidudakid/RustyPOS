@@ -378,7 +378,8 @@ export function AdminSettingsPage() {
                   <span className="info-chip">{filteredTableAccess.length} shown</span>
                 </div>
 
-                <AdminListToolbar>
+                <div className="admin-sticky-toolbar-shell">
+                  <AdminListToolbar>
                   <label>
                     Search tables
                     <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name, label, or token" />
@@ -391,7 +392,8 @@ export function AdminSettingsPage() {
                       <option value="inactive">Inactive / hidden</option>
                     </select>
                   </label>
-                </AdminListToolbar>
+                  </AdminListToolbar>
+                </div>
 
                 {admin.settingsQuery.isLoading ? <p className="muted">Loading table access data…</p> : null}
                 {admin.settingsQuery.isError ? <p className="connection-bad">Failed to load live table access data.</p> : null}

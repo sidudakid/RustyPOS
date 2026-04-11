@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { AdminEntityList, AdminListToolbar, SectionCard } from '../../components'
 import { centsToMajorUnits, majorUnitsToCents, useAdminOutletState } from '../../adminShared'
 import type { MenuCategory, MenuItem } from '../../api'
@@ -95,7 +95,8 @@ export function AdminMenuPage() {
             </div>
             <span className="info-chip">{filteredItems.length} shown</span>
           </div>
-          <AdminListToolbar>
+          <div className="admin-sticky-toolbar-shell">
+            <AdminListToolbar>
             <label>
               Search items
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
@@ -109,7 +110,8 @@ export function AdminMenuPage() {
                 <option value="unavailable">Unavailable</option>
               </select>
             </label>
-          </AdminListToolbar>
+            </AdminListToolbar>
+          </div>
           <AdminEntityList>
             {filteredItems.map((item) => (
               <button key={item.id} type="button" className="admin-settings-table-row" onClick={() => setModal({ itemId: item.id })}>
@@ -213,6 +215,16 @@ function CategoryEditor({ category }: { category: MenuCategory }) {
 function MenuItemModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
   const admin = useAdminOutletState()
   const item = admin.draftMenuItems.find((entry) => entry.id === itemId)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
   if (!item) return null
 
   const serverItem = admin.menuItemsQuery.data?.find((entry) => entry.id === item.id) ?? item
