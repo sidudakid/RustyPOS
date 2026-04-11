@@ -5497,6 +5497,22 @@ textarea {
   margin-top: 1rem;
 }
 
+.cashier-ready-spotlight {
+  margin-bottom: 0.85rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(134, 239, 172, 0.34);
+  background: linear-gradient(180deg, rgba(20, 83, 45, 0.38), rgba(15, 23, 42, 0.82));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.cashier-ready-spotlight-pills {
+  justify-content: flex-end;
+}
+
 .cashier-callout-strip {
   margin-bottom: 0.85rem;
   padding: 0.95rem 1rem;
@@ -5506,6 +5522,21 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.cashier-ready-card {
+  border-width: 1px;
+  border-style: solid;
+}
+
+.cashier-ready-card-paid {
+  border-color: rgba(134, 239, 172, 0.28);
+  box-shadow: 0 10px 24px rgba(20, 83, 45, 0.12);
+}
+
+.cashier-ready-card-unpaid {
+  border-color: rgba(253, 186, 116, 0.28);
+  box-shadow: 0 10px 24px rgba(120, 53, 15, 0.12);
 }
 
 .ops-order-items {
@@ -5597,7 +5628,8 @@ textarea {
   .cashier-success-bar,
   .cashier-toolbar-topline,
   .operator-access-header,
-  .operator-access-session-row {
+  .operator-access-session-row,
+  .cashier-ready-spotlight {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;

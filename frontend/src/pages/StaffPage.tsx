@@ -546,28 +546,6 @@ export function StaffPage() {
                   }}
                 />
               </div>
-              <AuthTokenInput
-                value={token}
-                invalid={tokenInvalid}
-                connected={connected}
-                compactWhenFilled
-                loadedLabel="Staff station connected"
-                switchLabel="Switch token"
-                title="Staff token"
-                description="Paste the active owner or staff token to unlock payments, bill printing, and live floor updates on this station."
-                placeholder="Paste staff token"
-                helperText="Enter the token once to unlock the station. After that, this box will collapse so staff can stay focused on service."
-                roleHint="Owner or staff token"
-                invalidMessage="This token cannot open the staff station. Use an owner or staff token that is still active."
-                onChange={(value) => {
-                  setToken(value)
-                  writeOperatorToken('staff', value)
-                }}
-                onReset={() => {
-                  setToken('')
-                  clearOperatorToken('staff')
-                }}
-              />
             </div>
           </div>
           {banner ? <NotificationBanner message={banner} tone={bannerTone} /> : null}
@@ -719,6 +697,23 @@ export function StaffPage() {
               </div>
               <span className="info-chip">{filteredReadyOrders.length} ready</span>
             </div>
+            {nextReadyOrder ? (
+              <div className="cashier-ready-spotlight" role="status" aria-live="polite">
+                <div>
+                  <p className="eyebrow">Hand off now</p>
+                  <strong>{nextReadyOrder.order.table_name ?? shortId(nextReadyOrder.order.table_id)} · Order #{shortId(nextReadyOrder.order.id)}</strong>
+                  <div className="muted">
+                    {nextReadyOrder.order.paid_at
+                      ? 'Payment already closed. This one can go straight to the guest.'
+                      : 'Pause for payment check before the food leaves the counter.'}
+                  </div>
+                </div>
+                <div className="pill-list cashier-ready-spotlight-pills">
+                  <span className="info-chip info-chip-success">Ready for handoff</span>
+                  {nextReadyOrder.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip info-chip-danger">Collect payment first</span>}
+                </div>
+              </div>
+            ) : null}
             {readyUnpaidOrders.length > 0 ? (
               <div className="cashier-callout-strip">
                 <strong>{readyUnpaidOrders.length} ready orders are still unpaid.</strong>
@@ -730,7 +725,7 @@ export function StaffPage() {
                 const total = sumOrderTotal(entry)
                 const tableName = entry.order.table_name ?? shortId(entry.order.table_id)
                 return (
-                  <div className="admin-order-card admin-order-card-compact ops-order-card" key={entry.order.id}>
+                  <div className={`admin-order-card admin-order-card-compact ops-order-card ${entry.order.paid_at ? 'cashier-ready-card cashier-ready-card-paid' : 'cashier-ready-card cashier-ready-card-unpaid'}`} key={entry.order.id}>
                     <div className="order-meta">
                       <div>
                         <strong>{tableName}</strong>
@@ -740,6 +735,7 @@ export function StaffPage() {
                     </div>
                     <div className="pill-list">
                       <StatusBadge status={entry.order.status} />
+                      <span className="info-chip info-chip-success">Ready for handoff</span>
                       {entry.order.is_follow_up ? <span className="info-chip info-chip-success">Follow-up add-on</span> : null}
                       {entry.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip info-chip-danger">Collect payment</span>}
                     </div>
@@ -835,6 +831,40 @@ export function StaffPage() {
       </div>
 
       <div className="admin-sidebar-stack">
+        <SectionCard>
+          <div className="section-heading-row">
+            <div>
+              <p className="eyebrow">Station access</p>
+              <h3 className="section-title">Sign-in stays off the main work lane</h3>
+            </div>
+            <span className={connected ? 'info-chip info-chip-success' : 'info-chip'}>
+              {connected ? 'Station live' : 'Saved locally'}
+            </span>
+          </div>
+          <p className="muted">Keep the token tucked here so the cashier flow stays focused on bills, payment, and handoff.</p>
+          <AuthTokenInput
+            value={token}
+            invalid={tokenInvalid}
+            connected={connected}
+            compactWhenFilled
+            loadedLabel="Staff station connected"
+            switchLabel="Switch token"
+            title="Staff token"
+            description="Paste the active owner or staff token to unlock payments, bill printing, and live floor updates on this station."
+            placeholder="Paste staff token"
+            helperText="Enter the token once to unlock the station. After that, this box will collapse so staff can stay focused on service."
+            roleHint="Owner or staff token"
+            invalidMessage="This token cannot open the staff station. Use an owner or staff token that is still active."
+            onChange={(value) => {
+              setToken(value)
+              writeOperatorToken('staff', value)
+            }}
+            onReset={() => {
+              setToken('')
+              clearOperatorToken('staff')
+            }}
+          />
+        </SectionCard>
         <SectionCard>
           <div className="section-heading-row">
             <div>
