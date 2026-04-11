@@ -2836,8 +2836,7 @@ pre {
   }
 
   .brand-subtitle,
-  .topbar-context,
-  .admin-subnav-mobile-rail {
+  .topbar-context {
     display: none;
   }
 
@@ -3109,12 +3108,22 @@ pre {
     min-width: 0;
   }
 
+  .admin-shell {
+    padding-bottom: calc(6.75rem + env(safe-area-inset-bottom, 0));
+  }
+
   .admin-subnav-mobile-rail {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(220px, 1fr);
     overflow-x: auto;
     padding-bottom: 0.2rem;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+
+  .admin-subnav-item {
+    scroll-snap-align: start;
   }
 
   .customer-order-hero-text,
@@ -3133,7 +3142,9 @@ pre {
   }
 
   .admin-bottom-nav {
-    position: sticky;
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
     z-index: 40;
     display: grid;
@@ -3144,6 +3155,7 @@ pre {
     border: 1px solid rgba(71, 85, 105, 0.72);
     background: rgba(15, 23, 42, 0.92);
     backdrop-filter: blur(16px);
+    box-shadow: 0 -12px 32px rgba(2, 6, 23, 0.28);
   }
 
   .admin-bottom-link {
