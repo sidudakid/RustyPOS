@@ -24,6 +24,7 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     let restaurant_setup_sql = include_str!("../migrations/010_restaurant_setup_foundation.sql");
     let managed_tables_sql = include_str!("../migrations/011_managed_tables.sql");
     let stakeholder_finance_sql = include_str!("../migrations/012_stakeholder_finance.sql");
+    let order_follow_up_tracking_sql = include_str!("../migrations/013_order_follow_up_tracking.sql");
 
     sqlx::raw_sql(init_sql).execute(pool).await?;
     sqlx::raw_sql(seed_sql).execute(pool).await?;
@@ -37,9 +38,24 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::raw_sql(restaurant_setup_sql).execute(pool).await?;
     sqlx::raw_sql(managed_tables_sql).execute(pool).await?;
     sqlx::raw_sql(stakeholder_finance_sql).execute(pool).await?;
+    sqlx::raw_sql(order_follow_up_tracking_sql).execute(pool).await?;
     Ok(())
 }
 
 pub async fn seed_if_empty(_pool: &PgPool) -> Result<(), sqlx::Error> {
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn order_follow_up_migration_is_registered() {
+        let source = include_str!("db.rs");
+        assert!(
+            source.contains("013_order_follow_up_tracking.sql"),
+            "run_migrations must include the follow-up tracking migration"
+        );
+    }
 }
