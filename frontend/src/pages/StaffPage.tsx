@@ -16,6 +16,7 @@ import {
 } from '../notifications'
 
 type InventoryTone = 'out' | 'low' | 'ok'
+type StaffView = 'all' | 'attention' | 'idle'
 
 function inventoryTone(item: MenuItem): InventoryTone {
   if (item.stock_count <= 0) return 'out'
@@ -39,6 +40,8 @@ export function StaffPage() {
   const [soundEnabled, setSoundEnabled] = useState(() => notificationsEnabled())
   const [banner, setBanner] = useState('🔔 Staff alerts are on by default. Ready orders and cashier updates will pop here.')
   const [bannerTone, setBannerTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
+  const [tableQuery, setTableQuery] = useState('')
+  const [staffView, setStaffView] = useState<StaffView>('all')
   const bannerTimeoutRef = useRef<number | null>(null)
   const refetchRef = useRef<null | (() => void)>(null)
 
@@ -207,69 +210,137 @@ export function StaffPage() {
   const idleActiveTables = activeTables.filter((table) => table.open_order_count === 0)
   const activeAttentionTables = activeTables.filter((table) => table.ready_order_count > 0 || table.open_order_count > 0)
 
+  const tableNeedle = tableQuery.trim().toLowerCase()
+  const filteredTableOperations = tableOperations.filter((table) => {
+    const matchesText =
+      !tableNeedle ||
+      [table.table_name, table.table_number ? String(table.table_number) : '']
+        .join(' ')
+        .toLowerCase()
+        .includes(tableNeedle)
+
+    const matchesView =
+      staffView === 'all' ||
+      (staffView === 'attention' && table.active && (table.ready_order_count > 0 || table.open_order_count > 0)) ||
+      (staffView === 'idle' && table.active && table.open_order_count === 0)
+
+    return matchesText && matchesView
+  })
+
+  const filteredOpenTables = openTables.filter((table) => {
+    if (!tableNeedle) return true
+    return [table.table_name].join(' ').toLowerCase().includes(tableNeedle)
+  })
+
   const formatLastOrderAt = (value?: string | null) => {
     if (!value) return 'No orders yet'
     return new Date(value).toLocaleString()
   }
 
   return (
-    <section className="two-column page-layout-admin staff-page-shell">
+    <section className="two-column page-layout-admin staff-page-shell ops-surface ops-surface-staff">
       <div>
-        <SectionCard>
-          <div className="hero-row">
+        <div className="ops-hero-card ops-hero-card-staff">
+          <div className="hero-row ops-hero-row">
             <div>
               <p className="eyebrow">Front of house</p>
               <h2 className="section-title">Staff station</h2>
-              <p className="muted">Cashier and inventory controls live here now. Kitchen stays focused on prep and pickup flow.</p>
+              <p className="muted ops-hero-copy">Cashier, floor, and stock actions stay visible while you scroll so nobody has to bounce back to the top mid-service.</p>
             </div>
-            <div className="hero-chip-group">
+            <div className="hero-chip-group ops-hero-chips">
               <span className={connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
                 {connected ? 'Live connected' : 'Disconnected'}
               </span>
+              <span className="info-chip">Ready {readyOrders.length}</span>
+              <span className="info-chip">Open checks {openTables.length}</span>
               <span className="info-chip">Last: {lastEvent}</span>
             </div>
           </div>
-          <div className="notification-row">
-            <p className="muted">Alerts: {soundEnabled ? 'sound on' : 'sound muted'}</p>
-            <NotificationButton
-              enabled={soundEnabled}
-              onClick={async () => {
-                if (soundEnabled) {
-                  disableNotifications()
-                  setSoundEnabled(false)
-                  showBanner('🔕 Staff alerts muted.', 'muted')
-                  return
-                }
 
-                const enabled = await enableNotifications()
-                setSoundEnabled(enabled)
-                if (enabled) {
-                  const permission = canShowBrowserNotifications() ? browserNotificationPermission() : 'unsupported'
-                  showBanner(
-                    permission === 'granted'
-                      ? '✅ Staff alerts enabled with browser popups.'
-                      : '✅ Staff alerts enabled. Browser popups may still need permission.',
-                    'success',
-                  )
-                } else {
-                  showBanner('⚠️ Tap again if your browser is still blocking sound.', 'alert')
-                }
-              }}
-            />
+          <div className="ops-stat-strip">
+            <div className="ops-stat-card">
+              <span>Open checks</span>
+              <strong>{openTables.length}</strong>
+              <small>Tables with unpaid balance</small>
+            </div>
+            <div className="ops-stat-card ops-stat-card-warning">
+              <span>Need attention</span>
+              <strong>{activeAttentionTables.length}</strong>
+              <small>Tables with open or ready orders</small>
+            </div>
+            <div className="ops-stat-card">
+              <span>Idle active</span>
+              <strong>{idleActiveTables.length}</strong>
+              <small>Good candidates for reset or seating</small>
+            </div>
+            <div className="ops-stat-card ops-stat-card-danger">
+              <span>Inventory alerts</span>
+              <strong>{inventoryAttention.length}</strong>
+              <small>Stock issues visible to staff</small>
+            </div>
+          </div>
+        </div>
+
+        <SectionCard>
+          <div className="ops-toolbar ops-toolbar-sticky">
+            <div className="ops-toolbar-main">
+              <label>
+                Search tables
+                <input value={tableQuery} onChange={(event) => setTableQuery(event.target.value)} placeholder="Search table name or number" />
+              </label>
+              <label>
+                Staff focus
+                <select value={staffView} onChange={(event) => setStaffView(event.target.value as StaffView)}>
+                  <option value="all">All floor tables</option>
+                  <option value="attention">Needs attention</option>
+                  <option value="idle">Idle active tables</option>
+                </select>
+              </label>
+            </div>
+            <div className="ops-toolbar-side">
+              <div className="notification-row ops-toolbar-notifications">
+                <p className="muted">Alerts: {soundEnabled ? 'sound on' : 'sound muted'}</p>
+                <NotificationButton
+                  enabled={soundEnabled}
+                  onClick={async () => {
+                    if (soundEnabled) {
+                      disableNotifications()
+                      setSoundEnabled(false)
+                      showBanner('🔕 Staff alerts muted.', 'muted')
+                      return
+                    }
+
+                    const enabled = await enableNotifications()
+                    setSoundEnabled(enabled)
+                    if (enabled) {
+                      const permission = canShowBrowserNotifications() ? browserNotificationPermission() : 'unsupported'
+                      showBanner(
+                        permission === 'granted'
+                          ? '✅ Staff alerts enabled with browser popups.'
+                          : '✅ Staff alerts enabled. Browser popups may still need permission.',
+                        'success',
+                      )
+                    } else {
+                      showBanner('⚠️ Tap again if your browser is still blocking sound.', 'alert')
+                    }
+                  }}
+                />
+              </div>
+              <AuthTokenInput
+                value={token}
+                invalid={tokenInvalid}
+                onChange={(value) => {
+                  setToken(value)
+                  localStorage.setItem('adminToken', value)
+                }}
+                onReset={() => {
+                  setToken('')
+                  localStorage.removeItem('adminToken')
+                }}
+              />
+            </div>
           </div>
           {banner ? <NotificationBanner message={banner} tone={bannerTone} /> : null}
-          <AuthTokenInput
-            value={token}
-            invalid={tokenInvalid}
-            onChange={(value) => {
-              setToken(value)
-              localStorage.setItem('adminToken', value)
-            }}
-            onReset={() => {
-              setToken('')
-              localStorage.removeItem('adminToken')
-            }}
-          />
         </SectionCard>
 
         <SectionCard>
@@ -278,7 +349,7 @@ export function StaffPage() {
               <p className="eyebrow">Table operations</p>
               <h3 className="section-title">Floor snapshot</h3>
             </div>
-            <span className="info-chip">{activeTables.length} active tables</span>
+            <span className="info-chip">{filteredTableOperations.length} shown</span>
           </div>
           <div className="inventory-summary-grid staff-summary-grid">
             <div className="inventory-summary-card inventory-summary-card-out">
@@ -298,8 +369,8 @@ export function StaffPage() {
               <strong>{inactiveTables.length}</strong>
             </div>
           </div>
-          <div className="order-list compact-order-list">
-            {tableOperations.map((table) => {
+          <div className="order-list compact-order-list ops-order-list">
+            {filteredTableOperations.map((table) => {
               const payableTable = openTables.find((entry) => entry.table_id === table.table_id)
               const toneClass = !table.active
                 ? 'info-chip'
@@ -308,7 +379,7 @@ export function StaffPage() {
                   : 'info-chip info-chip-success'
 
               return (
-                <div className="admin-order-card" key={table.table_id}>
+                <div className="admin-order-card ops-order-card" key={table.table_id}>
                   <div className="order-meta">
                     <div>
                       <strong>{table.table_name}</strong>
@@ -345,7 +416,7 @@ export function StaffPage() {
                 </div>
               )
             })}
-            {tableOperations.length === 0 ? <p className="muted">No tables found yet.</p> : null}
+            {filteredTableOperations.length === 0 ? <p className="muted">No tables match this view.</p> : null}
           </div>
         </SectionCard>
 
@@ -355,11 +426,11 @@ export function StaffPage() {
               <p className="eyebrow">Cashier</p>
               <h3 className="section-title">Settlement queue</h3>
             </div>
-            <span className="info-chip">{openTables.length} payable</span>
+            <span className="info-chip">{filteredOpenTables.length} payable</span>
           </div>
-          <div className="order-list">
-            {openTables.map((table) => (
-              <div className="admin-order-card" key={table.table_id}>
+          <div className="order-list ops-order-list">
+            {filteredOpenTables.map((table) => (
+              <div className="admin-order-card ops-order-card" key={table.table_id}>
                 <div className="order-meta">
                   <div>
                     <strong>{table.table_name}</strong>
@@ -379,7 +450,7 @@ export function StaffPage() {
                 </div>
               </div>
             ))}
-            {openTables.length === 0 ? <p className="muted">No unpaid tables right now.</p> : null}
+            {filteredOpenTables.length === 0 ? <p className="muted">No unpaid tables right now.</p> : null}
           </div>
         </SectionCard>
 
@@ -391,11 +462,11 @@ export function StaffPage() {
             </div>
             <span className="info-chip">{readyOrders.length} ready</span>
           </div>
-          <div className="order-list compact-order-list">
+          <div className="order-list compact-order-list ops-order-list">
             {readyOrders.map((entry) => {
               const total = entry.items.reduce((sum, item) => sum + item.menu_item_price * item.quantity, 0)
               return (
-                <div className="admin-order-card admin-order-card-compact" key={entry.order.id}>
+                <div className="admin-order-card admin-order-card-compact ops-order-card" key={entry.order.id}>
                   <div className="order-meta">
                     <div>
                       <strong>#{shortId(entry.order.id)}</strong>

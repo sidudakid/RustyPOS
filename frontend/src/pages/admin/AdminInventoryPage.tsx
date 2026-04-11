@@ -125,7 +125,7 @@ export function AdminInventoryPage() {
         </div>
 
         <div className="admin-sticky-toolbar-shell">
-          <div className="admin-inventory-toolbar admin-inventory-toolbar-responsive">
+          <div className="admin-inventory-toolbar admin-inventory-toolbar-responsive ops-toolbar ops-toolbar-sticky">
           <label>
             Search items
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
@@ -361,7 +361,7 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
 
   return (
     <div className="admin-modal-backdrop" role="presentation" onClick={onClose}>
-      <div className="admin-modal admin-modal-inventory" role="dialog" aria-modal="true" aria-label={`Edit ${draft.name}`} onClick={(event) => event.stopPropagation()}>
+      <div className="admin-modal admin-modal-inventory admin-modal-ops" role="dialog" aria-modal="true" aria-label={`Edit ${draft.name}`} onClick={(event) => event.stopPropagation()}>
         <div className="section-heading-row admin-modal-header">
           <div>
             <p className="eyebrow">Inventory editor</p>

@@ -95,36 +95,47 @@ export function AdminMenuPage() {
             </div>
             <span className="info-chip">{filteredItems.length} shown</span>
           </div>
-          <div className="admin-sticky-toolbar-shell">
+          <div className="ops-toolbar ops-toolbar-sticky admin-menu-toolbar">
             <AdminListToolbar>
-            <label>
-              Search items
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
-            </label>
-            <label>
-              Filter
-              <select value={filter} onChange={(event) => setFilter(event.target.value as MenuFilter)}>
-                <option value="all">All items</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="unavailable">Unavailable</option>
-              </select>
-            </label>
+              <label>
+                Search items
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, category, or description" />
+              </label>
+              <label>
+                Filter
+                <select value={filter} onChange={(event) => setFilter(event.target.value as MenuFilter)}>
+                  <option value="all">All items</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="unavailable">Unavailable</option>
+                </select>
+              </label>
             </AdminListToolbar>
           </div>
           <AdminEntityList>
             {filteredItems.map((item) => (
-              <button key={item.id} type="button" className="admin-settings-table-row" onClick={() => setModal({ itemId: item.id })}>
-                <div>
-                  <strong>{item.name}</strong>
-                  <div className="muted">{item.category} · {centsToMajorUnits(item.price)}</div>
+              <div key={item.id} className="admin-entity-row admin-entity-row-ops">
+                <button type="button" className="admin-entity-row-main" onClick={() => setModal({ itemId: item.id })}>
+                  <div>
+                    <strong>{item.name}</strong>
+                    <div className="muted">{item.category} · {centsToMajorUnits(item.price)}</div>
+                  </div>
+                  <div className="admin-settings-table-row-meta">
+                    <span className={!item.active ? 'info-chip' : item.available ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
+                      {!item.active ? 'Archived' : item.available ? 'Available' : 'Unavailable'}
+                    </span>
+                  </div>
+                </button>
+                <div className="admin-inline-actions admin-entity-row-actions">
+                  <button type="button" className="secondary-button" onClick={() => setModal({ itemId: item.id })}>Edit</button>
+                  <button type="button" className="secondary-button" onClick={() => admin.toggleAvailability.mutate({ itemId: item.id, available: !item.available })}>
+                    {item.available ? 'Hide' : 'Show'}
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(item.id)}>
+                    Delete / archive
+                  </button>
                 </div>
-                <div className="admin-settings-table-row-meta">
-                  <span className={!item.active ? 'info-chip' : item.available ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
-                    {!item.active ? 'Archived' : item.available ? 'Available' : 'Unavailable'}
-                  </span>
-                </div>
-              </button>
+              </div>
             ))}
             {!filteredItems.length ? <p className="muted">No items match the current search/filter.</p> : null}
           </AdminEntityList>
@@ -184,7 +195,7 @@ function CategoryEditor({ category }: { category: MenuCategory }) {
   const draft = admin.draftCategories.find((entry) => entry.id === category.id) ?? category
 
   return (
-    <div className="form-stack" style={{ marginTop: '0.85rem' }}>
+    <div className="form-stack admin-category-editor" style={{ marginTop: '0.85rem' }}>
       <input value={draft.name} onChange={(e) => updateDraft({ name: e.target.value })} />
       <div className="admin-inline-actions">
         <label className="inline-check">
@@ -205,7 +216,7 @@ function CategoryEditor({ category }: { category: MenuCategory }) {
       <div className="admin-inline-actions">
         <button onClick={() => admin.updateCategory.mutate(draft)}>Save category</button>
         <button className="secondary-button" onClick={() => admin.archiveCategory.mutate(draft.id)}>
-          Archive category
+          Delete / archive category
         </button>
       </div>
     </div>
@@ -266,11 +277,19 @@ function MenuItemModal({ itemId, onClose }: { itemId: string; onClose: () => voi
 
   return (
     <div className="admin-modal-backdrop" role="presentation" onClick={onClose}>
-      <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`Edit ${draft.name}`} onClick={(event) => event.stopPropagation()}>
+      <div className="admin-modal admin-modal-ops" role="dialog" aria-modal="true" aria-label={`Edit ${draft.name}`} onClick={(event) => event.stopPropagation()}>
         <div className="section-heading-row admin-modal-header">
           <div>
             <p className="eyebrow">Menu editor</p>
             <h3 className="section-title">{draft.name}</h3>
+            <div className="admin-inventory-meta-row">
+              <span className="info-chip">{draft.category}</span>
+              <span className="info-chip">{centsToMajorUnits(draft.price)}</span>
+              <span className={!draft.active ? 'info-chip' : draft.available ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
+                {!draft.active ? 'Archived' : draft.available ? 'Available' : 'Unavailable'}
+              </span>
+              {dirty ? <span className="info-chip">Unsaved</span> : <span className="info-chip info-chip-success">Saved</span>}
+            </div>
           </div>
           <button className="secondary-button" type="button" onClick={onClose}>Close</button>
         </div>
@@ -331,7 +350,7 @@ function MenuItemModal({ itemId, onClose }: { itemId: string; onClose: () => voi
               Save stock
             </button>
             <button type="button" className="secondary-button" onClick={() => admin.archiveMenuItem.mutate(draft.id)}>
-              Archive item
+              Delete / archive item
             </button>
           </div>
           <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">

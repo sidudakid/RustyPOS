@@ -16,14 +16,15 @@ export function AdminPage() {
   const currentTitle = adminShellTitle(location.pathname)
 
   return (
-    <section className="admin-shell">
+    <section className="admin-shell ops-surface ops-surface-admin">
       <SectionCard>
-        <div className="hero-row admin-shell-hero admin-shell-hero-compact">
+        <div className="hero-row admin-shell-hero admin-shell-hero-compact ops-hero-row">
           <div>
             <p className="eyebrow">Operations</p>
             <h2 className="section-title">Admin workspace</h2>
+            <p className="muted ops-hero-copy">Premium dark command deck for catalog, stock, analytics, and settings workflows.</p>
           </div>
-          <div className="hero-chip-group">
+          <div className="hero-chip-group ops-hero-chips">
             <span className={admin.connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
               {admin.connected ? 'Live connected' : 'Disconnected'}
             </span>
@@ -34,15 +35,16 @@ export function AdminPage() {
           </div>
         </div>
 
-        <div className="admin-subnav-header admin-subnav-header-compact">
-          <div>
-            <p className="eyebrow">Workspace map</p>
-            <h3 className="section-title">Jump between management areas</h3>
+        <div className="admin-subnav-shell ops-toolbar-sticky">
+          <div className="admin-subnav-header admin-subnav-header-compact">
+            <div>
+              <p className="eyebrow">Workspace map</p>
+              <h3 className="section-title">Jump between management areas</h3>
+            </div>
+            <span className="info-chip">Responsive quick access</span>
           </div>
-          <span className="info-chip">Responsive quick access</span>
-        </div>
 
-        <nav className="admin-subnav admin-subnav-mobile-rail" aria-label="Admin sections">
+          <nav className="admin-subnav admin-subnav-mobile-rail" aria-label="Admin sections">
           {adminNavItems.map((item) => (
             <NavLink
               key={item.to}
@@ -54,7 +56,8 @@ export function AdminPage() {
               <span>{item.description}</span>
             </NavLink>
           ))}
-        </nav>
+          </nav>
+        </div>
       </SectionCard>
 
       <nav className="admin-bottom-nav" aria-label="Admin mobile sections">
