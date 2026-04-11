@@ -48,14 +48,44 @@ pub async fn seed_if_empty(_pool: &PgPool) -> Result<(), sqlx::Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
-    fn order_follow_up_migration_is_registered() {
+    fn every_numbered_sql_migration_is_registered_in_run_migrations() {
         let source = include_str!("db.rs");
+        let migration_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations");
+
+        let mut missing = Vec::new();
+        for entry in std::fs::read_dir(&migration_dir).expect("migrations dir should be readable") {
+            let entry = entry.expect("migration entry should be readable");
+            let path = entry.path();
+
+            if path.extension().and_then(|ext| ext.to_str()) != Some("sql") {
+                continue;
+            }
+
+            let file_name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .expect("migration file should have a valid utf-8 name");
+
+            if file_name
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit())
+                .count()
+                < 3
+            {
+                continue;
+            }
+
+            if !source.contains(file_name) {
+                missing.push(file_name.to_string());
+            }
+        }
+
+        missing.sort();
         assert!(
-            source.contains("013_order_follow_up_tracking.sql"),
-            "run_migrations must include the follow-up tracking migration"
+            missing.is_empty(),
+            "run_migrations is missing registered SQL migrations: {}",
+            missing.join(", ")
         );
     }
 }
