@@ -943,6 +943,8 @@ pre {
 
 .auth-token-panel-compact {
   gap: 0.7rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
 }
 
 .auth-token-copy,
@@ -959,11 +961,22 @@ pre {
 }
 
 .auth-token-row-actions,
-.auth-token-compact-actions {
+.auth-token-compact-actions,
+.auth-token-compact-status {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.65rem;
+}
+
+.auth-token-preview {
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.68);
+  color: #cbd5e1;
+  font-size: 0.78rem;
 }
 
 .admin-shell-hero {

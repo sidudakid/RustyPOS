@@ -73,7 +73,7 @@ export function AuthTokenInput({
   helperText?: string
   connected?: boolean
 }) {
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(() => !compactWhenFilled || !value || Boolean(invalid))
   const tokenPreview = useMemo(() => {
     const trimmed = value.trim()
     if (!trimmed) return 'No token'
@@ -83,9 +83,7 @@ export function AuthTokenInput({
 
   useEffect(() => {
     if (!value || invalid) setEditing(true)
-    else if (!compactWhenFilled) setEditing(true)
-    else setEditing(false)
-  }, [compactWhenFilled, invalid, value])
+  }, [invalid, value])
 
   const showCompactState = compactWhenFilled && value && !invalid && !editing
 
@@ -136,7 +134,7 @@ export function AuthTokenInput({
               ) : null}
               {onReset ? (
                 <button className="secondary-button" onClick={onReset} type="button">
-                  Reset token
+                  {value ? 'Logout' : 'Reset token'}
                 </button>
               ) : null}
             </div>

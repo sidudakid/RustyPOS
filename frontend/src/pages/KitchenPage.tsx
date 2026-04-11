@@ -242,9 +242,14 @@ export function KitchenPage() {
             <AuthTokenInput
               value={token}
               invalid={tokenInvalid}
+              connected={connected}
               compactWhenFilled
-              loadedLabel="Kitchen access ready"
+              loadedLabel="Kitchen station connected"
               switchLabel="Switch token"
+              title="Kitchen token"
+              description="Paste the active owner or kitchen token to unlock the live kitchen board and order controls on this station."
+              placeholder="Paste kitchen token"
+              helperText="Enter the token once to unlock the kitchen board. After that, this box will collapse so cooks can focus on tickets."
               onChange={(value) => {
                 setToken(value)
                 localStorage.setItem('adminToken', value)

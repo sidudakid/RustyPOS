@@ -509,9 +509,14 @@ export function StaffPage() {
               <AuthTokenInput
                 value={token}
                 invalid={tokenInvalid}
+                connected={connected}
                 compactWhenFilled
-                loadedLabel="Cashier access ready"
+                loadedLabel="Staff station connected"
                 switchLabel="Switch token"
+                title="Staff token"
+                description="Paste the active owner or staff token to unlock payments, bill printing, and live floor updates on this station."
+                placeholder="Paste staff token"
+                helperText="Enter the token once to unlock the station. After that, this box will collapse so staff can stay focused on service."
                 onChange={(value) => {
                   setToken(value)
                   localStorage.setItem('adminToken', value)
