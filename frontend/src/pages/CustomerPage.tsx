@@ -307,6 +307,12 @@ export function CustomerPage() {
 
           {menuQuery.isLoading ? <p className="muted">Loading menu…</p> : null}
           {menuQuery.isError ? <p className="connection-bad">Failed to load menu.</p> : null}
+          {!menuQuery.isLoading && !menuQuery.isError && menuItems.length === 0 ? (
+            <div className="customer-menu-empty-state" role="status">
+              <strong>No menu items are live yet.</strong>
+              <p className="muted">This table link is working, but the restaurant has not published any available items for ordering.</p>
+            </div>
+          ) : null}
         </SectionCard>
 
         {categoryEntries.length > 0 ? (

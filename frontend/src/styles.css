@@ -2217,6 +2217,21 @@ pre {
   background: linear-gradient(180deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.96));
 }
 
+.customer-menu-empty-state {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.42);
+  background: rgba(15, 23, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.customer-menu-empty-state p {
+  margin: 0;
+}
+
 .cart-edit-list {
   gap: 0.9rem;
 }
@@ -4430,6 +4445,10 @@ textarea {
 .customer-order-tracker-page .customer-order-upsell-copy-block,
 .customer-order-tracker-page .customer-order-stage > div,
 .customer-order-tracker-page .customer-order-line-item > div:first-child {
+  min-width: 0;
+}
+
+.customer-menu-page .mobile-cart-bar > * {
   min-width: 0;
 }
 
