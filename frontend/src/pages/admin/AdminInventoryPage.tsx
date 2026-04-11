@@ -268,8 +268,9 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
           </div>
           <p className="muted admin-inventory-description">{draft.description || 'No description yet.'}</p>
         </div>
-        <div className="admin-inventory-card-status">
+        <div className="admin-inventory-card-status admin-inventory-card-status-stack">
           <span className={badgeClass}>{inventoryLabel(draft)}</span>
+          <span className="info-chip">{draft.available ? 'Visible to guests' : 'Hidden from guests'}</span>
         </div>
       </div>
 
@@ -290,10 +291,10 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
 
       <div className="admin-inventory-card-quick-actions">
         <button type="button" className="secondary-button admin-inventory-expand-button" onClick={onOpen}>
-          Edit item
+          Open editor
         </button>
         <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
-          {admin.updateInventory.isPending ? 'Saving…' : 'Quick save'}
+          {admin.updateInventory.isPending ? 'Saving…' : dirty ? 'Save now' : 'Saved'}
         </button>
       </div>
     </div>
@@ -356,8 +357,9 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
             <h3 className="section-title">{draft.name}</h3>
             <div className="admin-inventory-meta-row">
               <span className={badgeClass}>{inventoryLabel(draft)}</span>
+              <span className="info-chip">{draft.available ? 'Visible to guests' : 'Hidden from guests'}</span>
               {!draft.active ? <span className="info-chip">Inactive</span> : null}
-              {dirty ? <span className="info-chip">Unsaved</span> : null}
+              {dirty ? <span className="info-chip">Unsaved</span> : <span className="info-chip">Saved</span>}
             </div>
           </div>
           <button className="secondary-button" type="button" onClick={onClose}>Close</button>

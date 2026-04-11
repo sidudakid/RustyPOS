@@ -258,76 +258,48 @@ export function CustomerPage() {
     <section className="two-column page-layout-customer customer-order-page-shell customer-menu-page">
       <div className="customer-menu-main">
         <SectionCard>
-          <div className="hero-row customer-order-hero-row customer-menu-hero-row customer-menu-hero-row-compact">
-            <div className="customer-order-hero-copy customer-menu-hero-copy">
+          <div className="customer-menu-intro-card">
+            <div className="customer-menu-intro-copy">
               <p className="eyebrow">Table service</p>
-              <h2 className="section-title customer-menu-hero-title">Order at your table</h2>
-              <p className="muted customer-order-hero-text">Browse by section, add in one tap, and send the order when your cart feels right.</p>
+              <h2 className="section-title customer-menu-intro-title">Menu</h2>
+              <p className="muted customer-menu-intro-text">Browse by section, tap to add, then check out when you’re ready.</p>
             </div>
-            <div className="hero-chip-group customer-order-hero-chips customer-menu-hero-chips">
-              <span className="info-chip">Table ready</span>
-              <span className="info-chip">{hotPicks.length} chef picks</span>
-              <span className="info-chip">{menuItems.length} items live</span>
-            </div>
-          </div>
-
-          <div className="customer-menu-top-strip">
-            <div className="customer-menu-top-stat">
-              <span>Popular now</span>
-              <strong>{hotPicks.length || 0} picks</strong>
-            </div>
-            <div className="customer-menu-top-stat">
-              <span>In your cart</span>
-              <strong>{cartItemCount} items</strong>
-            </div>
-            <div className="customer-menu-top-stat">
-              <span>Current total</span>
-              <strong>{money(cartTotal, currency_code)}</strong>
+            <div className="customer-menu-intro-meta" aria-label="Menu summary">
+              <span className="info-chip">{menuItems.length} items</span>
+              <span className="info-chip">{hotPicks.length} popular</span>
+              <span className="info-chip">{cartItemCount} in cart</span>
+              <span className="info-chip info-chip-success">{money(cartTotal, currency_code)}</span>
             </div>
           </div>
 
-          <div className="customer-menu-quick-actions" aria-label="Ordering shortcuts">
-            {hotPicks.length > 0 ? (
-              <a href="#hot-picks" className="customer-menu-shortcut-card">
-                <span>Start fast</span>
-                <strong>Jump to hot picks</strong>
-              </a>
-            ) : firstCategoryAnchor ? (
-              <a href={firstCategoryAnchor} className="customer-menu-shortcut-card">
-                <span>Start ordering</span>
-                <strong>Jump to the first menu section</strong>
-              </a>
-            ) : null}
-
-            {activeOrder ? (
-              <button type="button" className="secondary-button customer-menu-shortcut-card customer-menu-shortcut-card-button" onClick={() => navigate(`/t/${token}/order/${activeOrder.order.id}`)}>
-                <span>Already ordered?</span>
-                <strong>Open your order tracker</strong>
-              </button>
-            ) : (
-              <div className="customer-menu-shortcut-card customer-menu-shortcut-card-muted">
-                <span>Ordering path</span>
-                <strong>Pick a section below and add items to your cart</strong>
-              </div>
-            )}
-          </div>
+          {firstCategoryAnchor ? (
+            <div className="customer-menu-jump-row" aria-label="Menu shortcuts">
+              {hotPicks.length > 0 ? <a href="#hot-picks" className="customer-menu-jump-link">Popular</a> : null}
+              <a href={firstCategoryAnchor} className="customer-menu-jump-link">Start browsing</a>
+              {activeOrder ? (
+                <button type="button" className="secondary-button customer-menu-jump-button" onClick={() => navigate(`/t/${token}/order/${activeOrder.order.id}`)}>
+                  Track order
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           {activeOrder ? (
-            <div className="customer-current-order-banner">
-              <div>
-                <p className="eyebrow">Current table order</p>
+            <div className="customer-current-order-banner customer-current-order-banner-compact">
+              <div className="customer-current-order-summary">
+                <p className="eyebrow">Active order</p>
                 <div className="customer-current-order-title-row">
-                  <h3 className="section-title">Resume your active order</h3>
+                  <h3 className="section-title">Order in progress</h3>
                   <StatusBadge status={activeOrder.order.status} />
                 </div>
                 <p className="muted customer-current-order-copy">
-                  {activeOrderItemCount} items · {money(activeOrderTotal, currency_code)} · last updated {new Date(activeOrder.order.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  {activeOrderItemCount} items · {money(activeOrderTotal, currency_code)} · updated {new Date(activeOrder.order.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 </p>
                 {activeOrder.order.is_follow_up ? <span className="info-chip info-chip-success">Follow-up additions attached</span> : null}
               </div>
               <div className="customer-current-order-actions">
                 <button type="button" onClick={() => navigate(`/t/${token}/order/${activeOrder.order.id}`)}>Open order tracker</button>
-                <button type="button" className="secondary-button" onClick={() => setCartExpanded(true)}>Keep adding from menu</button>
+                <button type="button" className="secondary-button" onClick={() => setCartExpanded(true)}>Open cart</button>
               </div>
             </div>
           ) : null}
@@ -363,10 +335,10 @@ export function CustomerPage() {
           <SectionCard>
             <div className="section-heading-row customer-section-heading" id="hot-picks">
               <div>
-                <h3 className="section-title">🔥 Hot picks</h3>
-                <p className="muted customer-section-subcopy">Fastest way to order what people are reaching for most.</p>
+                <h3 className="section-title">Popular right now</h3>
+                <p className="muted customer-section-subcopy">Fast picks if you want to order quickly.</p>
               </div>
-              <span className="info-chip">Popular right now</span>
+              <span className="info-chip">{hotPicks.length} picks</span>
             </div>
             <div className="grid customer-menu-grid customer-menu-grid-featured">{hotPicks.map((item) => renderMenuCard(item, true))}</div>
           </SectionCard>
@@ -391,7 +363,7 @@ export function CustomerPage() {
       <div className={cartExpanded ? 'sidebar-sticky cart-sidebar cart-sidebar-open' : 'sidebar-sticky cart-sidebar'}>
         <SectionCard>
           <div className="section-heading-row" id="mobile-cart-heading">
-            <h3 className="section-title">New items</h3>
+            <h3 className="section-title">Cart</h3>
             <span className="info-chip">{cartItemCount} items</span>
           </div>
           <div className="cart-mobile-toolbar">
@@ -477,9 +449,9 @@ export function CustomerPage() {
       {cartItems.length > 0 ? (
         <div className="mobile-cart-bar mobile-cart-bar-premium" role="region" aria-label="Cart summary">
           <button type="button" className="mobile-cart-summary mobile-cart-summary-button" onClick={() => setCartExpanded(true)}>
-            <div className="mobile-cart-count">{cartItemCount} items in cart</div>
+            <div className="mobile-cart-count">{cartItemCount} in cart</div>
             <strong>{money(cartTotal, currency_code)}</strong>
-            <span className="mobile-cart-hint">Review items or keep browsing categories</span>
+            <span className="mobile-cart-hint">Review or keep browsing</span>
           </button>
           <button type="button" onClick={submitOrder} disabled={interactionsDisabled || cartItems.length === 0}>
             {createOrder.isPending ? 'Placing…' : createOrder.isSuccess ? 'Confirmed' : `Checkout · ${money(cartTotal, currency_code)}`}
