@@ -6,30 +6,48 @@ use crate::{
     services::order_service,
     AppState,
 };
-use actix_web::{web, HttpResponse};
-use serde::Deserialize;
+use actix_web::{web, HttpRequest, HttpResponse};
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct CustomerMenuQuery {
-    #[serde(default)]
     pub selected: Vec<Uuid>,
+}
+
+fn parse_customer_menu_query(query: &str) -> Result<CustomerMenuQuery, AppError> {
+    let mut selected = Vec::new();
+
+    for (key, value) in url::form_urlencoded::parse(query.as_bytes()) {
+        if key != "selected" {
+            continue;
+        }
+
+        for part in value.split(',').map(str::trim).filter(|part| !part.is_empty()) {
+            let parsed = Uuid::parse_str(part)
+                .map_err(|_| AppError::BadRequest(format!("invalid selected menu item id: {part}")))?;
+            selected.push(parsed);
+        }
+    }
+
+    Ok(CustomerMenuQuery { selected })
 }
 
 pub async fn get_table_menu(
     state: web::Data<AppState>,
+    req: HttpRequest,
     table_id: web::Path<Uuid>,
-    query: web::Query<CustomerMenuQuery>,
 ) -> Result<HttpResponse, AppError> {
+    let query = parse_customer_menu_query(req.query_string())?;
     let menu = order_service::get_menu_for_table(&state.db, table_id.into_inner(), &query.selected).await?;
     Ok(HttpResponse::Ok().json(menu))
 }
 
 pub async fn get_token_menu(
     state: web::Data<AppState>,
+    req: HttpRequest,
     token: web::Path<String>,
-    query: web::Query<CustomerMenuQuery>,
 ) -> Result<HttpResponse, AppError> {
+    let query = parse_customer_menu_query(req.query_string())?;
     let table_id = order_service::resolve_table_id_by_token(&state.db, &token.into_inner()).await?;
     let menu = order_service::get_menu_for_table(&state.db, table_id, &query.selected).await?;
     Ok(HttpResponse::Ok().json(menu))
@@ -92,4 +110,32 @@ pub async fn get_order_status(
 ) -> Result<HttpResponse, AppError> {
     let order: OrderWithItemsView = order_service::get_order(&state.db, order_id.into_inner()).await?;
     Ok(HttpResponse::Ok().json(order))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_customer_menu_query, CustomerMenuQuery};
+    use uuid::Uuid;
+
+    #[test]
+    fn parses_repeated_selected_query_param() {
+        let first = Uuid::nil();
+        let second = Uuid::from_u128(1);
+        let query = format!("selected={first}&selected={second}");
+
+        let parsed = parse_customer_menu_query(&query).expect("query should deserialize");
+
+        assert_eq!(parsed, CustomerMenuQuery { selected: vec![first, second] });
+    }
+
+    #[test]
+    fn parses_comma_separated_selected_query_param() {
+        let first = Uuid::nil();
+        let second = Uuid::from_u128(1);
+        let query = format!("selected={first},{second}");
+
+        let parsed = parse_customer_menu_query(&query).expect("query should deserialize");
+
+        assert_eq!(parsed, CustomerMenuQuery { selected: vec![first, second] });
+    }
 }
