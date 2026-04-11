@@ -45,74 +45,66 @@ export function AppShell() {
     <div className={customerFacing ? 'app-shell app-shell-customer' : 'app-shell'}>
       <a className="skip-link" href="#main-content">Skip to content</a>
 
-      <header className={customerFacing ? 'topbar topbar-customer' : 'topbar'}>
-        <div className="topbar-main">
-          <div className="brand-block topbar-row">
-            <Link to={customerFacing ? location.pathname : '/'} className="brand-link">
-              <span className="brand-media-frame">
-                {cafeImage ? <img src={cafeImage} alt={cafeName} className="brand-image" /> : <span className="brand-mark">☕</span>}
-              </span>
-              <div>
-                <h1>{cafeName}</h1>
-                <p className="brand-subtitle">{settings.tagline?.trim() || 'Fast café ordering for customers, kitchen, and staff.'}</p>
+      {!customerFacing ? (
+        <>
+          <header className="topbar">
+            <div className="topbar-main">
+              <div className="brand-block topbar-row">
+                <Link to="/" className="brand-link">
+                  <span className="brand-media-frame">
+                    {cafeImage ? <img src={cafeImage} alt={cafeName} className="brand-image" /> : <span className="brand-mark">☕</span>}
+                  </span>
+                  <div>
+                    <h1>{cafeName}</h1>
+                    <p className="brand-subtitle">{settings.tagline?.trim() || 'Fast café ordering for customers, kitchen, and staff.'}</p>
+                  </div>
+                </Link>
+
+                <button
+                  type="button"
+                  className="secondary-button hamburger-button"
+                  aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                  aria-expanded={mobileNavOpen}
+                  aria-controls="primary-navigation"
+                  onClick={() => setMobileNavOpen((open) => !open)}
+                >
+                  <span aria-hidden="true">{mobileNavOpen ? '✕' : '☰'}</span>
+                  <span className="hamburger-button-label">Menu</span>
+                </button>
               </div>
-            </Link>
 
-            {!customerFacing ? (
-              <button
-                type="button"
-                className="secondary-button hamburger-button"
-                aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
-                aria-expanded={mobileNavOpen}
-                aria-controls="primary-navigation"
-                onClick={() => setMobileNavOpen((open) => !open)}
-              >
-                <span aria-hidden="true">{mobileNavOpen ? '✕' : '☰'}</span>
-                <span className="hamburger-button-label">Menu</span>
-              </button>
-            ) : null}
-          </div>
-
-          {!customerFacing ? (
-            <div className="topbar-context" aria-live="polite">
-              <span className="topbar-context-label">Current workspace</span>
-              <strong>
-                {activeNavItem.icon} {activeNavItem.label}
-              </strong>
-              <span>{activeNavItem.description}</span>
+              <div className="topbar-context" aria-live="polite">
+                <span className="topbar-context-label">Current workspace</span>
+                <strong>
+                  {activeNavItem.icon} {activeNavItem.label}
+                </strong>
+                <span>{activeNavItem.description}</span>
+              </div>
             </div>
-          ) : (
-            <div className="topbar-context topbar-context-customer" aria-live="polite">
-              <span className="topbar-context-label">Guest view</span>
-              <strong>Table ordering</strong>
-              <span>Browse the menu, track your order, and add extras without leaving the table flow.</span>
-            </div>
-          )}
-        </div>
 
-        {!customerFacing ? (
-          <nav id="primary-navigation" className={mobileNavOpen ? 'topnav topnav-open' : 'topnav'} aria-label="Primary">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => (isActive ? 'nav-pill nav-pill-active' : 'nav-pill')}
-              >
-                <span className="nav-pill-icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span className="nav-pill-copy">
-                  <strong>{item.label}</strong>
-                  <span>{item.description}</span>
-                </span>
-              </NavLink>
-            ))}
-          </nav>
-        ) : null}
-      </header>
+            <nav id="primary-navigation" className={mobileNavOpen ? 'topnav topnav-open' : 'topnav'} aria-label="Primary">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => (isActive ? 'nav-pill nav-pill-active' : 'nav-pill')}
+                >
+                  <span className="nav-pill-icon" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                  <span className="nav-pill-copy">
+                    <strong>{item.label}</strong>
+                    <span>{item.description}</span>
+                  </span>
+                </NavLink>
+              ))}
+            </nav>
+          </header>
 
-      {!customerFacing && mobileNavOpen ? <button type="button" className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} /> : null}
+          {mobileNavOpen ? <button type="button" className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNavOpen(false)} /> : null}
+        </>
+      ) : null}
 
       {!customerFacing ? (
         <nav className="mobile-bottom-nav" aria-label="Primary mobile">
