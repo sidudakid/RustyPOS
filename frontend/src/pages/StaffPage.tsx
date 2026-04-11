@@ -411,6 +411,26 @@ export function StaffPage() {
   const nextCheckoutTable = filteredOpenTables[0] ?? null
   const nextReadyOrder = filteredReadyOrders[0] ?? null
   const mostUrgentInventoryItem = inventoryAttention[0] ?? null
+  const focusSummary =
+    focusLane === 'cashier'
+      ? {
+          title: 'Cashier queue',
+          detail: `${filteredOpenTables.length} tables still need checkout.`,
+        }
+      : focusLane === 'pickup'
+        ? {
+            title: 'Pickup / handoff queue',
+            detail: `${runnerReadyTables.length} tables are waiting for food handoff.`,
+          }
+        : focusLane === 'stock'
+          ? {
+              title: 'Stock queue',
+              detail: `${inventoryAttention.length} menu items need a stock update.`,
+            }
+          : {
+              title: 'Action board',
+              detail: `${waiterTables.length} tables still need floor follow-up and ${cleanerTables.length} look ready to reset.`,
+            }
 
   const unpaidOrdersByTable = useMemo(() => {
     const map = new Map<string, OrderWithItemsView[]>()
@@ -556,10 +576,10 @@ export function StaffPage() {
                 </select>
               </label>
             </div>
-            <div className="cashier-focus-row">
+            <div className="cashier-focus-row" aria-label="Staff work areas">
               <button type="button" className={focusLane === 'action' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => setFocusLane('action')}>Action board</button>
               <button type="button" className={focusLane === 'cashier' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => setFocusLane('cashier')}>Cashier</button>
-              <button type="button" className={focusLane === 'pickup' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => setFocusLane('pickup')}>Pickup</button>
+              <button type="button" className={focusLane === 'pickup' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => setFocusLane('pickup')}>Pickup / handoff</button>
               <button type="button" className={focusLane === 'stock' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => setFocusLane('stock')}>Stock</button>
             </div>
             <div className="ops-toolbar-side">
@@ -669,8 +689,8 @@ export function StaffPage() {
 
               <div className="cashier-next-card">
                 <p className="eyebrow">Current focus</p>
-                <strong>Watch the floor</strong>
-                <p className="muted">{waiterTables.length} active tables still in service.</p>
+                <strong>{focusSummary.title}</strong>
+                <p className="muted">{focusSummary.detail}</p>
               </div>
 
               <div className="cashier-next-card cashier-next-card-warning">
