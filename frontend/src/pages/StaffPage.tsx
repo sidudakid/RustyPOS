@@ -20,7 +20,6 @@ import { clearOperatorToken, readOperatorToken, writeOperatorToken } from '../op
 type InventoryTone = 'out' | 'low' | 'ok'
 type StaffView = 'all' | 'attention' | 'idle'
 type FocusLane = 'action' | 'cashier' | 'pickup' | 'stock'
-type StaffMode = 'cashier' | 'waiter' | 'runner' | 'cleaner'
 
 type PrintedBillTable = {
   tableId: string
@@ -185,7 +184,6 @@ export function StaffPage() {
   const [tableQuery, setTableQuery] = useState('')
   const [staffView, setStaffView] = useState<StaffView>('attention')
   const [focusLane, setFocusLane] = useState<FocusLane>('action')
-  const [staffMode, setStaffMode] = useState<StaffMode>('cashier')
   const [lastSettledTable, setLastSettledTable] = useState<PrintedBillTable | null>(null)
   const bannerTimeoutRef = useRef<number | null>(null)
   const refetchRef = useRef<null | (() => void)>(null)
@@ -564,12 +562,6 @@ export function StaffPage() {
               <button type="button" className={focusLane === 'pickup' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => setFocusLane('pickup')}>Pickup</button>
               <button type="button" className={focusLane === 'stock' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => setFocusLane('stock')}>Stock</button>
             </div>
-            <div className="cashier-focus-row">
-              <button type="button" className={staffMode === 'cashier' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => { setStaffMode('cashier'); setFocusLane('cashier') }}>Cashier mode</button>
-              <button type="button" className={staffMode === 'waiter' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => { setStaffMode('waiter'); setFocusLane('action') }}>Waiter mode</button>
-              <button type="button" className={staffMode === 'runner' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => { setStaffMode('runner'); setFocusLane('pickup') }}>Runner / handoff</button>
-              <button type="button" className={staffMode === 'cleaner' ? 'cashier-focus-pill cashier-focus-pill-active' : 'cashier-focus-pill'} onClick={() => { setStaffMode('cleaner'); setFocusLane('action') }}>Cleaner reset</button>
-            </div>
             <div className="ops-toolbar-side">
               <div className="notification-row ops-toolbar-notifications">
                 <p className="muted">Alerts: {soundEnabled ? 'sound on' : 'sound muted'}</p>
@@ -676,17 +668,9 @@ export function StaffPage() {
               </div>
 
               <div className="cashier-next-card">
-                <p className="eyebrow">Role spotlight</p>
-                <strong>{staffMode === 'cashier' ? 'Cashier mode' : staffMode === 'waiter' ? 'Waiter mode' : staffMode === 'runner' ? 'Runner / handoff mode' : 'Cleaner reset mode'}</strong>
-                <p className="muted">
-                  {staffMode === 'cashier'
-                    ? `${filteredOpenTables.length} tables still need checkout.`
-                    : staffMode === 'waiter'
-                      ? `${waiterTables.length} active tables still in service.`
-                      : staffMode === 'runner'
-                        ? `${runnerReadyTables.length} tables are waiting for food handoff.`
-                        : `${cleanerTables.length} paid tables look ready to reset.`}
-                </p>
+                <p className="eyebrow">Current focus</p>
+                <strong>Watch the floor</strong>
+                <p className="muted">{waiterTables.length} active tables still in service.</p>
               </div>
 
               <div className="cashier-next-card cashier-next-card-warning">
