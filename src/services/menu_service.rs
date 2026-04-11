@@ -100,7 +100,7 @@ pub async fn create_menu_item(pool: &PgPool, payload: CreateMenuItemRequest) -> 
 
     let item = sqlx::query_as::<_, MenuItem>(
         "INSERT INTO menu_items (id, name, description, image_url, price, category, active, available, stock_count, low_stock_threshold, restock_needed)
-         VALUES ($1, $2, $3, $4, $5, $6, true, true, 0, 5, true)
+         VALUES ($1, $2, $3, $4, $5, $6, true, false, 0, 5, true)
          RETURNING id, name, description, image_url, price, category, active, available, stock_count, low_stock_threshold, restock_needed",
     )
     .bind(Uuid::new_v4())

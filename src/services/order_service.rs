@@ -84,7 +84,16 @@ pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid, selected_item_ids
         hot_picks
     };
 
-    let mut recommendations: Vec<MenuRecommendation> = if selected_item_ids.is_empty() {
+    let visible_menu_item_ids: std::collections::HashSet<Uuid> = menu.iter().map(|item| item.id).collect();
+    let filtered_selected_item_ids: Vec<Uuid> = selected_item_ids
+        .iter()
+        .copied()
+        .filter(|item_id| visible_menu_item_ids.contains(item_id))
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+
+    let mut recommendations: Vec<MenuRecommendation> = if filtered_selected_item_ids.is_empty() {
         sqlx::query_as::<_, (uuid::Uuid, String, String, String, i64, String, bool, bool, i32, i32, bool, i64, i64)>(
             "WITH recent_pairs AS (
                 SELECT
@@ -197,7 +206,7 @@ pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid, selected_item_ids
             WHERE mi.active = true AND mi.available = true AND mi.stock_count > 0
             ORDER BY ranked.matched_cart_items DESC, ranked.score DESC, ranked.paired_order_count DESC, mi.name ASC",
         )
-        .bind(selected_item_ids)
+        .bind(&filtered_selected_item_ids)
         .fetch_all(pool)
         .await?
         .into_iter()
@@ -228,22 +237,26 @@ pub async fn get_menu_for_table(pool: &PgPool, table_id: Uuid, selected_item_ids
     };
 
     if recommendations.is_empty() {
-        let fallback_items = if !hot_picks.is_empty() {
-            hot_picks.clone()
-        } else {
-            menu.iter().take(4).cloned().collect()
-        };
+        let mut fallback_items = hot_picks.clone();
+        fallback_items.extend(menu.iter().cloned());
 
         recommendations = fallback_items
             .into_iter()
-            .filter(|item| !selected_item_ids.iter().any(|selected_id| *selected_id == item.id))
+            .filter(|item| !filtered_selected_item_ids.iter().any(|selected_id| *selected_id == item.id))
+            .fold(Vec::<MenuItem>::new(), |mut unique, item| {
+                if !unique.iter().any(|existing| existing.id == item.id) {
+                    unique.push(item);
+                }
+                unique
+            })
+            .into_iter()
             .take(4)
             .map(|item| MenuRecommendation {
                 item,
                 score: 0,
                 paired_order_count: 0,
                 matched_cart_items: 0,
-                reason: if selected_item_ids.is_empty() {
+                reason: if filtered_selected_item_ids.is_empty() {
                     "Suggested from current popular and available items".into()
                 } else {
                     "Not enough pair history yet, so showing a strong available fallback".into()
