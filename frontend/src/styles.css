@@ -5240,6 +5240,133 @@ textarea {
   box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.06), 0 12px 28px rgba(2, 6, 23, 0.22);
 }
 
+.cashier-hero-card {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 28%),
+    radial-gradient(circle at left, rgba(59, 130, 246, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.84));
+}
+
+.cashier-stat-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cashier-stat-card {
+  width: 100%;
+  text-align: left;
+}
+
+.cashier-stat-card-active {
+  border-color: rgba(191, 219, 254, 0.42);
+  box-shadow: 0 0 0 1px rgba(191, 219, 254, 0.18), 0 14px 30px rgba(15, 23, 42, 0.22);
+}
+
+.cashier-toolbar {
+  gap: 1rem;
+}
+
+.cashier-toolbar-topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.cashier-focus-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.cashier-focus-pill {
+  width: auto;
+  background: rgba(51, 65, 85, 0.8);
+}
+
+.cashier-focus-pill-active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.cashier-success-bar {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(134, 239, 172, 0.3);
+  background: linear-gradient(180deg, rgba(20, 83, 45, 0.35), rgba(15, 23, 42, 0.8));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cashier-success-actions {
+  align-items: center;
+}
+
+.cashier-next-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.cashier-next-card {
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(71, 85, 105, 0.72);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.76), rgba(15, 23, 42, 0.58));
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.cashier-next-card strong {
+  font-size: 1.15rem;
+}
+
+.cashier-next-card-danger {
+  border-color: rgba(252, 165, 165, 0.28);
+}
+
+.cashier-next-card-success {
+  border-color: rgba(134, 239, 172, 0.28);
+}
+
+.cashier-next-card-warning {
+  border-color: rgba(253, 224, 71, 0.28);
+}
+
+.cashier-primary-list {
+  gap: 1rem;
+}
+
+.cashier-primary-card {
+  border-color: rgba(252, 165, 165, 0.22);
+}
+
+.cashier-total-amount {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.cashier-primary-actions {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.cashier-callout-strip {
+  margin-bottom: 0.85rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(253, 224, 71, 0.26);
+  background: rgba(120, 53, 15, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .ops-order-items {
   margin: 0;
   padding-left: 1rem;
@@ -5325,10 +5452,18 @@ textarea {
   .ops-toolbar-main,
   .ops-order-footer,
   .ops-lane-header,
-  .admin-entity-row-main {
+  .admin-entity-row-main,
+  .cashier-success-bar,
+  .cashier-toolbar-topline {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .cashier-next-grid,
+  .cashier-stat-strip,
+  .cashier-primary-actions {
+    grid-template-columns: 1fr;
   }
 
   .ops-toolbar-sticky,
@@ -5350,8 +5485,15 @@ textarea {
 
   .ops-stat-strip,
   .ops-toolbar-main,
-  .staff-quick-filters {
+  .staff-quick-filters,
+  .cashier-next-grid,
+  .cashier-primary-actions,
+  .cashier-stat-strip {
     grid-template-columns: 1fr;
+  }
+
+  .cashier-focus-row {
+    flex-direction: column;
   }
 }
 
