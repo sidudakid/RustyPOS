@@ -203,8 +203,13 @@ export function StaffPage() {
   const [staffView, setStaffView] = useState<StaffView>('attention')
   const [focusLane, setFocusLane] = useState<FocusLane>('action')
   const [lastSettledTable, setLastSettledTable] = useState<PrintedBillTable | null>(null)
+  const [clockNow, setClockNow] = useState(() => Date.now())
+  const [settlingTableId, setSettlingTableId] = useState<string | null>(null)
+  const [billingTableId, setBillingTableId] = useState<string | null>(null)
+  const [successBarExpiresAt, setSuccessBarExpiresAt] = useState<number | null>(null)
   const bannerTimeoutRef = useRef<number | null>(null)
   const refetchRef = useRef<null | (() => void)>(null)
+  const successBarIntervalRef = useRef<number | null>(null)
 
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
 
@@ -318,8 +323,33 @@ export function StaffPage() {
     return () => socket.close()
   }, [token])
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setClockNow(Date.now()), 30000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (successBarIntervalRef.current) window.clearInterval(successBarIntervalRef.current)
+
+    if (!lastSettledTable || !successBarExpiresAt) return
+
+    successBarIntervalRef.current = window.setInterval(() => {
+      const now = Date.now()
+      setClockNow(now)
+      if (now >= successBarExpiresAt) {
+        setLastSettledTable(null)
+        setSuccessBarExpiresAt(null)
+      }
+    }, 1000)
+
+    return () => {
+      if (successBarIntervalRef.current) window.clearInterval(successBarIntervalRef.current)
+    }
+  }, [lastSettledTable, successBarExpiresAt])
+
   useEffect(() => () => {
     if (bannerTimeoutRef.current) window.clearTimeout(bannerTimeoutRef.current)
+    if (successBarIntervalRef.current) window.clearInterval(successBarIntervalRef.current)
   }, [])
 
   const updateInventory = useMutation({
@@ -353,6 +383,7 @@ export function StaffPage() {
         headers: authHeaders,
       }),
     onSuccess: async (settledOrders, table) => {
+      setSettlingTableId(null)
       const tableName = settledOrders[0]?.order.table_name ?? table.table_name ?? 'table'
       setLastSettledTable({
         tableId: table.table_id,
@@ -364,8 +395,12 @@ export function StaffPage() {
         currencyCode: currency_code,
         paid: true,
       })
+      setSuccessBarExpiresAt(Date.now() + 60000)
       showBanner(`💸 ${tableName} marked paid. Bill/receipt is ready to print.`, 'success')
       await Promise.all([ordersQuery.refetch(), openTablesQuery.refetch(), tableOperationsQuery.refetch()])
+    },
+    onError: () => {
+      setSettlingTableId(null)
     },
   })
 
@@ -470,13 +505,16 @@ export function StaffPage() {
       `Mark ${table.table_name} as paid and close ${table.order_count} unpaid order${table.order_count === 1 ? '' : 's'} for ${money(table.total_amount, currency_code)}?`,
     )
     if (!confirmed) return
+    setSettlingTableId(table.table_id)
     settleTable.mutate(table)
   }
 
   const printCurrentBill = async (table: OpenTableSummary) => {
+    setBillingTableId(table.table_id)
     const ordersForTable = unpaidOrdersByTable.get(table.table_id) ?? []
     if (ordersForTable.length === 0) {
       showBanner(`⚠️ ${table.table_name} has no order details ready for a bill yet.`, 'alert')
+      setBillingTableId(null)
       return
     }
 
@@ -493,17 +531,22 @@ export function StaffPage() {
 
     if (!opened) {
       showBanner('⚠️ Your browser blocked the bill window. Allow popups and try again.', 'alert')
+      setBillingTableId(null)
       return
     }
 
     showBanner(`🧾 Bill opened for ${table.table_name}.`, 'info')
+    setBillingTableId(null)
   }
 
   const formatLastOrderAt = (value?: string | null) => {
     if (!value) return 'No orders yet'
-    const absolute = new Date(value).toLocaleString()
-    return `${formatElapsedTime(value)} · ${absolute}`
+    return formatElapsedTime(value, clockNow)
   }
+
+  const successBarSecondsLeft = successBarExpiresAt
+    ? Math.max(0, Math.ceil((successBarExpiresAt - clockNow) / 1000))
+    : 0
 
   if (!token) {
     return (
@@ -564,28 +607,23 @@ export function StaffPage() {
           </div>
 
           <div>
-            <p className="muted" style={{ margin: '0 0 8px' }}>Tap a card to open that work area. The highlighted card is the lane you are currently working in.</p>
+            <p className="muted" style={{ margin: '0 0 8px' }}>Counts are read-only. Use the button inside a card to switch lanes.</p>
             <div className="ops-stat-strip cashier-stat-strip">
-              <button type="button" aria-pressed={focusLane === 'cashier'} title="Open cashier lane" className={`ops-stat-card cashier-stat-card ${focusLane === 'cashier' ? 'cashier-stat-card-active' : ''}`} onClick={() => setFocusLane('cashier')}>
-                <span>Take payment now</span>
-                <strong>{filteredOpenTables.length}</strong>
-                <small>Open cashier lane · tables waiting to be charged</small>
-              </button>
-              <button type="button" aria-pressed={focusLane === 'pickup'} title="Open pickup / handoff lane" className={`ops-stat-card ops-stat-card-warning cashier-stat-card ${focusLane === 'pickup' ? 'cashier-stat-card-active' : ''}`} onClick={() => setFocusLane('pickup')}>
-                <span>Hand off ready food</span>
-                <strong>{filteredReadyOrders.length}</strong>
-                <small>Open pickup lane · ready for pickup or table handoff</small>
-              </button>
-              <button type="button" aria-pressed={focusLane === 'action'} title="Open action board" className={`ops-stat-card cashier-stat-card ${focusLane === 'action' ? 'cashier-stat-card-active' : ''}`} onClick={() => setFocusLane('action')}>
-                <span>Floor needs eyes</span>
-                <strong>{activeAttentionTables.length}</strong>
-                <small>Open action board · tables with live work still open</small>
-              </button>
-              <button type="button" aria-pressed={focusLane === 'stock'} title="Open stock lane" className={`ops-stat-card ops-stat-card-danger cashier-stat-card ${focusLane === 'stock' ? 'cashier-stat-card-active' : ''}`} onClick={() => setFocusLane('stock')}>
-                <span>Fix stock alerts</span>
-                <strong>{inventoryAttention.length}</strong>
-                <small>Open stock lane · items staff may need to block or restock</small>
-              </button>
+              {[
+                { key: 'cashier' as FocusLane, title: 'Take payment now', count: filteredOpenTables.length, detail: 'Tables waiting to be charged', tone: '' },
+                { key: 'pickup' as FocusLane, title: 'Hand off ready food', count: filteredReadyOrders.length, detail: 'Ready for pickup or table handoff', tone: 'ops-stat-card-warning' },
+                { key: 'action' as FocusLane, title: 'Floor needs eyes', count: activeAttentionTables.length, detail: 'Tables with live work still open', tone: '' },
+                { key: 'stock' as FocusLane, title: 'Fix stock alerts', count: inventoryAttention.length, detail: 'Items staff may need to block or restock', tone: 'ops-stat-card-danger' },
+              ].map((stat) => (
+                <div key={stat.key} className={`ops-stat-card cashier-stat-card ${stat.tone} ${focusLane === stat.key ? 'cashier-stat-card-active' : ''}`}>
+                  <span>{stat.title}</span>
+                  <strong>{stat.count}</strong>
+                  <small>{stat.detail}</small>
+                  <button type="button" className="secondary-button cashier-stat-link" onClick={() => setFocusLane(stat.key)}>
+                    Open {stat.key === 'pickup' ? 'pickup / handoff' : stat.key}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -654,10 +692,11 @@ export function StaffPage() {
                 <p className="eyebrow">Just paid</p>
                 <strong>{lastSettledTable.tableName} is settled</strong>
                 <div className="muted">Print the bill/receipt now so staff do not have to hunt for it again.</div>
+                <div className="cashier-success-countdown">Dismisses in {successBarSecondsLeft}s</div>
               </div>
               <div className="admin-inline-actions cashier-success-actions">
                 <button type="button" onClick={() => void printBill(lastSettledTable)}>Bill / receipt</button>
-                <button type="button" className="secondary-button" onClick={() => setLastSettledTable(null)}>Done</button>
+                <button type="button" className="secondary-button" onClick={() => { setLastSettledTable(null); setSuccessBarExpiresAt(null) }}>Done</button>
               </div>
             </div>
           ) : null}
@@ -686,8 +725,12 @@ export function StaffPage() {
                     <strong>{nextCheckoutTable.table_name}</strong>
                     <p className="muted">{nextCheckoutTable.order_count} unpaid orders · {money(nextCheckoutTable.total_amount, currency_code)}</p>
                     <div className="admin-inline-actions">
-                      <button type="button" onClick={() => confirmSettleTable(nextCheckoutTable)} disabled={settleTable.isPending}>Mark paid & close check</button>
-                      <button type="button" className="secondary-button" onClick={() => printCurrentBill(nextCheckoutTable)}>Bill</button>
+                      <button type="button" onClick={() => confirmSettleTable(nextCheckoutTable)} disabled={settlingTableId === nextCheckoutTable.table_id}>
+                        {settlingTableId === nextCheckoutTable.table_id ? 'Marking paid…' : 'Mark paid'}
+                      </button>
+                      <button type="button" className="secondary-button" onClick={() => void printCurrentBill(nextCheckoutTable)} disabled={billingTableId === nextCheckoutTable.table_id}>
+                        {billingTableId === nextCheckoutTable.table_id ? 'Opening bill…' : 'Bill'}
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -703,7 +746,7 @@ export function StaffPage() {
                     <p className="muted">Order #{shortId(nextReadyOrder.order.id)} · {money(sumOrderTotal(nextReadyOrder), currency_code)} · {formatElapsedTime(nextReadyOrder.order.created_at)} · {nextReadyOrder.order.paid_at ? 'already paid' : 'needs payment check'}</p>
                     <div className="pill-list">
                       <StatusBadge status={nextReadyOrder.order.status} />
-                      {nextReadyOrder.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip info-chip-danger">Unpaid</span>}
+                      {nextReadyOrder.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip info-chip-danger cashier-urgent-chip">Collect payment first</span>}
                     </div>
                   </>
                 ) : (
@@ -785,11 +828,11 @@ export function StaffPage() {
                       ))}
                     </div>
                     <div className="cashier-primary-actions">
-                      <button type="button" onClick={() => confirmSettleTable(table)} disabled={settleTable.isPending}>
-                        Mark paid & close check
+                      <button type="button" onClick={() => confirmSettleTable(table)} disabled={settlingTableId === table.table_id}>
+                        {settlingTableId === table.table_id ? 'Marking paid…' : 'Mark paid'}
                       </button>
-                      <button type="button" className="secondary-button" onClick={() => void printCurrentBill(table)}>
-                        Bill
+                      <button type="button" className="secondary-button" onClick={() => void printCurrentBill(table)} disabled={billingTableId === table.table_id}>
+                        {billingTableId === table.table_id ? 'Opening bill…' : 'Bill'}
                       </button>
                     </div>
                   </div>
@@ -827,7 +870,7 @@ export function StaffPage() {
               </div>
             ) : null}
             {readyUnpaidOrders.length > 0 ? (
-              <div className="cashier-callout-strip">
+              <div className="cashier-callout-strip cashier-callout-strip-urgent">
                 <strong>{readyUnpaidOrders.length} ready orders are still unpaid.</strong>
                 <span className="muted">Collect money before the handoff if that matches your service flow.</span>
               </div>
@@ -849,7 +892,7 @@ export function StaffPage() {
                       <StatusBadge status={entry.order.status} />
                       <span className="info-chip info-chip-success">Ready for handoff</span>
                       {entry.order.is_follow_up ? <span className="info-chip info-chip-success">Follow-up add-on</span> : null}
-                      {entry.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip info-chip-danger">Collect payment</span>}
+                      {entry.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip info-chip-danger cashier-urgent-chip">Collect payment first</span>}
                       {entry.order.tracking_token ? <button type="button" className="secondary-button" onClick={() => window.open(buildTrackingUrl(entry.order.tracking_token, entry.order.id) ?? undefined, '_blank')}>Open tracker</button> : null}
                     </div>
                   </div>
@@ -922,11 +965,11 @@ export function StaffPage() {
                   <div className="admin-inline-actions">
                     {payableTable ? (
                       <>
-                        <button type="button" onClick={() => confirmSettleTable(payableTable)} disabled={settleTable.isPending}>
-                          Mark paid & close check
+                        <button type="button" onClick={() => confirmSettleTable(payableTable)} disabled={settlingTableId === payableTable.table_id}>
+                          {settlingTableId === payableTable.table_id ? 'Marking paid…' : 'Mark paid'}
                         </button>
-                        <button type="button" className="secondary-button" onClick={() => void printCurrentBill(payableTable)}>
-                          Bill
+                        <button type="button" className="secondary-button" onClick={() => void printCurrentBill(payableTable)} disabled={billingTableId === payableTable.table_id}>
+                          {billingTableId === payableTable.table_id ? 'Opening bill…' : 'Bill'}
                         </button>
                       </>
                     ) : (
