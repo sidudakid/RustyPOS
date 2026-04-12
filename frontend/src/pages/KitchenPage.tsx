@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { API_BASE, fetchJson, OrderStatus, OrderWithItemsView } from '../api'
 import { NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
@@ -21,6 +22,30 @@ const kitchenStatuses: OrderStatus[] = ['pending', 'preparing', 'ready']
 
 type KitchenView = 'all' | 'follow-up' | 'rush'
 
+type CardActionState = {
+  orderId: string
+  nextStatus: OrderStatus
+} | null
+
+function formatElapsed(createdAt: string) {
+  const elapsedMs = Date.now() - new Date(createdAt).getTime()
+  const elapsedMinutes = Math.max(0, Math.round(elapsedMs / 60000))
+
+  if (elapsedMinutes < 1) return 'just in'
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`
+
+  const hours = Math.floor(elapsedMinutes / 60)
+  const minutes = elapsedMinutes % 60
+  return minutes === 0 ? `${hours}h ago` : `${hours}h ${minutes}m ago`
+}
+
+function ageTone(createdAt: string): 'normal' | 'warn' | 'hot' {
+  const elapsedMinutes = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000))
+  if (elapsedMinutes >= 20) return 'hot'
+  if (elapsedMinutes >= 10) return 'warn'
+  return 'normal'
+}
+
 export function KitchenPage() {
   const [token, setToken] = useState(() => readOperatorToken('kitchen'))
   const { currency_code } = useCafeSettings()
@@ -32,6 +57,8 @@ export function KitchenPage() {
   const [bannerTone, setBannerTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
   const [query, setQuery] = useState('')
   const [view, setView] = useState<KitchenView>('all')
+  const [cardAction, setCardAction] = useState<CardActionState>(null)
+  const [cardError, setCardError] = useState<string>('')
   const bannerTimeoutRef = useRef<number | null>(null)
   const refetchRef = useRef<null | (() => void)>(null)
 
@@ -55,6 +82,9 @@ export function KitchenPage() {
       }
     },
     enabled: Boolean(token),
+    refetchInterval: token ? 15000 : false,
+    refetchIntervalInBackground: false,
+    staleTime: 5000,
   })
 
   useEffect(() => {
@@ -109,13 +139,23 @@ export function KitchenPage() {
   }, [])
 
   const updateStatus = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) =>
-      fetchJson<OrderWithItemsView>(`/orders/${orderId}/status`, {
+    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+      setCardAction({ orderId, nextStatus: status })
+      setCardError('')
+      return fetchJson<OrderWithItemsView>(`/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: authHeaders,
         body: JSON.stringify({ status }),
-      }),
-    onSuccess: () => ordersQuery.refetch(),
+      })
+    },
+    onSuccess: () => {
+      setCardAction(null)
+      void ordersQuery.refetch()
+    },
+    onError: (error, variables) => {
+      setCardAction(null)
+      setCardError(`Could not update order #${shortId(variables.orderId)}. ${error instanceof Error ? error.message : 'Try again.'}`)
+    },
   })
 
   const orders = ordersQuery.data ?? []
@@ -288,6 +328,8 @@ export function KitchenPage() {
         </div>
 
         {banner ? <NotificationBanner message={banner} tone={bannerTone} /> : null}
+        {ordersQuery.isError ? <NotificationBanner message={ordersQuery.error instanceof Error ? `Kitchen board refresh failed: ${ordersQuery.error.message}` : 'Kitchen board refresh failed.'} tone="alert" /> : null}
+        {cardError ? <NotificationBanner message={cardError} tone="alert" /> : null}
       </SectionCard>
 
       <div className="three-column kitchen-board-grid ops-board-grid">
@@ -303,8 +345,16 @@ export function KitchenPage() {
             <div className="order-list ops-order-list">
               {(grouped[status] ?? []).map((entry) => {
                 const total = entry.items.reduce((sum, item) => sum + item.menu_item_price * item.quantity, 0)
+                const elapsedLabel = formatElapsed(entry.order.created_at)
+                const elapsedTone = ageTone(entry.order.created_at)
+                const elapsedStyle: CSSProperties | undefined = elapsedTone === 'hot'
+                  ? { color: '#fca5a5' }
+                  : elapsedTone === 'warn'
+                    ? { color: '#fde68a' }
+                    : undefined
+                const actionPending = updateStatus.isPending && cardAction?.orderId === entry.order.id
                 return (
-                  <div className="card admin-order-card ops-order-card" key={entry.order.id}>
+                  <div className="card admin-order-card ops-order-card kitchen-order-card" key={entry.order.id}>
                     <div className="order-meta">
                       <div>
                         <strong>#{shortId(entry.order.id)}</strong>
@@ -325,21 +375,32 @@ export function KitchenPage() {
                         </li>
                       ))}
                     </ul>
-                    <div className="ops-order-footer">
-                      <div className="muted">
-                        <div>{new Date(entry.order.created_at).toLocaleTimeString()}</div>
+                    <div className="ops-order-footer kitchen-order-footer">
+                      <div className="muted kitchen-order-time">
+                        <div>{new Date(entry.order.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+                        <div className={`kitchen-age-chip kitchen-age-chip-${elapsedTone}`} style={elapsedStyle}>{elapsedLabel}</div>
                         <div>{entry.items.length} line{entry.items.length === 1 ? '' : 's'}</div>
                       </div>
                       <strong>{money(total, currency_code)}</strong>
                     </div>
                     {status === 'pending' && (
-                      <button onClick={() => updateStatus.mutate({ orderId: entry.order.id, status: 'preparing' })}>
-                        Start preparing
+                      <button
+                        type="button"
+                        className="kitchen-action-button"
+                        onClick={() => updateStatus.mutate({ orderId: entry.order.id, status: 'preparing' })}
+                        disabled={actionPending}
+                      >
+                        {actionPending ? 'Starting…' : 'Start preparing'}
                       </button>
                     )}
                     {status === 'preparing' && (
-                      <button onClick={() => updateStatus.mutate({ orderId: entry.order.id, status: 'ready' })}>
-                        Mark ready for pickup
+                      <button
+                        type="button"
+                        className="kitchen-action-button"
+                        onClick={() => updateStatus.mutate({ orderId: entry.order.id, status: 'ready' })}
+                        disabled={actionPending}
+                      >
+                        {actionPending ? 'Saving…' : 'Mark ready for pickup'}
                       </button>
                     )}
                     {status === 'ready' && (

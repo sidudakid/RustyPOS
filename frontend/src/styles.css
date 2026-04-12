@@ -5393,6 +5393,52 @@ textarea {
   box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.06), 0 12px 28px rgba(2, 6, 23, 0.22);
 }
 
+.kitchen-order-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.kitchen-order-footer {
+  align-items: flex-end;
+}
+
+.kitchen-order-time {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kitchen-age-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.kitchen-age-chip-normal {
+  background: rgba(71, 85, 105, 0.28);
+  color: #cbd5e1;
+}
+
+.kitchen-age-chip-warn {
+  background: rgba(234, 179, 8, 0.16);
+  color: #fde68a;
+}
+
+.kitchen-age-chip-hot {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+
+.kitchen-action-button {
+  min-height: 48px;
+}
+
 .cashier-hero-card {
   background:
     radial-gradient(circle at top right, rgba(34, 197, 94, 0.14), transparent 28%),
