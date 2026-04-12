@@ -27,20 +27,6 @@ type InventoryFilter = 'all' | 'attention' | 'healthy' | 'inactive'
 type InventorySort = 'attention' | 'name' | 'stock-low' | 'stock-high'
 type InventoryModalState = { itemId: string } | null
 
-function syncDraftItem(item: MenuItem, admin: ReturnType<typeof useAdminOutletState>, patch: Partial<MenuItem>) {
-  admin.setDraftMenuItems((current) => {
-    if (current.some((entry) => entry.id === item.id)) {
-      return current.map((entry) => (entry.id === item.id ? { ...entry, ...patch } : entry))
-    }
-
-    return [...current, { ...item, ...patch }]
-  })
-}
-
-function pruneDraftItem(itemId: string, admin: ReturnType<typeof useAdminOutletState>) {
-  admin.setDraftMenuItems((current) => current.filter((entry) => entry.id !== itemId))
-}
-
 function inventoryComparableState(item: MenuItem) {
   return {
     name: item.name,
@@ -59,20 +45,61 @@ function isInventoryDirty(draft: MenuItem, serverItem: MenuItem) {
   return JSON.stringify(inventoryComparableState(draft)) !== JSON.stringify(inventoryComparableState(serverItem))
 }
 
+function pruneDraftItem(itemId: string, admin: ReturnType<typeof useAdminOutletState>) {
+  admin.setDraftMenuItems((current) => current.filter((entry) => entry.id !== itemId))
+}
+
+function normalizeInventoryDraft(item: MenuItem, patch: Partial<MenuItem>) {
+  const nextStock = Math.max(0, patch.stock_count ?? item.stock_count)
+  const soldOut = nextStock <= 0
+
+  return {
+    ...patch,
+    stock_count: nextStock,
+    available: soldOut ? false : patch.available ?? item.available,
+    restock_needed: patch.restock_needed ?? (soldOut ? true : item.restock_needed),
+  }
+}
+
+function syncDraftItem(item: MenuItem, admin: ReturnType<typeof useAdminOutletState>, patch: Partial<MenuItem>) {
+  admin.setDraftMenuItems((current) => {
+    const existing = current.find((entry) => entry.id === item.id)
+    const baseItem = existing ?? item
+    const nextItem = { ...baseItem, ...normalizeInventoryDraft(baseItem, patch) }
+
+    if (!isInventoryDirty(nextItem, item)) {
+      return current.filter((entry) => entry.id !== item.id)
+    }
+
+    if (existing) {
+      return current.map((entry) => (entry.id === item.id ? nextItem : entry))
+    }
+
+    return [...current, nextItem]
+  })
+}
+
 function inventoryStockPatch(item: MenuItem, nextStockCount: number) {
   const stock_count = Math.max(0, nextStockCount)
   const soldOut = stock_count <= 0
-  const available = soldOut ? false : true
 
   return {
     stock_count,
-    available,
-    restock_needed: soldOut ? true : false,
+    available: soldOut ? false : item.available,
+    restock_needed: soldOut ? true : item.restock_needed,
   }
 }
 
 function inventoryDeltaPatch(item: MenuItem, delta: number) {
-  return inventoryStockPatch(item, item.stock_count + delta)
+  const stock_count = Math.max(0, item.stock_count + delta)
+  const soldOut = stock_count <= 0
+  const recoveringFromSoldOut = delta > 0 && item.stock_count <= 0
+
+  return {
+    stock_count,
+    available: soldOut ? false : recoveringFromSoldOut ? true : item.available,
+    restock_needed: soldOut ? true : stock_count > item.low_stock_threshold ? false : item.restock_needed,
+  }
 }
 
 export function AdminInventoryPage() {
@@ -81,6 +108,8 @@ export function AdminInventoryPage() {
   const [filter, setFilter] = useState<InventoryFilter>('all')
   const [sort, setSort] = useState<InventorySort>('attention')
   const [modal, setModal] = useState<InventoryModalState>(null)
+  const pendingInventoryItemId = admin.updateInventory.isPending ? admin.updateInventory.variables?.id ?? null : null
+  const pendingMenuItemId = admin.updateMenuItem.isPending ? admin.updateMenuItem.variables?.id ?? null : null
 
   const items = admin.inventoryQuery.data ?? []
   const activeItems = items.filter((item) => item.active)
@@ -184,17 +213,35 @@ export function AdminInventoryPage() {
         </div>
 
         <div className="admin-inventory-priority-bar" aria-label="Inventory priority summary">
-          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-danger" onClick={() => setFilter('attention')} aria-label={`Show critical inventory items (${out.length})`}>
+          <button
+            type="button"
+            className="admin-inventory-priority-pill admin-inventory-priority-pill-danger"
+            onClick={() => setFilter('attention')}
+            aria-label={`Show critical inventory items (${out.length})`}
+            aria-pressed={filter === 'attention'}
+          >
             <span>Critical</span>
             <strong aria-label={`${out.length} critical items`}>{out.length}</strong>
             <small>Open the risk queue</small>
           </button>
-          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-warning" onClick={() => setFilter('attention')} aria-label={`Show low-stock inventory items (${low.length})`}>
+          <button
+            type="button"
+            className="admin-inventory-priority-pill admin-inventory-priority-pill-warning"
+            onClick={() => setFilter('attention')}
+            aria-label={`Show low-stock inventory items (${low.length})`}
+            aria-pressed={filter === 'attention'}
+          >
             <span>Low stock</span>
             <strong aria-label={`${low.length} low-stock items`}>{low.length}</strong>
             <small>Near threshold</small>
           </button>
-          <button type="button" className="admin-inventory-priority-pill" onClick={() => setFilter('healthy')} aria-label={`Show healthy inventory items (${healthy.length})`}>
+          <button
+            type="button"
+            className="admin-inventory-priority-pill"
+            onClick={() => setFilter('healthy')}
+            aria-label={`Show healthy inventory items (${healthy.length})`}
+            aria-pressed={filter === 'healthy'}
+          >
             <span>Healthy</span>
             <strong aria-label={`${healthy.length} healthy items`}>{healthy.length}</strong>
             <small>No warning</small>
@@ -301,6 +348,7 @@ export function AdminInventoryPage() {
                   item={item}
                   badgeClass={badgeClass}
                   cardClass={cardClass}
+                  pendingInventoryItemId={pendingInventoryItemId}
                   onOpen={() => setModal({ itemId: item.id })}
                 />
               )
@@ -309,17 +357,17 @@ export function AdminInventoryPage() {
         )}
       </SectionCard>
 
-      {modal ? <InventoryEditorModal itemId={modal.itemId} onClose={() => setModal(null)} /> : null}
+      {modal ? <InventoryEditorModal itemId={modal.itemId} pendingMenuItemId={pendingMenuItemId} onClose={() => setModal(null)} /> : null}
     </div>
   )
 }
 
-function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: MenuItem; badgeClass: string; cardClass: string; onOpen: () => void }) {
+function InventoryEditorCard({ item, badgeClass, cardClass, pendingInventoryItemId, onOpen }: { item: MenuItem; badgeClass: string; cardClass: string; pendingInventoryItemId: string | null; onOpen: () => void }) {
   const admin = useAdminOutletState()
   const serverItem = admin.inventoryQuery.data?.find((entry) => entry.id === item.id) ?? item
   const draft = admin.draftMenuItems.find((entry) => entry.id === item.id) ?? serverItem
   const dirty = isInventoryDirty(draft, serverItem)
-  const isSaving = admin.updateInventory.isPending && admin.updateInventory.variables?.id === draft.id
+  const isSaving = pendingInventoryItemId === draft.id
 
   const applyStockDelta = (delta: number) => {
     syncDraftItem(serverItem, admin, inventoryDeltaPatch(draft, delta))
@@ -368,7 +416,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
           <button type="button" className="secondary-button" onClick={() => applyStockDelta(-1)} disabled={draft.stock_count <= 0}>-1</button>
           <button type="button" className="secondary-button" onClick={() => applyStockDelta(1)}>+1</button>
           <button type="button" className="secondary-button" onClick={() => applyStockDelta(5)}>+5</button>
-          <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, inventoryStockPatch(draft, 0))}>Sold out</button>
+          <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, { stock_count: 0, available: false, restock_needed: true })}>Sold out</button>
           <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, { available: !draft.available })}>
             {draft.available ? 'Hide item' : 'Show item'}
           </button>
@@ -387,6 +435,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
             })
           }
           disabled={!dirty || isSaving}
+          aria-busy={isSaving}
         >
           {isSaving ? 'Saving…' : dirty ? 'Save now' : 'Saved'}
         </button>
@@ -395,7 +444,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
   )
 }
 
-function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+function InventoryEditorModal({ itemId, pendingMenuItemId, onClose }: { itemId: string; pendingMenuItemId: string | null; onClose: () => void }) {
   const admin = useAdminOutletState()
   const [confirmArchive, setConfirmArchive] = useState(false)
   const item = admin.inventoryQuery.data?.find((entry) => entry.id === itemId) ?? admin.draftMenuItems.find((entry) => entry.id === itemId)
@@ -414,14 +463,14 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
   const serverItem = admin.inventoryQuery.data?.find((entry) => entry.id === item.id) ?? item
   const draft = admin.draftMenuItems.find((entry) => entry.id === item.id) ?? serverItem
   const dirty = isInventoryDirty(draft, serverItem)
-  const isSaving = admin.updateMenuItem.isPending && admin.updateMenuItem.variables?.id === draft.id
+  const isSaving = pendingMenuItemId === draft.id
 
   const updateDraft = (patch: Partial<MenuItem>) => {
     syncDraftItem(serverItem, admin, patch)
   }
 
   const resetDraft = () => {
-    admin.setDraftMenuItems((current) => current.map((entry) => (entry.id === item.id ? serverItem : entry)))
+    pruneDraftItem(item.id, admin)
   }
 
   const tone = inventoryTone(draft)
@@ -470,7 +519,7 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
               <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryDeltaPatch(draft, -5))} disabled={draft.stock_count <= 0}>-5</button>
               <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryDeltaPatch(draft, 1))}>+1</button>
               <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryDeltaPatch(draft, 5))}>+5</button>
-              <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryStockPatch(draft, 0))}>Mark sold out</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: 0, available: false, restock_needed: true })}>Mark sold out</button>
             </div>
           </div>
 
@@ -540,10 +589,14 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
               type="button"
               onClick={() =>
                 admin.updateMenuItem.mutate(draft, {
-                  onSuccess: () => pruneDraftItem(draft.id, admin),
+                  onSuccess: () => {
+                    pruneDraftItem(draft.id, admin)
+                    onClose()
+                  },
                 })
               }
               disabled={!dirty || isSaving}
+              aria-busy={isSaving}
             >
               {isSaving ? 'Saving…' : 'Save changes'}
             </button>
