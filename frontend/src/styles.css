@@ -5262,39 +5262,83 @@ textarea {
 }
 
 .operator-hub-page {
-  max-width: 1100px;
+  max-width: 1280px;
+}
+
+.operator-entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 1rem;
+  align-items: start;
 }
 
 .operator-role-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .operator-role-card,
 .operator-hub-form-card,
 .operator-access-card {
-  border-radius: 20px;
+  border-radius: 22px;
 }
 
 .operator-role-card {
-  min-height: 180px;
+  min-height: 220px;
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 1rem;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 1.2rem;
   border: 1px solid rgba(71, 85, 105, 0.62);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.6));
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.66));
 }
 
 .operator-role-card-active {
-  border-color: rgba(147, 197, 253, 0.4);
-  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.18), 0 18px 38px rgba(2, 6, 23, 0.26);
+  border-color: rgba(147, 197, 253, 0.68);
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.28), 0 24px 48px rgba(30, 64, 175, 0.22);
+  transform: translateY(-2px);
+}
+
+.operator-role-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .operator-role-icon {
-  font-size: 1.5rem;
+  font-size: 2rem;
+}
+
+.operator-role-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.operator-role-copy small {
+  color: #93c5fd;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.operator-role-selected-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(191, 219, 254, 0.14);
+  border: 1px solid rgba(191, 219, 254, 0.32);
+  color: #dbeafe;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .operator-access-card {
@@ -5359,10 +5403,46 @@ textarea {
   gap: 0.4rem;
 }
 
+.operator-access-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.operator-access-toggle {
+  width: auto;
+  min-width: 116px;
+}
+
 .operator-access-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.operator-hub-actions button {
+  min-height: 50px;
+}
+
+.operator-hub-form-header {
+  margin-bottom: 1rem;
+}
+
+.operator-saved-key-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.operator-access-error {
+  margin: 0;
 }
 
 .operator-access-actions-inline {
@@ -5855,6 +5935,7 @@ textarea {
     grid-column: span 1;
   }
 
+  .operator-entry-layout,
   .cashier-next-grid,
   .cashier-stat-strip,
   .cashier-primary-actions,
@@ -5903,6 +5984,22 @@ textarea {
   .cashier-primary-actions,
   .cashier-stat-strip {
     grid-template-columns: 1fr;
+  }
+
+  .operator-role-card {
+    min-height: 176px;
+    padding: 1rem;
+  }
+
+  .operator-access-key-row,
+  .operator-saved-key-banner {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .operator-access-toggle {
+    width: 100%;
   }
 
   .cashier-focus-row {
