@@ -24,9 +24,15 @@ const ELAPSED_REFRESH_MS = 30000
 
 type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'offline'
 
+function createdAtMs(dateLike?: string | null) {
+  if (!dateLike) return 0
+  const value = new Date(dateLike).getTime()
+  return Number.isNaN(value) ? 0 : value
+}
+
 function formatElapsedTime(dateLike: string, now: number) {
-  const createdAt = new Date(dateLike).getTime()
-  if (Number.isNaN(createdAt)) return 'Time unknown'
+  const createdAt = createdAtMs(dateLike)
+  if (!createdAt) return 'Time unknown'
 
   const diffMs = Math.max(0, now - createdAt)
   const totalMinutes = Math.floor(diffMs / 60000)
@@ -42,6 +48,13 @@ function formatElapsedTime(dateLike: string, now: number) {
   const days = Math.floor(hours / 24)
   const remainingHours = hours % 24
   return remainingHours === 0 ? `${days}d ago` : `${days}d ${remainingHours}h ago`
+}
+
+function kitchenAgeTone(dateLike: string, now: number) {
+  const ageMinutes = Math.max(0, Math.floor((now - createdAtMs(dateLike)) / 60000))
+  if (ageMinutes >= 20) return 'info-chip info-chip-danger'
+  if (ageMinutes >= 10) return 'info-chip'
+  return 'info-chip info-chip-success'
 }
 
 export function KitchenPage() {
@@ -228,6 +241,10 @@ export function KitchenPage() {
     grouped[order.order.status].push(order)
   }
 
+  for (const status of kitchenStatuses) {
+    grouped[status].sort((left, right) => createdAtMs(left.order.created_at) - createdAtMs(right.order.created_at))
+  }
+
   grouped.pending = sortLaneOrders(grouped.pending)
   grouped.preparing = sortLaneOrders(grouped.preparing)
   grouped.ready = sortLaneOrders(grouped.ready)
@@ -411,7 +428,12 @@ export function KitchenPage() {
                     </div>
                     <div className="kitchen-order-timer-row">
                       <strong className="kitchen-order-elapsed">{elapsed}</strong>
-                      <span className="muted">{entry.items.reduce((sum, item) => sum + item.quantity, 0)} item{entry.items.reduce((sum, item) => sum + item.quantity, 0) === 1 ? '' : 's'} · {entry.items.length} line{entry.items.length === 1 ? '' : 's'}</span>
+                      <div className="pill-list">
+                        <span className={kitchenAgeTone(entry.order.created_at, clockNow)}>
+                          {status === 'ready' ? 'Waiting for handoff' : status === 'preparing' ? 'Actively cooking' : 'Waiting to start'}
+                        </span>
+                        <span className="muted">{entry.items.reduce((sum, item) => sum + item.quantity, 0)} item{entry.items.reduce((sum, item) => sum + item.quantity, 0) === 1 ? '' : 's'} · {entry.items.length} line{entry.items.length === 1 ? '' : 's'}</span>
+                      </div>
                     </div>
                     {entry.order.is_follow_up ? (
                       <div className="pill-list kitchen-follow-up-pills">

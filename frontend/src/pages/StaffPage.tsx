@@ -65,10 +65,16 @@ function buildTrackingUrl(trackingToken?: string | null, orderId?: string | null
   return orderId ? `${base}/t/${trackingToken}/order/${orderId}` : `${base}/t/${trackingToken}`
 }
 
+function createdAtMs(dateLike?: string | null) {
+  if (!dateLike) return 0
+  const value = new Date(dateLike).getTime()
+  return Number.isNaN(value) ? 0 : value
+}
+
 function formatElapsedTime(dateLike?: string | null, now = Date.now()) {
   if (!dateLike) return 'No activity yet'
-  const timestamp = new Date(dateLike).getTime()
-  if (Number.isNaN(timestamp)) return 'Time unavailable'
+  const timestamp = createdAtMs(dateLike)
+  if (!timestamp) return 'Time unavailable'
 
   const elapsedMs = Math.max(0, now - timestamp)
   const minutes = Math.floor(elapsedMs / 60000)
@@ -447,7 +453,13 @@ export function StaffPage() {
       if (!tableNeedle) return true
       return [table.table_name, table.table_number ? String(table.table_number) : ''].join(' ').toLowerCase().includes(tableNeedle)
     })
-    .sort((left, right) => right.total_amount - left.total_amount)
+    .sort((left, right) => {
+      const leftReady = left.statuses.includes('ready') ? 1 : 0
+      const rightReady = right.statuses.includes('ready') ? 1 : 0
+      if (rightReady !== leftReady) return rightReady - leftReady
+      if (right.total_amount !== left.total_amount) return right.total_amount - left.total_amount
+      return left.table_name.localeCompare(right.table_name)
+    })
 
   const filteredReadyOrders = readyOrders
     .filter((entry) => {
@@ -457,10 +469,10 @@ export function StaffPage() {
       return `${tableName} ${tableNumber}`.toLowerCase().includes(tableNeedle)
     })
     .sort((left, right) => {
-      const leftPaidBoost = left.order.paid_at ? 1 : 0
-      const rightPaidBoost = right.order.paid_at ? 1 : 0
-      if (leftPaidBoost !== rightPaidBoost) return rightPaidBoost - leftPaidBoost
-      return new Date(left.order.created_at).getTime() - new Date(right.order.created_at).getTime()
+      const leftNeedsPayment = left.order.paid_at ? 0 : 1
+      const rightNeedsPayment = right.order.paid_at ? 0 : 1
+      if (rightNeedsPayment !== leftNeedsPayment) return rightNeedsPayment - leftNeedsPayment
+      return createdAtMs(left.order.created_at) - createdAtMs(right.order.created_at)
     })
 
   const urgentQueue = useMemo(() => {
@@ -639,6 +651,11 @@ export function StaffPage() {
                 </div>
               ))}
             </div>
+            {readyUnpaidOrders.length > 0 ? (
+              <p className="muted" style={{ margin: '8px 0 0' }}>
+                Payment check first: {readyUnpaidOrders.length} ready order{readyUnpaidOrders.length === 1 ? '' : 's'} still need cashier approval before handoff.
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -646,7 +663,7 @@ export function StaffPage() {
           <div className="ops-toolbar ops-toolbar-sticky cashier-toolbar">
             <div className="cashier-toolbar-topline">
               <strong>What should staff do next?</strong>
-              <span className="muted">Search once, then work top to bottom. Payment cards sort by biggest unpaid total; pickup cards show paid orders first.</span>
+              <span className="muted">Search once, then work top to bottom. Payment cards pull tables with ready food upward; pickup cards put unpaid handoffs first so nobody skips the check.</span>
             </div>
             <div className="ops-toolbar-main">
               <label>
@@ -762,6 +779,12 @@ export function StaffPage() {
                       <StatusBadge status={nextReadyOrder.order.status} />
                       {nextReadyOrder.order.paid_at ? <span className="info-chip info-chip-success">Paid</span> : <span className="info-chip info-chip-danger cashier-urgent-chip">Collect payment first</span>}
                     </div>
+                    {!nextReadyOrder.order.paid_at ? (
+                      <div className="admin-inline-actions" style={{ marginTop: 12 }}>
+                        <button type="button" onClick={() => setFocusLane('cashier')}>Open cashier lane</button>
+                        <button type="button" className="secondary-button" onClick={() => setFocusLane('pickup')}>Stay on pickup queue</button>
+                      </div>
+                    ) : null}
                   </>
                 ) : (
                   <p className="muted">No ready orders waiting.</p>
