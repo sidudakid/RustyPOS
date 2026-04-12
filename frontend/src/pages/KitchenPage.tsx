@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { API_BASE, fetchJson, OrderStatus, OrderWithItemsView } from '../api'
 import { NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
@@ -19,48 +18,47 @@ import { OperatorAccessCard } from '../operatorAccess'
 import { clearOperatorToken, readOperatorToken, writeOperatorToken } from '../operatorTokens'
 
 const kitchenStatuses: OrderStatus[] = ['pending', 'preparing', 'ready']
+const SOCKET_RECONNECT_MS = 2500
+const POLL_FALLBACK_MS = 15000
+const ELAPSED_REFRESH_MS = 30000
 
-type KitchenView = 'all' | 'follow-up' | 'rush'
+type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'offline'
 
-type CardActionState = {
-  orderId: string
-  nextStatus: OrderStatus
-} | null
+function formatElapsedTime(dateLike: string, now: number) {
+  const createdAt = new Date(dateLike).getTime()
+  if (Number.isNaN(createdAt)) return 'Time unknown'
 
-function formatElapsed(createdAt: string) {
-  const elapsedMs = Date.now() - new Date(createdAt).getTime()
-  const elapsedMinutes = Math.max(0, Math.round(elapsedMs / 60000))
+  const diffMs = Math.max(0, now - createdAt)
+  const totalMinutes = Math.floor(diffMs / 60000)
 
-  if (elapsedMinutes < 1) return 'just in'
-  if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`
+  if (totalMinutes < 1) return 'Just now'
+  if (totalMinutes < 60) return `${totalMinutes}m ago`
 
-  const hours = Math.floor(elapsedMinutes / 60)
-  const minutes = elapsedMinutes % 60
-  return minutes === 0 ? `${hours}h ago` : `${hours}h ${minutes}m ago`
-}
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
 
-function ageTone(createdAt: string): 'normal' | 'warn' | 'hot' {
-  const elapsedMinutes = Math.max(0, Math.round((Date.now() - new Date(createdAt).getTime()) / 60000))
-  if (elapsedMinutes >= 20) return 'hot'
-  if (elapsedMinutes >= 10) return 'warn'
-  return 'normal'
+  if (hours < 24) return minutes === 0 ? `${hours}h ago` : `${hours}h ${minutes}m ago`
+
+  const days = Math.floor(hours / 24)
+  const remainingHours = hours % 24
+  return remainingHours === 0 ? `${days}d ago` : `${days}d ${remainingHours}h ago`
 }
 
 export function KitchenPage() {
   const [token, setToken] = useState(() => readOperatorToken('kitchen'))
   const { currency_code } = useCafeSettings()
-  const [lastEvent, setLastEvent] = useState<string>('none yet')
   const [connected, setConnected] = useState(false)
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connecting')
   const [tokenInvalid, setTokenInvalid] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(() => notificationsEnabled())
   const [banner, setBanner] = useState('🔔 Sound alerts are on by default. Tap mute if you want quiet.')
   const [bannerTone, setBannerTone] = useState<'info' | 'success' | 'muted' | 'alert'>('info')
-  const [query, setQuery] = useState('')
-  const [view, setView] = useState<KitchenView>('all')
-  const [cardAction, setCardAction] = useState<CardActionState>(null)
-  const [cardError, setCardError] = useState<string>('')
+  const [clockNow, setClockNow] = useState(() => Date.now())
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null)
+  const [orderErrors, setOrderErrors] = useState<Record<string, string>>({})
   const bannerTimeoutRef = useRef<number | null>(null)
   const refetchRef = useRef<null | (() => void)>(null)
+  const pollingIntervalRef = useRef<number | null>(null)
 
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
 
@@ -82,9 +80,7 @@ export function KitchenPage() {
       }
     },
     enabled: Boolean(token),
-    refetchInterval: token ? 15000 : false,
-    refetchIntervalInBackground: false,
-    staleTime: 5000,
+    refetchOnWindowFocus: true,
   })
 
   useEffect(() => {
@@ -92,6 +88,14 @@ export function KitchenPage() {
       void ordersQuery.refetch()
     }
   }, [ordersQuery])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setClockNow(Date.now())
+    }, ELAPSED_REFRESH_MS)
+
+    return () => window.clearInterval(timer)
+  }, [])
 
   const showBanner = (message: string, tone: 'info' | 'success' | 'muted' | 'alert') => {
     setBanner(message)
@@ -105,29 +109,85 @@ export function KitchenPage() {
   }
 
   useEffect(() => {
+    const stopPolling = () => {
+      if (pollingIntervalRef.current) {
+        window.clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+    }
+
+    const startPolling = () => {
+      if (pollingIntervalRef.current || !token) return
+      pollingIntervalRef.current = window.setInterval(() => {
+        refetchRef.current?.()
+      }, POLL_FALLBACK_MS)
+    }
+
     if (!token) {
       setConnected(false)
+      setConnectionState('offline')
+      stopPolling()
       return
     }
 
-    const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
-    const socket = new WebSocket(`${wsBase}/ws/orders`)
+    let cancelled = false
+    let socket: WebSocket | null = null
+    let reconnectTimer: number | null = null
 
-    socket.onopen = () => setConnected(true)
-    socket.onclose = () => setConnected(false)
-    socket.onerror = () => setConnected(false)
-    socket.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as { type?: string; order_id?: string }
-      setLastEvent(`${payload.type ?? 'unknown'}:${payload.order_id ?? 'unknown'}`)
-      if (payload.type === 'new_order' && payload.order_id && claimNotification(`kitchen:${payload.order_id}`)) {
-        showBanner(`⚠️ New order received: ${payload.order_id.slice(0, 8)}`, 'alert')
-        showBrowserNotification('New kitchen order', `Order ${payload.order_id.slice(0, 8)} just arrived.`)
-        void playAlertTone('kitchen-new-order')
+    const connect = (initial = false) => {
+      if (cancelled) return
+      setConnectionState(initial ? 'connecting' : 'reconnecting')
+
+      const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
+      socket = new WebSocket(`${wsBase}/ws/orders`)
+
+      socket.onopen = () => {
+        if (cancelled) return
+        setConnected(true)
+        setConnectionState('live')
+        stopPolling()
+        refetchRef.current?.()
       }
-      refetchRef.current?.()
+
+      socket.onclose = () => {
+        if (cancelled) return
+        setConnected(false)
+        setConnectionState('reconnecting')
+        startPolling()
+        reconnectTimer = window.setTimeout(() => connect(), SOCKET_RECONNECT_MS)
+      }
+
+      socket.onerror = () => {
+        if (cancelled) return
+        setConnected(false)
+        setConnectionState('reconnecting')
+        startPolling()
+      }
+
+      socket.onmessage = (event) => {
+        const payload = JSON.parse(event.data) as { type?: string; order_id?: string }
+        if (payload.type === 'new_order' && payload.order_id && claimNotification(`kitchen:${payload.order_id}`)) {
+          showBanner(`⚠️ New order received: ${payload.order_id.slice(0, 8)}`, 'alert')
+          showBrowserNotification('New kitchen order', `Order ${payload.order_id.slice(0, 8)} just arrived.`)
+          void playAlertTone('kitchen-new-order')
+        }
+        refetchRef.current?.()
+      }
     }
 
-    return () => socket.close()
+    connect(true)
+    startPolling()
+
+    return () => {
+      cancelled = true
+      setConnected(false)
+      setConnectionState('offline')
+      stopPolling()
+      if (reconnectTimer) {
+        window.clearTimeout(reconnectTimer)
+      }
+      socket?.close()
+    }
   }, [token])
 
   useEffect(() => {
@@ -139,42 +199,16 @@ export function KitchenPage() {
   }, [])
 
   const updateStatus = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      setCardAction({ orderId, nextStatus: status })
-      setCardError('')
-      return fetchJson<OrderWithItemsView>(`/orders/${orderId}/status`, {
+    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) =>
+      fetchJson<OrderWithItemsView>(`/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: authHeaders,
         body: JSON.stringify({ status }),
-      })
-    },
-    onSuccess: () => {
-      setCardAction(null)
-      void ordersQuery.refetch()
-    },
-    onError: (error, variables) => {
-      setCardAction(null)
-      setCardError(`Could not update order #${shortId(variables.orderId)}. ${error instanceof Error ? error.message : 'Try again.'}`)
-    },
+      }),
+    onSuccess: () => ordersQuery.refetch(),
   })
 
   const orders = ordersQuery.data ?? []
-  const needle = query.trim().toLowerCase()
-  const filteredOrders = orders.filter((entry) => {
-    const matchesText =
-      !needle ||
-      [entry.order.table_name ?? '', shortId(entry.order.id), entry.items.map((item) => item.menu_item_name).join(' ')]
-        .join(' ')
-        .toLowerCase()
-        .includes(needle)
-
-    const matchesView =
-      view === 'all' ||
-      (view === 'follow-up' && entry.order.is_follow_up) ||
-      (view === 'rush' && (entry.order.status === 'pending' || entry.order.status === 'ready'))
-
-    return matchesText && matchesView
-  })
 
   const grouped: Record<OrderStatus, OrderWithItemsView[]> = {
     pending: [],
@@ -183,7 +217,7 @@ export function KitchenPage() {
     paid: [],
   }
 
-  for (const order of filteredOrders) {
+  for (const order of orders) {
     if (order.order.status === 'paid') continue
     grouped[order.order.status].push(order)
   }
@@ -191,7 +225,46 @@ export function KitchenPage() {
   const pendingCount = grouped.pending.length
   const preparingCount = grouped.preparing.length
   const readyCount = grouped.ready.length
-  const followUps = filteredOrders.filter((entry) => entry.order.is_follow_up).length
+  const totalActive = pendingCount + preparingCount + readyCount
+
+  const connectionLabel =
+    connectionState === 'live'
+      ? 'Live updates on'
+      : connectionState === 'connecting'
+        ? 'Connecting…'
+        : connectionState === 'reconnecting'
+          ? 'Reconnecting… polling backup on'
+          : 'Offline'
+
+  const connectionToneClass =
+    connectionState === 'live'
+      ? 'info-chip info-chip-success'
+      : connectionState === 'offline'
+        ? 'info-chip info-chip-danger'
+        : 'info-chip'
+
+  async function handleStatusChange(orderId: string, status: OrderStatus) {
+    if (pendingOrderId) return
+
+    setPendingOrderId(orderId)
+    setOrderErrors((current) => {
+      const next = { ...current }
+      delete next[orderId]
+      return next
+    })
+
+    try {
+      await updateStatus.mutateAsync({ orderId, status })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Status update failed.'
+      setOrderErrors((current) => ({
+        ...current,
+        [orderId]: message || 'Status update failed.',
+      }))
+    } finally {
+      setPendingOrderId(null)
+    }
+  }
 
   if (!token) {
     return (
@@ -232,67 +305,30 @@ export function KitchenPage() {
   }
 
   return (
-    <section className="ops-surface ops-surface-kitchen">
-      <div className="ops-hero-card ops-hero-card-kitchen">
+    <section className="ops-surface ops-surface-kitchen kitchen-page-practical">
+      <div className="ops-hero-card ops-hero-card-kitchen kitchen-service-strip">
         <div className="section-heading-row kitchen-header-compact ops-hero-row">
           <div>
-            <p className="eyebrow">Kitchen operations</p>
+            <p className="eyebrow">Kitchen board</p>
             <h2 className="section-title">Prep queue</h2>
-            <p className="muted ops-hero-copy">Dark-board view with faster scanning, persistent controls, and clearer handoff states for live service.</p>
+            <p className="muted ops-hero-copy">Big cards, elapsed timers, and fewer distractions for active service.</p>
           </div>
-          <div className="hero-chip-group ops-hero-chips">
-            <span className={connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
-              {connected ? 'Live connected' : 'Disconnected'}
-            </span>
-            <span className="info-chip">Pending {pendingCount}</span>
-            <span className="info-chip">Ready {readyCount}</span>
-            <span className="info-chip">Last: {lastEvent}</span>
-          </div>
-        </div>
-
-        <div className="ops-stat-strip ops-stat-strip-compact">
-          <div className="ops-stat-card">
-            <span>New / pending</span>
-            <strong>{pendingCount}</strong>
-            <small>Orders waiting to be claimed</small>
-          </div>
-          <div className="ops-stat-card">
-            <span>In progress</span>
-            <strong>{preparingCount}</strong>
-            <small>Currently being worked</small>
-          </div>
-          <div className="ops-stat-card ops-stat-card-success">
-            <span>Ready for pickup</span>
-            <strong>{readyCount}</strong>
-            <small>Needs front-of-house handoff</small>
-          </div>
-          <div className="ops-stat-card">
-            <span>Follow-up adds</span>
-            <strong>{followUps}</strong>
-            <small>Changes attached to active tables</small>
+          <div className="hero-chip-group ops-hero-chips kitchen-service-chips">
+            <span className={connectionToneClass}>{connectionLabel}</span>
+            <span className="info-chip">Active {totalActive}</span>
+            {tokenInvalid ? <span className="info-chip info-chip-danger">Saved key rejected</span> : null}
           </div>
         </div>
       </div>
 
       <SectionCard>
-        <div className="ops-toolbar ops-toolbar-sticky">
-          <div className="ops-toolbar-main">
-            <label>
-              Search orders
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search table, ticket, or item" />
-            </label>
-            <label>
-              View focus
-              <select value={view} onChange={(event) => setView(event.target.value as KitchenView)}>
-                <option value="all">All active orders</option>
-                <option value="rush">Rush lanes</option>
-                <option value="follow-up">Follow-up additions</option>
-              </select>
-            </label>
-          </div>
-          <div className="ops-toolbar-side">
+        <div className="ops-toolbar ops-toolbar-sticky kitchen-toolbar-slim">
+          <div className="ops-toolbar-side kitchen-toolbar-side">
             <div className="notification-row ops-toolbar-notifications">
-              <p className="muted">Notifications: {soundEnabled ? 'sound on' : 'sound muted'}</p>
+              <p className="muted">
+                Alerts: {soundEnabled ? 'sound on' : 'sound muted'}
+                {connectionState !== 'live' ? ' · fallback polling active' : ''}
+              </p>
               <NotificationButton
                 enabled={soundEnabled}
                 onClick={async () => {
@@ -319,48 +355,53 @@ export function KitchenPage() {
                 }}
               />
             </div>
-            <div className="pill-list">
-              <span className={connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>{connected ? 'Kitchen signed in' : 'Reconnect needed'}</span>
-              {tokenInvalid ? <span className="info-chip info-chip-danger">Saved key rejected</span> : null}
-              <button type="button" className="secondary-button" onClick={() => { setToken(''); clearOperatorToken('kitchen') }}>Log out station</button>
+            <div className="pill-list kitchen-toolbar-pills">
+              <span className={connectionToneClass}>{connected ? 'Kitchen signed in' : 'Watching for reconnect'}</span>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setToken('')
+                  clearOperatorToken('kitchen')
+                }}
+              >
+                Log out station
+              </button>
             </div>
           </div>
         </div>
 
         {banner ? <NotificationBanner message={banner} tone={bannerTone} /> : null}
-        {ordersQuery.isError ? <NotificationBanner message={ordersQuery.error instanceof Error ? `Kitchen board refresh failed: ${ordersQuery.error.message}` : 'Kitchen board refresh failed.'} tone="alert" /> : null}
-        {cardError ? <NotificationBanner message={cardError} tone="alert" /> : null}
       </SectionCard>
 
-      <div className="three-column kitchen-board-grid ops-board-grid">
+      <div className="three-column kitchen-board-grid ops-board-grid kitchen-board-grid-practical">
         {kitchenStatuses.map((status) => (
           <SectionCard key={status}>
-            <div className="ops-lane-header">
+            <div className={`ops-lane-header kitchen-lane-header ${status === 'preparing' ? 'kitchen-lane-header-spotlight' : ''}`}>
               <div>
-                <p className="eyebrow">{status === 'pending' ? 'Triage' : status === 'preparing' ? 'Active cook' : 'Handoff'}</p>
-                <h3 className="section-title">{status === 'pending' ? 'Queued' : status === 'preparing' ? 'Preparing' : 'Ready'}</h3>
+                <p className="eyebrow">{status === 'pending' ? 'Up next' : status === 'preparing' ? 'Cooking now' : 'Ready out'}</p>
+                <h3 className="section-title">{status === 'pending' ? 'Queued' : status === 'preparing' ? 'Cooking' : 'Ready'}</h3>
               </div>
               <span className="info-chip">{grouped[status].length}</span>
             </div>
-            <div className="order-list ops-order-list">
+            <div className={`order-list ops-order-list ${status === 'preparing' ? 'kitchen-lane-list-spotlight' : ''}`}>
               {(grouped[status] ?? []).map((entry) => {
                 const total = entry.items.reduce((sum, item) => sum + item.menu_item_price * item.quantity, 0)
-                const elapsedLabel = formatElapsed(entry.order.created_at)
-                const elapsedTone = ageTone(entry.order.created_at)
-                const elapsedStyle: CSSProperties | undefined = elapsedTone === 'hot'
-                  ? { color: '#fca5a5' }
-                  : elapsedTone === 'warn'
-                    ? { color: '#fde68a' }
-                    : undefined
-                const actionPending = updateStatus.isPending && cardAction?.orderId === entry.order.id
+                const isPending = pendingOrderId === entry.order.id
+                const errorMessage = orderErrors[entry.order.id]
+                const elapsed = formatElapsedTime(entry.order.created_at, clockNow)
                 return (
-                  <div className="card admin-order-card ops-order-card kitchen-order-card" key={entry.order.id}>
-                    <div className="order-meta">
+                  <div className={`card admin-order-card ops-order-card kitchen-order-card ${status === 'preparing' ? 'kitchen-order-card-cooking' : ''}`} key={entry.order.id}>
+                    <div className="order-meta kitchen-order-meta">
                       <div>
-                        <strong>#{shortId(entry.order.id)}</strong>
-                        <div className="muted">{entry.order.table_name ?? shortId(entry.order.table_id)}{entry.order.table_number ? ` · Table #${entry.order.table_number}` : ''}</div>
+                        <strong className="kitchen-ticket-id">#{shortId(entry.order.id)}</strong>
+                        <div className="muted kitchen-ticket-table">{entry.order.table_name ?? shortId(entry.order.table_id)}{entry.order.table_number ? ` · Table #${entry.order.table_number}` : ''}</div>
                       </div>
                       <StatusBadge status={entry.order.status} />
+                    </div>
+                    <div className="kitchen-order-timer-row">
+                      <strong className="kitchen-order-elapsed">{elapsed}</strong>
+                      <span className="muted">{entry.items.length} item line{entry.items.length === 1 ? '' : 's'}</span>
                     </div>
                     {entry.order.is_follow_up ? (
                       <div className="pill-list kitchen-follow-up-pills">
@@ -368,7 +409,7 @@ export function KitchenPage() {
                         <span className="info-chip">{entry.order.follow_up_additions_count} add-on update{entry.order.follow_up_additions_count === 1 ? '' : 's'}</span>
                       </div>
                     ) : null}
-                    <ul className="ops-order-items">
+                    <ul className="ops-order-items kitchen-order-items">
                       {entry.items.map((item) => (
                         <li key={item.id}>
                           <span>{item.quantity} × {item.menu_item_name}</span>
@@ -376,37 +417,27 @@ export function KitchenPage() {
                       ))}
                     </ul>
                     <div className="ops-order-footer kitchen-order-footer">
-                      <div className="muted kitchen-order-time">
+                      <div className="muted">
+                        <div>Opened {elapsed}</div>
                         <div>{new Date(entry.order.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
-                        <div className={`kitchen-age-chip kitchen-age-chip-${elapsedTone}`} style={elapsedStyle}>{elapsedLabel}</div>
-                        <div>{entry.items.length} line{entry.items.length === 1 ? '' : 's'}</div>
                       </div>
                       <strong>{money(total, currency_code)}</strong>
                     </div>
+                    {errorMessage ? <div className="notification-banner notification-banner-alert kitchen-order-error">⚠️ {errorMessage}</div> : null}
                     {status === 'pending' && (
-                      <button
-                        type="button"
-                        className="kitchen-action-button"
-                        onClick={() => updateStatus.mutate({ orderId: entry.order.id, status: 'preparing' })}
-                        disabled={actionPending}
-                      >
-                        {actionPending ? 'Starting…' : 'Start preparing'}
+                      <button className="kitchen-action-button" disabled={isPending || updateStatus.isPending} onClick={() => void handleStatusChange(entry.order.id, 'preparing')}>
+                        {isPending ? 'Starting…' : 'Start cooking'}
                       </button>
                     )}
                     {status === 'preparing' && (
-                      <button
-                        type="button"
-                        className="kitchen-action-button"
-                        onClick={() => updateStatus.mutate({ orderId: entry.order.id, status: 'ready' })}
-                        disabled={actionPending}
-                      >
-                        {actionPending ? 'Saving…' : 'Mark ready for pickup'}
+                      <button className="kitchen-action-button kitchen-action-button-ready" disabled={isPending || updateStatus.isPending} onClick={() => void handleStatusChange(entry.order.id, 'ready')}>
+                        {isPending ? 'Saving…' : 'Mark ready'}
                       </button>
                     )}
                     {status === 'ready' && (
-                      <div className="pill-list">
-                        <span className="info-chip info-chip-success">Front of house should switch to Pickup / Runner mode</span>
-                        <button className="secondary-button" disabled>
+                      <div className="pill-list kitchen-ready-note">
+                        <span className="info-chip info-chip-success">Front of house pickup</span>
+                        <button className="secondary-button kitchen-action-button" disabled>
                           Waiting on staff handoff
                         </button>
                       </div>
@@ -414,7 +445,7 @@ export function KitchenPage() {
                   </div>
                 )
               })}
-              {grouped[status].length === 0 ? <p className="muted">No orders in this lane.</p> : null}
+              {grouped[status].length === 0 ? <p className="muted kitchen-empty-lane">No orders in this lane.</p> : null}
             </div>
           </SectionCard>
         ))}

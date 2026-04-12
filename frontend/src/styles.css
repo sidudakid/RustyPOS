@@ -327,6 +327,136 @@ body,
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.kitchen-page-practical {
+  gap: 0.9rem;
+}
+
+.kitchen-service-strip {
+  padding-bottom: 0.9rem;
+}
+
+.kitchen-service-chips {
+  justify-content: flex-end;
+}
+
+.kitchen-toolbar-slim {
+  padding: 0.85rem 1rem;
+}
+
+.kitchen-toolbar-side {
+  gap: 0.75rem;
+}
+
+.kitchen-toolbar-pills {
+  align-items: center;
+}
+
+.kitchen-board-grid-practical {
+  align-items: start;
+}
+
+.kitchen-board-grid-practical > .card:nth-child(2) {
+  grid-column: span 2;
+}
+
+.kitchen-lane-header {
+  margin-bottom: 1rem;
+}
+
+.kitchen-lane-header-spotlight {
+  padding: 0.5rem 0.65rem 0.75rem;
+  margin: -0.15rem -0.15rem 1rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.7));
+  border: 1px solid rgba(96, 165, 250, 0.22);
+}
+
+.kitchen-lane-list-spotlight {
+  gap: 1rem;
+}
+
+.kitchen-order-card {
+  padding: 1.2rem;
+  border-radius: 22px;
+  min-height: 0;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.kitchen-order-card-cooking {
+  border-color: rgba(96, 165, 250, 0.36);
+  box-shadow: inset 0 1px 0 rgba(191, 219, 254, 0.08), 0 18px 34px rgba(30, 64, 175, 0.18);
+}
+
+.kitchen-order-meta {
+  margin-bottom: 0.9rem;
+}
+
+.kitchen-ticket-id {
+  display: block;
+  font-size: 1.4rem;
+  line-height: 1.1;
+}
+
+.kitchen-ticket-table {
+  margin-top: 0.3rem;
+  font-size: 1rem;
+}
+
+.kitchen-order-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.kitchen-order-elapsed {
+  font-size: 1.15rem;
+  color: #fef08a;
+}
+
+.kitchen-order-items {
+  padding-left: 1.25rem;
+  gap: 0.55rem;
+  font-size: 1.08rem;
+}
+
+.kitchen-order-items li::marker {
+  color: #93c5fd;
+}
+
+.kitchen-order-footer {
+  margin-top: 1rem;
+  align-items: center;
+}
+
+.kitchen-order-error {
+  margin-top: 0.85rem;
+}
+
+.kitchen-action-button {
+  width: 100%;
+  min-height: 64px;
+  margin-top: 1rem;
+  border-radius: 16px;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.kitchen-action-button-ready {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.kitchen-ready-note {
+  margin-top: 1rem;
+  align-items: stretch;
+}
+
+.kitchen-empty-lane {
+  padding: 0.9rem 0;
+  font-size: 1rem;
+}
+
 button {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white;
@@ -5687,10 +5817,15 @@ textarea {
   .cashier-toolbar-topline,
   .operator-access-header,
   .operator-access-session-row,
-  .cashier-ready-spotlight {
+  .cashier-ready-spotlight,
+  .kitchen-order-timer-row {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .kitchen-board-grid-practical > .card:nth-child(2) {
+    grid-column: span 1;
   }
 
   .cashier-next-grid,
@@ -5716,6 +5851,22 @@ textarea {
   .ops-toolbar-sticky {
     padding: 0.9rem;
     border-radius: 18px;
+  }
+
+  .kitchen-order-card {
+    padding: 1rem;
+  }
+
+  .kitchen-ticket-id {
+    font-size: 1.25rem;
+  }
+
+  .kitchen-order-items {
+    font-size: 1rem;
+  }
+
+  .kitchen-action-button {
+    min-height: 58px;
   }
 
   .ops-stat-strip,
