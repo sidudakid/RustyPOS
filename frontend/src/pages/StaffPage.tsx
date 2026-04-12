@@ -306,16 +306,20 @@ export function StaffPage() {
     socket.onclose = () => setConnected(false)
     socket.onerror = () => setConnected(false)
     socket.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as { type?: string; order_id?: string; status?: string }
-      setLastEvent(`${payload.type ?? 'unknown'}:${payload.order_id ?? 'unknown'}`)
-      if (
-        payload.order_id &&
-        payload.status === 'ready' &&
-        claimNotification(`staff-ready:${payload.order_id}`)
-      ) {
-        showBanner(`✅ Order ${payload.order_id.slice(0, 8)} is ready. Open Pickup / handoff when a runner is free.`, 'success')
-        showBrowserNotification('Order ready', `Order ${payload.order_id.slice(0, 8)} is ready for the front counter.`)
-        void playAlertTone('customer-order-ready')
+      try {
+        const payload = JSON.parse(event.data) as { type?: string; order_id?: string; status?: string }
+        setLastEvent(`${payload.type ?? 'unknown'}:${payload.order_id ?? 'unknown'}`)
+        if (
+          payload.order_id &&
+          payload.status === 'ready' &&
+          claimNotification(`staff-ready:${payload.order_id}`)
+        ) {
+          showBanner(`✅ Order ${payload.order_id.slice(0, 8)} is ready. Open Pickup / handoff when a runner is free.`, 'success')
+          showBrowserNotification('Order ready', `Order ${payload.order_id.slice(0, 8)} is ready for the front counter.`)
+          void playAlertTone('customer-order-ready')
+        }
+      } catch {
+        setLastEvent('socket:update')
       }
       refetchRef.current?.()
     }
@@ -438,16 +442,26 @@ export function StaffPage() {
     return matchesText && matchesView
   })
 
-  const filteredOpenTables = openTables.filter((table) => {
-    if (!tableNeedle) return true
-    return [table.table_name].join(' ').toLowerCase().includes(tableNeedle)
-  })
+  const filteredOpenTables = openTables
+    .filter((table) => {
+      if (!tableNeedle) return true
+      return [table.table_name, table.table_number ? String(table.table_number) : ''].join(' ').toLowerCase().includes(tableNeedle)
+    })
+    .sort((left, right) => right.total_amount - left.total_amount)
 
-  const filteredReadyOrders = readyOrders.filter((entry) => {
-    if (!tableNeedle) return true
-    const tableName = entry.order.table_name ?? ''
-    return tableName.toLowerCase().includes(tableNeedle)
-  })
+  const filteredReadyOrders = readyOrders
+    .filter((entry) => {
+      if (!tableNeedle) return true
+      const tableName = entry.order.table_name ?? ''
+      const tableNumber = entry.order.table_number ? String(entry.order.table_number) : ''
+      return `${tableName} ${tableNumber}`.toLowerCase().includes(tableNeedle)
+    })
+    .sort((left, right) => {
+      const leftPaidBoost = left.order.paid_at ? 1 : 0
+      const rightPaidBoost = right.order.paid_at ? 1 : 0
+      if (leftPaidBoost !== rightPaidBoost) return rightPaidBoost - leftPaidBoost
+      return new Date(left.order.created_at).getTime() - new Date(right.order.created_at).getTime()
+    })
 
   const urgentQueue = useMemo(() => {
     return activeTables
@@ -632,7 +646,7 @@ export function StaffPage() {
           <div className="ops-toolbar ops-toolbar-sticky cashier-toolbar">
             <div className="cashier-toolbar-topline">
               <strong>What should staff do next?</strong>
-              <span className="muted">Search once, then work top to bottom.</span>
+              <span className="muted">Search once, then work top to bottom. Payment cards sort by biggest unpaid total; pickup cards show paid orders first.</span>
             </div>
             <div className="ops-toolbar-main">
               <label>

@@ -165,11 +165,15 @@ export function KitchenPage() {
       }
 
       socket.onmessage = (event) => {
-        const payload = JSON.parse(event.data) as { type?: string; order_id?: string }
-        if (payload.type === 'new_order' && payload.order_id && claimNotification(`kitchen:${payload.order_id}`)) {
-          showBanner(`⚠️ New order received: ${payload.order_id.slice(0, 8)}`, 'alert')
-          showBrowserNotification('New kitchen order', `Order ${payload.order_id.slice(0, 8)} just arrived.`)
-          void playAlertTone('kitchen-new-order')
+        try {
+          const payload = JSON.parse(event.data) as { type?: string; order_id?: string }
+          if (payload.type === 'new_order' && payload.order_id && claimNotification(`kitchen:${payload.order_id}`)) {
+            showBanner(`⚠️ New order received: ${payload.order_id.slice(0, 8)}`, 'alert')
+            showBrowserNotification('New kitchen order', `Order ${payload.order_id.slice(0, 8)} just arrived.`)
+            void playAlertTone('kitchen-new-order')
+          }
+        } catch {
+          // Ignore malformed socket messages and rely on the next refetch.
         }
         refetchRef.current?.()
       }
@@ -209,6 +213,8 @@ export function KitchenPage() {
   })
 
   const orders = ordersQuery.data ?? []
+  const sortLaneOrders = (entries: OrderWithItemsView[]) =>
+    [...entries].sort((left, right) => new Date(left.order.created_at).getTime() - new Date(right.order.created_at).getTime())
 
   const grouped: Record<OrderStatus, OrderWithItemsView[]> = {
     pending: [],
@@ -221,6 +227,10 @@ export function KitchenPage() {
     if (order.order.status === 'paid') continue
     grouped[order.order.status].push(order)
   }
+
+  grouped.pending = sortLaneOrders(grouped.pending)
+  grouped.preparing = sortLaneOrders(grouped.preparing)
+  grouped.ready = sortLaneOrders(grouped.ready)
 
   const pendingCount = grouped.pending.length
   const preparingCount = grouped.preparing.length
@@ -401,7 +411,7 @@ export function KitchenPage() {
                     </div>
                     <div className="kitchen-order-timer-row">
                       <strong className="kitchen-order-elapsed">{elapsed}</strong>
-                      <span className="muted">{entry.items.length} item line{entry.items.length === 1 ? '' : 's'}</span>
+                      <span className="muted">{entry.items.reduce((sum, item) => sum + item.quantity, 0)} item{entry.items.reduce((sum, item) => sum + item.quantity, 0) === 1 ? '' : 's'} · {entry.items.length} line{entry.items.length === 1 ? '' : 's'}</span>
                     </div>
                     {entry.order.is_follow_up ? (
                       <div className="pill-list kitchen-follow-up-pills">

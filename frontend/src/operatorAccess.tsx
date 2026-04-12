@@ -212,6 +212,7 @@ export function OperatorHubPage() {
   const [selectedRole, setSelectedRole] = useState<OperatorRole>(() => readLastOperatorRole())
   const [token, setToken] = useState(() => readOperatorToken(readLastOperatorRole()))
   const [showKey, setShowKey] = useState(false)
+  const [editingSavedKey, setEditingSavedKey] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -233,13 +234,17 @@ export function OperatorHubPage() {
   useEffect(() => {
     writeLastOperatorRole(selectedRole)
     setToken(readOperatorToken(selectedRole))
+    setEditingSavedKey(false)
+    setShowKey(false)
     setError('')
   }, [selectedRole])
 
   const savedToken = readOperatorToken(selectedRole)
+  const trimmedToken = token.trim()
+  const hasSavedKey = Boolean(savedToken)
 
   const handleOpen = async () => {
-    const trimmed = token.trim()
+    const trimmed = trimmedToken
     if (!trimmed) {
       setError(`Enter the ${operatorRoleConfig[selectedRole].label.toLowerCase()} access key to continue.`)
       return
@@ -308,10 +313,10 @@ export function OperatorHubPage() {
             <div>
               <p className="eyebrow">Selected role</p>
               <h3 className="section-title">{operatorRoleConfig[selectedRole].title}</h3>
-              <p className="muted operator-access-copy">{operatorRoleConfig[selectedRole].helper}</p>
+              <p className="muted operator-access-copy">{hasSavedKey && !editingSavedKey ? `This device already has a saved ${operatorRoleConfig[selectedRole].label.toLowerCase()} key. Pick exactly what you want to do with it below.` : operatorRoleConfig[selectedRole].helper}</p>
             </div>
-            <span className={token.trim() ? 'info-chip info-chip-success' : 'info-chip'}>
-              {token.trim() ? 'Saved key ready' : 'Needs access key'}
+            <span className={hasSavedKey ? 'info-chip info-chip-success' : 'info-chip'}>
+              {hasSavedKey ? 'Saved key on this device' : 'Needs access key'}
             </span>
           </div>
 
@@ -321,58 +326,91 @@ export function OperatorHubPage() {
                 <strong>Saved key on this device</strong>
                 <p className="muted operator-access-copy">{maskOperatorToken(savedToken)}</p>
               </div>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  clearOperatorToken(selectedRole)
-                  setToken('')
-                  setError('')
-                }}
-              >
-                Reset saved key
-              </button>
+              <div className="operator-access-actions operator-access-actions-inline">
+                <button
+                  type="button"
+                  onClick={() => navigate(operatorRoleConfig[selectedRole].route)}
+                >
+                  Use saved key
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setEditingSavedKey(true)
+                    setToken('')
+                    setShowKey(false)
+                    setError('')
+                  }}
+                >
+                  Change key
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    clearOperatorToken(selectedRole)
+                    setEditingSavedKey(false)
+                    setToken('')
+                    setShowKey(false)
+                    setError('')
+                  }}
+                >
+                  Forget this device
+                </button>
+              </div>
             </div>
           ) : null}
 
-          <label className="operator-access-input-group">
-            <span>Access key</span>
-            <div className="operator-access-key-row">
-              <input
-                type={showKey ? 'text' : 'password'}
-                autoComplete="current-password"
-                value={token}
-                onChange={(event) => {
-                  setToken(event.target.value)
-                  if (error) setError('')
-                }}
-                placeholder={`Enter ${operatorRoleConfig[selectedRole].label.toLowerCase()} access key`}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') void handleOpen()
-                }}
-              />
-              <button type="button" className="secondary-button operator-access-toggle" onClick={() => setShowKey((value) => !value)}>
-                {showKey ? 'Hide' : 'Show'} key
-              </button>
-            </div>
-          </label>
+          {!hasSavedKey || editingSavedKey ? (
+            <>
+              <label className="operator-access-input-group">
+                <span>{hasSavedKey ? 'New access key' : 'Access key'}</span>
+                <div className="operator-access-key-row">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={token}
+                    onChange={(event) => {
+                      setToken(event.target.value)
+                      if (error) setError('')
+                    }}
+                    placeholder={`Enter ${operatorRoleConfig[selectedRole].label.toLowerCase()} access key`}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') void handleOpen()
+                    }}
+                  />
+                  <button type="button" className="secondary-button operator-access-toggle" onClick={() => setShowKey((value) => !value)}>
+                    {showKey ? 'Hide' : 'Show'} key
+                  </button>
+                </div>
+              </label>
 
-          {error ? <p className="connection-bad operator-access-error">{error}</p> : null}
+              {hasSavedKey ? <p className="muted operator-access-copy">After verification, this new key will replace the saved one for the {operatorRoleConfig[selectedRole].label.toLowerCase()} role on this device.</p> : null}
 
-          <div className="operator-access-actions operator-hub-actions">
-            <button type="button" onClick={() => void handleOpen()} disabled={!token.trim() || submitting}>
-              {submitting ? 'Checking key…' : `Open ${operatorRoleConfig[selectedRole].label}`}
-            </button>
-            {savedToken ? (
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => navigate(operatorRoleConfig[selectedRole].route)}
-              >
-                Continue with saved key
-              </button>
-            ) : null}
-          </div>
+              {error ? <p className="connection-bad operator-access-error">{error}</p> : null}
+
+              <div className="operator-access-actions operator-hub-actions">
+                <button type="button" onClick={() => void handleOpen()} disabled={!trimmedToken || submitting}>
+                  {submitting ? 'Checking key…' : hasSavedKey ? `Save new key and open ${operatorRoleConfig[selectedRole].label}` : `Open ${operatorRoleConfig[selectedRole].label}`}
+                </button>
+                {hasSavedKey ? (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      setEditingSavedKey(false)
+                      setToken(savedToken)
+                      setShowKey(false)
+                      setError('')
+                    }}
+                  >
+                    Cancel key change
+                  </button>
+                ) : null}
+              </div>
+            </>
+          ) : error ? <p className="connection-bad operator-access-error">{error}</p> : null}
         </div>
       </div>
     </section>
