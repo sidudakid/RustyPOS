@@ -37,6 +37,44 @@ function syncDraftItem(item: MenuItem, admin: ReturnType<typeof useAdminOutletSt
   })
 }
 
+function pruneDraftItem(itemId: string, admin: ReturnType<typeof useAdminOutletState>) {
+  admin.setDraftMenuItems((current) => current.filter((entry) => entry.id !== itemId))
+}
+
+function inventoryComparableState(item: MenuItem) {
+  return {
+    name: item.name,
+    description: item.description,
+    category: item.category,
+    price: item.price,
+    active: item.active,
+    available: item.available,
+    stock_count: item.stock_count,
+    low_stock_threshold: item.low_stock_threshold,
+    restock_needed: item.restock_needed,
+  }
+}
+
+function isInventoryDirty(draft: MenuItem, serverItem: MenuItem) {
+  return JSON.stringify(inventoryComparableState(draft)) !== JSON.stringify(inventoryComparableState(serverItem))
+}
+
+function inventoryStockPatch(item: MenuItem, nextStockCount: number) {
+  const stock_count = Math.max(0, nextStockCount)
+  const soldOut = stock_count <= 0
+  const available = soldOut ? false : true
+
+  return {
+    stock_count,
+    available,
+    restock_needed: soldOut ? true : false,
+  }
+}
+
+function inventoryDeltaPatch(item: MenuItem, delta: number) {
+  return inventoryStockPatch(item, item.stock_count + delta)
+}
+
 export function AdminInventoryPage() {
   const admin = useAdminOutletState()
   const [query, setQuery] = useState('')
@@ -146,19 +184,19 @@ export function AdminInventoryPage() {
         </div>
 
         <div className="admin-inventory-priority-bar" aria-label="Inventory priority summary">
-          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-danger" onClick={() => setFilter('attention')}>
+          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-danger" onClick={() => setFilter('attention')} aria-label={`Show critical inventory items (${out.length})`}>
             <span>Critical</span>
-            <strong>{out.length}</strong>
+            <strong aria-label={`${out.length} critical items`}>{out.length}</strong>
             <small>Open the risk queue</small>
           </button>
-          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-warning" onClick={() => setFilter('attention')}>
+          <button type="button" className="admin-inventory-priority-pill admin-inventory-priority-pill-warning" onClick={() => setFilter('attention')} aria-label={`Show low-stock inventory items (${low.length})`}>
             <span>Low stock</span>
-            <strong>{low.length}</strong>
+            <strong aria-label={`${low.length} low-stock items`}>{low.length}</strong>
             <small>Near threshold</small>
           </button>
-          <button type="button" className="admin-inventory-priority-pill" onClick={() => setFilter('healthy')}>
+          <button type="button" className="admin-inventory-priority-pill" onClick={() => setFilter('healthy')} aria-label={`Show healthy inventory items (${healthy.length})`}>
             <span>Healthy</span>
-            <strong>{healthy.length}</strong>
+            <strong aria-label={`${healthy.length} healthy items`}>{healthy.length}</strong>
             <small>No warning</small>
           </button>
         </div>
@@ -199,16 +237,16 @@ export function AdminInventoryPage() {
           </div>
 
           <div className="admin-inventory-chip-row admin-inventory-chip-row-responsive">
-            <button type="button" className={filter === 'all' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('all')}>
+            <button type="button" className={filter === 'all' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('all')} aria-pressed={filter === 'all'}>
               All {items.length}
             </button>
-            <button type="button" className={filter === 'attention' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('attention')}>
+            <button type="button" className={filter === 'attention' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('attention')} aria-pressed={filter === 'attention'}>
               Attention {out.length + low.length}
             </button>
-            <button type="button" className={filter === 'healthy' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('healthy')}>
+            <button type="button" className={filter === 'healthy' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('healthy')} aria-pressed={filter === 'healthy'}>
               Healthy {healthy.length}
             </button>
-            <button type="button" className={filter === 'inactive' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('inactive')}>
+            <button type="button" className={filter === 'inactive' ? 'secondary-button admin-filter-chip admin-filter-chip-active' : 'secondary-button admin-filter-chip'} onClick={() => setFilter('inactive')} aria-pressed={filter === 'inactive'}>
               Inactive {inactiveItems.length}
             </button>
           </div>
@@ -280,33 +318,11 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
   const admin = useAdminOutletState()
   const serverItem = admin.inventoryQuery.data?.find((entry) => entry.id === item.id) ?? item
   const draft = admin.draftMenuItems.find((entry) => entry.id === item.id) ?? serverItem
-  const dirty = JSON.stringify({
-    name: draft.name,
-    description: draft.description,
-    category: draft.category,
-    price: draft.price,
-    active: draft.active,
-    available: draft.available,
-    stock_count: draft.stock_count,
-    low_stock_threshold: draft.low_stock_threshold,
-    restock_needed: draft.restock_needed,
-  }) !== JSON.stringify({
-    name: serverItem.name,
-    description: serverItem.description,
-    category: serverItem.category,
-    price: serverItem.price,
-    active: serverItem.active,
-    available: serverItem.available,
-    stock_count: serverItem.stock_count,
-    low_stock_threshold: serverItem.low_stock_threshold,
-    restock_needed: serverItem.restock_needed,
-  })
+  const dirty = isInventoryDirty(draft, serverItem)
+  const isSaving = admin.updateInventory.isPending && admin.updateInventory.variables?.id === draft.id
 
   const applyStockDelta = (delta: number) => {
-    syncDraftItem(serverItem, admin, {
-      stock_count: Math.max(0, draft.stock_count + delta),
-      available: draft.stock_count + delta > 0 ? draft.available : false,
-    })
+    syncDraftItem(serverItem, admin, inventoryDeltaPatch(draft, delta))
   }
 
   return (
@@ -352,7 +368,7 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
           <button type="button" className="secondary-button" onClick={() => applyStockDelta(-1)} disabled={draft.stock_count <= 0}>-1</button>
           <button type="button" className="secondary-button" onClick={() => applyStockDelta(1)}>+1</button>
           <button type="button" className="secondary-button" onClick={() => applyStockDelta(5)}>+5</button>
-          <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, { stock_count: 0, available: false })}>Sold out</button>
+          <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, inventoryStockPatch(draft, 0))}>Sold out</button>
           <button type="button" className="secondary-button" onClick={() => syncDraftItem(serverItem, admin, { available: !draft.available })}>
             {draft.available ? 'Hide item' : 'Show item'}
           </button>
@@ -363,8 +379,16 @@ function InventoryEditorCard({ item, badgeClass, cardClass, onOpen }: { item: Me
         <button type="button" className="secondary-button admin-inventory-expand-button" onClick={onOpen}>
           Open editor
         </button>
-        <button type="button" onClick={() => admin.updateInventory.mutate(draft)} disabled={!dirty || admin.updateInventory.isPending}>
-          {admin.updateInventory.isPending ? 'Saving…' : dirty ? 'Save now' : 'Saved'}
+        <button
+          type="button"
+          onClick={() =>
+            admin.updateInventory.mutate(draft, {
+              onSuccess: () => pruneDraftItem(draft.id, admin),
+            })
+          }
+          disabled={!dirty || isSaving}
+        >
+          {isSaving ? 'Saving…' : dirty ? 'Save now' : 'Saved'}
         </button>
       </div>
     </div>
@@ -389,27 +413,8 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
 
   const serverItem = admin.inventoryQuery.data?.find((entry) => entry.id === item.id) ?? item
   const draft = admin.draftMenuItems.find((entry) => entry.id === item.id) ?? serverItem
-  const dirty = JSON.stringify({
-    name: draft.name,
-    description: draft.description,
-    category: draft.category,
-    price: draft.price,
-    active: draft.active,
-    available: draft.available,
-    stock_count: draft.stock_count,
-    low_stock_threshold: draft.low_stock_threshold,
-    restock_needed: draft.restock_needed,
-  }) !== JSON.stringify({
-    name: serverItem.name,
-    description: serverItem.description,
-    category: serverItem.category,
-    price: serverItem.price,
-    active: serverItem.active,
-    available: serverItem.available,
-    stock_count: serverItem.stock_count,
-    low_stock_threshold: serverItem.low_stock_threshold,
-    restock_needed: serverItem.restock_needed,
-  })
+  const dirty = isInventoryDirty(draft, serverItem)
+  const isSaving = admin.updateMenuItem.isPending && admin.updateMenuItem.variables?.id === draft.id
 
   const updateDraft = (patch: Partial<MenuItem>) => {
     syncDraftItem(serverItem, admin, patch)
@@ -461,11 +466,11 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
           <div className="admin-inventory-inline-adjustments admin-inventory-inline-adjustments-modal">
             <span className="inventory-summary-label">Quick stock actions</span>
             <div className="admin-inventory-adjustment-row">
-              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: Math.max(0, draft.stock_count - 1), available: draft.stock_count - 1 > 0 ? draft.available : false })} disabled={draft.stock_count <= 0}>-1</button>
-              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: Math.max(0, draft.stock_count - 5), available: draft.stock_count - 5 > 0 ? draft.available : false })} disabled={draft.stock_count <= 0}>-5</button>
-              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: draft.stock_count + 1 })}>+1</button>
-              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: draft.stock_count + 5 })}>+5</button>
-              <button type="button" className="secondary-button" onClick={() => updateDraft({ stock_count: 0, available: false, restock_needed: true })}>Mark sold out</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryDeltaPatch(draft, -1))} disabled={draft.stock_count <= 0}>-1</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryDeltaPatch(draft, -5))} disabled={draft.stock_count <= 0}>-5</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryDeltaPatch(draft, 1))}>+1</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryDeltaPatch(draft, 5))}>+5</button>
+              <button type="button" className="secondary-button" onClick={() => updateDraft(inventoryStockPatch(draft, 0))}>Mark sold out</button>
             </div>
           </div>
 
@@ -531,8 +536,16 @@ function InventoryEditorModal({ itemId, onClose }: { itemId: string; onClose: ()
           </div>
           <div className="admin-inline-actions admin-inventory-actions admin-inventory-actions-primary admin-inventory-actions-stack">
             <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
-            <button type="button" onClick={() => admin.updateMenuItem.mutate(draft)} disabled={!dirty || admin.updateMenuItem.isPending}>
-              {admin.updateMenuItem.isPending ? 'Saving…' : 'Save changes'}
+            <button
+              type="button"
+              onClick={() =>
+                admin.updateMenuItem.mutate(draft, {
+                  onSuccess: () => pruneDraftItem(draft.id, admin),
+                })
+              }
+              disabled={!dirty || isSaving}
+            >
+              {isSaving ? 'Saving…' : 'Save changes'}
             </button>
           </div>
         </div>
