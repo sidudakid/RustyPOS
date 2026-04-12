@@ -429,6 +429,38 @@ export function AdminSettingsPage() {
               <SectionCard>
                 <div className="section-heading-row">
                   <div>
+                    <p className="eyebrow">Role credentials</p>
+                    <h3 className="section-title">Admin, kitchen, and staff login IDs</h3>
+                  </div>
+                  <span className="info-chip">Per-role auth</span>
+                </div>
+                {admin.operatorCredentialsQuery.isLoading ? <p className="muted">Loading operator credentials…</p> : null}
+                {admin.operatorCredentialsQuery.isError ? <p className="connection-bad">Could not load operator credentials.</p> : null}
+                <div className="admin-settings-access-summary-row admin-settings-access-summary-row-polished">
+                  {(admin.operatorCredentialsQuery.data?.credentials ?? []).map((credential) => {
+                    const uiRole = credential.role === 'owner' ? 'admin' : credential.role
+                    return (
+                      <div key={credential.role} className="admin-settings-quick-card admin-settings-quick-card-inline" style={{ alignItems: 'flex-start' }}>
+                        <span className="inventory-summary-label">{uiRole}</span>
+                        <strong>{credential.login_id}</strong>
+                        <span className="muted">Session reset rotates active access for this role.</span>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={async () => {
+                            const next = await admin.resetOperatorCredential.mutateAsync(credential.role)
+                            window.alert(`${uiRole.toUpperCase()}\nlogin ID: ${next.login_id}\nsecret: ${next.secret}\n\nCopy this now. The secret is only shown after reset.`)
+                          }}
+                        >
+                          Reset {uiRole}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="section-heading-row">
+                  <div>
                     <p className="eyebrow">Quick access</p>
                     <h3 className="section-title">Tables, links, and previews</h3>
                   </div>

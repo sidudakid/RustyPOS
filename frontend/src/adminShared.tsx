@@ -8,8 +8,10 @@ import {
   fetchJson,
   MenuCategory,
   MenuItem,
+  OperatorCredentialListResponse,
   OrderStatus,
   OrderWithItemsView,
+  ResetOperatorCredentialResponse,
   TableOperationalSummary,
 } from './api'
 import { useCafeSettings } from './cafeSettings'
@@ -180,6 +182,12 @@ export function useAdminState() {
     enabled: Boolean(token),
   })
 
+  const operatorCredentialsQuery = useQuery({
+    queryKey: ['admin-operator-credentials', token],
+    queryFn: () => fetchJson<OperatorCredentialListResponse>('/admin/operator-credentials', { headers: authHeaders }),
+    enabled: Boolean(token),
+  })
+
   useEffect(() => {
     setDraftCategories(categoriesQuery.data ?? [])
   }, [categoriesQuery.data])
@@ -207,8 +215,9 @@ export function useAdminState() {
       void monthlyExpensesQuery.refetch()
       void inventoryQuery.refetch()
       void tableOperationsQuery.refetch()
+      void operatorCredentialsQuery.refetch()
     }
-  }, [ordersQuery, categoriesQuery, revenueQuery, menuItemsQuery, settingsQuery, analyticsQuery, monthlyExpensesQuery, inventoryQuery, tableOperationsQuery])
+  }, [ordersQuery, categoriesQuery, revenueQuery, menuItemsQuery, settingsQuery, analyticsQuery, monthlyExpensesQuery, inventoryQuery, tableOperationsQuery, operatorCredentialsQuery])
 
   useEffect(() => {
     if (!token) {
@@ -242,6 +251,7 @@ export function useAdminState() {
       monthlyExpensesQuery.refetch(),
       inventoryQuery.refetch(),
       tableOperationsQuery.refetch(),
+      operatorCredentialsQuery.refetch(),
     ])
   }
 
@@ -385,6 +395,16 @@ export function useAdminState() {
     onSuccess: refreshAdminData,
   })
 
+  const resetOperatorCredential = useMutation({
+    mutationFn: async (role: 'owner' | 'kitchen' | 'staff') =>
+      fetchJson<ResetOperatorCredentialResponse>('/admin/operator-credentials/reset', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ role }),
+      }),
+    onSuccess: refreshAdminData,
+  })
+
   const upsertMonthlyExpense = useMutation({
     mutationFn: async (expense: MonthlyExpenseRecord) =>
       fetchJson<MonthlyExpenseRecord>('/admin/expenses', {
@@ -443,7 +463,7 @@ export function useAdminState() {
               ? `Save settings to provision ${requestedTables} managed table${requestedTables === 1 ? '' : 's'} and align backend access.`
               : !tableLinksReady
                 ? 'Review live table links and confirm every table has a usable customer entry point.'
-                : 'Setup looks healthy. Final pass: verify table links on a phone and hand the admin token to the right operator only.',
+                : 'Setup looks healthy. Final pass: verify table links on a phone and hand each station its own login ID and secret.',
     }
   }, [settingsDraft, settingsQuery.data])
 
@@ -490,6 +510,7 @@ export function useAdminState() {
     monthlyExpensesQuery,
     inventoryQuery,
     tableOperationsQuery,
+    operatorCredentialsQuery,
     activeOrders,
     readyOrders,
     updateStatus,
@@ -502,6 +523,7 @@ export function useAdminState() {
     toggleAvailability,
     updateCafeSettings,
     updateInventory,
+    resetOperatorCredential,
     upsertMonthlyExpense,
     refreshAdminData,
     clearToken: () => {
