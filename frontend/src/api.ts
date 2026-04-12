@@ -128,6 +128,38 @@ export type CafeSettingsResponse = CafeSettings & {
   table_access: AdminTableAccessArtifact[]
 }
 
+export type OperatorRole = 'admin' | 'kitchen' | 'staff'
+
+export type OperatorLoginRequest = {
+  role: OperatorRole
+  login_id: string
+  secret: string
+}
+
+export type OperatorLoginResponse = {
+  role: 'owner' | 'kitchen' | 'staff'
+  login_id: string
+  session_token: string
+}
+
+export type OperatorCredentialSummary = {
+  role: 'owner' | 'kitchen' | 'staff'
+  login_id: string
+  active: boolean
+  rotated_at: string
+  secret_preview: string
+}
+
+export type OperatorCredentialListResponse = {
+  credentials: OperatorCredentialSummary[]
+}
+
+export type ResetOperatorCredentialResponse = {
+  role: 'owner' | 'kitchen' | 'staff'
+  login_id: string
+  secret: string
+}
+
 export type MenuRecommendation = {
   item: MenuItem
   score: number

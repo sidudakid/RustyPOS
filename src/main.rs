@@ -44,6 +44,10 @@ async fn main() -> std::io::Result<()> {
             .expect("failed to seed database");
     }
 
+    controllers::operator_auth::ensure_operator_credentials(&db)
+        .await
+        .expect("failed to ensure operator credentials");
+
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = std::env::var("PORT")
         .ok()

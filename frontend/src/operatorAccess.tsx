@@ -56,7 +56,7 @@ export const operatorRoleConfig: Record<OperatorRole, OperatorRoleConfig> = {
     icon: '💳',
     summary: 'Cashier, pickup handoff, bills, and inventory attention.',
     helper: 'Use the staff or owner access key for this counter or floor device.',
-    validationPath: '/orders',
+    validationPath: '/staff/orders',
   },
 }
 

@@ -7,6 +7,12 @@ const ROLE_TOKEN_KEYS = {
   staff: 'operatorToken.staff',
 } as const
 
+const ROLE_LOGIN_ID_KEYS = {
+  admin: 'operatorLoginId.admin',
+  kitchen: 'operatorLoginId.kitchen',
+  staff: 'operatorLoginId.staff',
+} as const
+
 export type OperatorRole = keyof typeof ROLE_TOKEN_KEYS
 
 export function readLastOperatorRole(): OperatorRole {
@@ -26,7 +32,13 @@ export function maskOperatorToken(value: string) {
 }
 
 export function readOperatorToken(role: OperatorRole) {
-  return localStorage.getItem(ROLE_TOKEN_KEYS[role]) ?? localStorage.getItem(LEGACY_TOKEN_KEY) ?? ''
+  const scoped = localStorage.getItem(ROLE_TOKEN_KEYS[role])
+  if (scoped) return scoped
+
+  const lastRole = localStorage.getItem(LAST_ROLE_KEY)
+  if (lastRole !== role) return ''
+
+  return localStorage.getItem(LEGACY_TOKEN_KEY) ?? ''
 }
 
 export function writeOperatorToken(role: OperatorRole, token: string) {
@@ -37,11 +49,27 @@ export function writeOperatorToken(role: OperatorRole, token: string) {
   }
 
   localStorage.setItem(ROLE_TOKEN_KEYS[role], trimmed)
-  localStorage.setItem(LEGACY_TOKEN_KEY, trimmed)
   writeLastOperatorRole(role)
 }
 
 export function clearOperatorToken(role: OperatorRole) {
   localStorage.removeItem(ROLE_TOKEN_KEYS[role])
-  localStorage.removeItem(LEGACY_TOKEN_KEY)
+
+  if (localStorage.getItem(LAST_ROLE_KEY) === role) {
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
+  }
+}
+
+export function readOperatorLoginId(role: OperatorRole) {
+  return localStorage.getItem(ROLE_LOGIN_ID_KEYS[role]) ?? ''
+}
+
+export function writeOperatorLoginId(role: OperatorRole, loginId: string) {
+  const trimmed = loginId.trim().toLowerCase()
+  if (!trimmed) {
+    localStorage.removeItem(ROLE_LOGIN_ID_KEYS[role])
+    return
+  }
+
+  localStorage.setItem(ROLE_LOGIN_ID_KEYS[role], trimmed)
 }

@@ -239,7 +239,7 @@ export function StaffPage() {
     queryKey: ['staff-orders', token],
     queryFn: async () => {
       try {
-        const data = await fetchJson<OrderWithItemsView[]>('/orders', { headers: authHeaders })
+        const data = await fetchJson<OrderWithItemsView[]>('/staff/orders', { headers: authHeaders })
         setTokenInvalid(false)
         return data
       } catch (error) {
