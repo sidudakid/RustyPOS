@@ -232,7 +232,7 @@ export function AdminSettingsPage() {
               <div className="ops-stat-card">
                 <span>Brand + support + payment</span>
                 <strong>{Number(brandReady) + Number(supportReady) + Number(paymentConfigured)}/3</strong>
-                <small>{paymentConfigured ? 'QR payment configured' : 'Payment config still optional'}</small>
+                <small>{paymentConfigured ? 'Wallet QR configured' : 'Payment config still optional'}</small>
               </div>
             </div>
           </div>
@@ -309,15 +309,15 @@ export function AdminSettingsPage() {
 
                   <div className="admin-settings-form-group-card">
                     <div className="admin-settings-form-group-heading">
-                      <strong>QR payment</strong>
-                      <span className="muted">Safe config-first PhonePe / UPI setup for cashier screens and printed bills</span>
+                      <strong>Digital wallet payment</strong>
+                      <span className="muted">Config-first eSewa / Nepal wallet setup for cashier screens and printed bills</span>
                     </div>
                     <div className="form-stack admin-settings-form-stack">
                       <div className="two-column admin-settings-inline-grid">
                         <select value={draft.payment_provider} onChange={(e) => updateDraft('payment_provider', e.target.value as CafeSettings['payment_provider'])}>
                           <option value="none">Disabled</option>
-                          <option value="upi_qr">Generic UPI QR</option>
-                          <option value="phonepe">PhonePe-style UPI QR</option>
+                          <option value="esewa">eSewa QR / wallet</option>
+                          <option value="bank_qr">Nepal bank mobile banking QR</option>
                         </select>
                         <select value={draft.payment_mode} onChange={(e) => updateDraft('payment_mode', e.target.value as CafeSettings['payment_mode'])}>
                           <option value="disabled">Disabled</option>
@@ -325,21 +325,21 @@ export function AdminSettingsPage() {
                           <option value="live">Live</option>
                         </select>
                       </div>
-                      <input value={draft.payment_display_name} onChange={(e) => updateDraft('payment_display_name', e.target.value)} placeholder="Payment display name" />
-                      <input value={draft.payment_payee_name} onChange={(e) => updateDraft('payment_payee_name', e.target.value)} placeholder="UPI payee / merchant name" />
-                      <input value={draft.payment_vpa} onChange={(e) => updateDraft('payment_vpa', e.target.value)} placeholder="UPI VPA (example@bank)" />
+                      <input value={draft.payment_display_name} onChange={(e) => updateDraft('payment_display_name', e.target.value)} placeholder="Display label (for example eSewa QR Pay)" />
+                      <input value={draft.payment_payee_name} onChange={(e) => updateDraft('payment_payee_name', e.target.value)} placeholder="Merchant / wallet name" />
+                      <input value={draft.payment_vpa} onChange={(e) => updateDraft('payment_vpa', e.target.value)} placeholder="Wallet handle, merchant code, or linked account" />
                       <div className="two-column admin-settings-inline-grid">
-                        <input value={draft.payment_phone_number} onChange={(e) => updateDraft('payment_phone_number', e.target.value)} placeholder="Phone number (optional)" />
-                        <input value={draft.payment_reference_prefix} onChange={(e) => updateDraft('payment_reference_prefix', e.target.value)} placeholder="Reference prefix" maxLength={24} />
+                        <input value={draft.payment_phone_number} onChange={(e) => updateDraft('payment_phone_number', e.target.value)} placeholder="Merchant phone (optional)" />
+                        <input value={draft.payment_reference_prefix} onChange={(e) => updateDraft('payment_reference_prefix', e.target.value)} placeholder="Reference prefix (for example OCNPL)" maxLength={24} />
                       </div>
-                      <textarea value={draft.payment_instructions} onChange={(e) => updateDraft('payment_instructions', e.target.value)} placeholder="Optional staff/customer payment instructions" rows={4} />
+                      <textarea value={draft.payment_instructions} onChange={(e) => updateDraft('payment_instructions', e.target.value)} placeholder="Optional cashier / customer instructions for wallet confirmation" rows={4} />
                       <label className="checkbox-row">
                         <input type="checkbox" checked={draft.payment_qr_enabled} onChange={(e) => updateDraft('payment_qr_enabled', e.target.checked)} />
-                        <span>Show QR payment on bills and cashier cards</span>
+                        <span>Show wallet QR instructions on bills and cashier cards</span>
                       </label>
                       <div className="admin-settings-inline-status-row">
                         <span className={paymentConfigured ? 'info-chip info-chip-success' : 'info-chip'}>
-                          {paymentConfigured ? `Ready: ${draft.payment_mode === 'live' ? 'live' : draft.payment_mode === 'demo' ? 'demo' : 'configured'}` : 'Needs VPA + payee name'}
+                          {paymentConfigured ? `Ready: ${draft.payment_mode === 'live' ? 'live' : draft.payment_mode === 'demo' ? 'demo' : 'configured'}` : 'Needs merchant name + wallet handle'}
                         </span>
                       </div>
                     </div>

@@ -149,8 +149,8 @@ fn validate(payload: &UpdateCafeSettingsRequest) -> Result<(), AppError> {
     if !matches!(payload.service_mode.trim(), "table_service" | "counter_service" | "hybrid") {
         return Err(AppError::BadRequest("service mode must be table_service, counter_service, or hybrid".into()));
     }
-    if !matches!(payload.payment_provider.trim(), "none" | "upi_qr" | "phonepe") {
-        return Err(AppError::BadRequest("payment provider must be none, upi_qr, or phonepe".into()));
+    if !matches!(payload.payment_provider.trim(), "none" | "esewa" | "bank_qr" | "upi_qr" | "phonepe") {
+        return Err(AppError::BadRequest("payment provider must be one of none, esewa, bank_qr, upi_qr, or phonepe".into()));
     }
     if !matches!(payload.payment_mode.trim(), "disabled" | "demo" | "live") {
         return Err(AppError::BadRequest("payment mode must be disabled, demo, or live".into()));
@@ -158,16 +158,16 @@ fn validate(payload: &UpdateCafeSettingsRequest) -> Result<(), AppError> {
     if payload.payment_reference_prefix.trim().len() > 24 {
         return Err(AppError::BadRequest("payment reference prefix must be 24 characters or fewer".into()));
     }
-    let payment_configured = matches!(payload.payment_provider.trim(), "upi_qr" | "phonepe") || payload.payment_qr_enabled;
+    let payment_configured = matches!(payload.payment_provider.trim(), "esewa" | "bank_qr" | "upi_qr" | "phonepe") || payload.payment_qr_enabled;
     if payment_configured {
         if payload.payment_display_name.trim().is_empty() {
             return Err(AppError::BadRequest("payment display name cannot be empty when payment is enabled".into()));
         }
         if payload.payment_payee_name.trim().is_empty() {
-            return Err(AppError::BadRequest("payment payee name cannot be empty when payment is enabled".into()));
+            return Err(AppError::BadRequest("payment merchant or wallet account name cannot be empty when payment is enabled".into()));
         }
         if payload.payment_vpa.trim().is_empty() {
-            return Err(AppError::BadRequest("payment VPA cannot be empty when QR payment is enabled".into()));
+            return Err(AppError::BadRequest("payment account handle, merchant code, or VPA cannot be empty when QR payment is enabled".into()));
         }
     }
     Ok(())

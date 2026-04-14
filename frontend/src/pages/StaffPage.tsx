@@ -114,28 +114,41 @@ function buildPaymentPresentation(settings: CafeSettings, table: { tableName: st
   const provider = settings.payment_provider
   const mode = settings.payment_mode
   const qrEnabled = settings.payment_qr_enabled
-  const vpa = settings.payment_vpa.trim()
+  const accountHandle = settings.payment_vpa.trim()
   const payeeName = settings.payment_payee_name.trim() || settings.name.trim()
-  if (!qrEnabled || provider === 'none' || mode === 'disabled' || !vpa || !payeeName || table.totalAmount <= 0) return null
+  if (!qrEnabled || provider === 'none' || mode === 'disabled' || !accountHandle || !payeeName || table.totalAmount <= 0) return null
 
-  const referenceBase = settings.payment_reference_prefix.trim().toUpperCase() || 'OPENCLAW'
+  const referenceBase = settings.payment_reference_prefix.trim().toUpperCase() || 'OCNPL'
   const safeTableCode = `${table.tableNumber ?? table.tableName}`.replace(/[^A-Z0-9]+/gi, '').toUpperCase().slice(-10) || 'TABLE'
   const reference = `${referenceBase}-${safeTableCode}`.slice(0, 30)
   const amount = (table.totalAmount / 100).toFixed(2)
   const note = `${settings.payment_display_name.trim() || settings.name} ${table.tableName}`.trim().slice(0, 80)
-  const params = new URLSearchParams({ pa: vpa, pn: payeeName, am: amount, cu: settings.currency_code || 'INR', tn: note, tr: reference })
-  const uri = `upi://pay?${params.toString()}`
-  const displayName = settings.payment_display_name.trim() || (provider === 'phonepe' ? 'PhonePe' : 'QR Pay')
-  const modeLabel = mode === 'live' ? 'Live config' : 'Demo / training config'
+  const currency = settings.currency_code || 'NPR'
+  const normalizedProvider = provider === 'phonepe' || provider === 'upi_qr' ? 'esewa' : provider
+  const displayName = settings.payment_display_name.trim()
+    || (normalizedProvider === 'bank_qr' ? 'Mobile Banking QR' : 'eSewa QR Pay')
+  const modeLabel = mode === 'live' ? 'Live cashier config' : 'Demo / training config'
+
+  const params = normalizedProvider === 'bank_qr'
+    ? new URLSearchParams({ merchant: payeeName, account: accountHandle, amount, currency, reference, note, phone: settings.payment_phone_number.trim() })
+    : new URLSearchParams({ merchant: payeeName, wallet: accountHandle, amount, currency, reference, note, phone: settings.payment_phone_number.trim() })
+
+  const uri = normalizedProvider === 'bank_qr'
+    ? `bankqr://pay?${params.toString()}`
+    : `esewa://pay?${params.toString()}`
+  const appHref = normalizedProvider === 'bank_qr'
+    ? `https://connectips.com/`
+    : `https://esewa.com.np/`
+
   const instructions = [
-    `${displayName}: scan the QR or open the pay link for ${table.tableName}.`,
-    `Reference: ${reference}. Confirm the same amount before marking paid.`,
+    `${displayName}: scan the QR and confirm ${amount} ${currency} for ${table.tableName}.`,
+    `Reference: ${reference}. Match the wallet name and amount before marking the bill paid.`,
     settings.payment_instructions.trim(),
   ].filter(Boolean)
 
   return {
     uri,
-    appHref: provider === 'phonepe' ? `phonepe://pay?${params.toString()}` : uri,
+    appHref,
     reference,
     label: displayName,
     modeLabel,
@@ -233,7 +246,7 @@ async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, o
             <div class="payment-grid">
               <img src="${paymentQrDataUrl}" alt="Payment QR code" />
               <div>
-                <div class="payment-meta">Scan to pay ${escapeHtml(money(grandTotal, currencyCode))} for ${escapeHtml(tableName)}.</div>
+                <div class="payment-meta">Scan in the guest wallet app to collect ${escapeHtml(money(grandTotal, currencyCode))} for ${escapeHtml(tableName)}.</div>
                 <div class="payment-meta">Reference: ${escapeHtml(payment.reference)}</div>
                 <div class="payment-meta">${escapeHtml(payment.instructions.join(' '))}</div>
                 <div class="payment-uri">${escapeHtml(payment.uri)}</div>
@@ -962,7 +975,7 @@ export function StaffPage() {
                       <button type="button" className="secondary-button" onClick={() => void printCurrentBill(table)} disabled={billingTableId === table.table_id}>
                         {billingTableId === table.table_id ? 'Opening bill…' : 'Bill'}
                       </button>
-                      {payment ? <button type="button" className="secondary-button" onClick={() => window.open(payment.appHref, '_blank')}>QR pay</button> : null}
+                      {payment ? <button type="button" className="secondary-button" onClick={() => window.open(payment.appHref, '_blank')}>Open QR link</button> : null}
                     </div>
                     {payment ? (
                       <div className="muted" style={{ marginTop: 8 }}>
@@ -1108,7 +1121,7 @@ export function StaffPage() {
                         <button type="button" className="secondary-button" onClick={() => void printCurrentBill(payableTable)} disabled={billingTableId === payableTable.table_id}>
                           {billingTableId === payableTable.table_id ? 'Opening bill…' : 'Bill'}
                         </button>
-                        {payment ? <button type="button" className="secondary-button" onClick={() => window.open(payment.appHref, '_blank')}>QR pay</button> : null}
+                        {payment ? <button type="button" className="secondary-button" onClick={() => window.open(payment.appHref, '_blank')}>Open QR link</button> : null}
                       </>
                     ) : (
                       <button className="secondary-button" disabled>
