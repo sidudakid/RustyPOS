@@ -48,11 +48,22 @@ pub async fn update_settings(pool: &PgPool, payload: UpdateCafeSettingsRequest) 
              service_mode = $18,
              table_count = $19,
              table_prefix = $20,
-             table_name_style = $21
+             table_name_style = $21,
+             payment_provider = $22,
+             payment_mode = $23,
+             payment_display_name = $24,
+             payment_payee_name = $25,
+             payment_vpa = $26,
+             payment_phone_number = $27,
+             payment_reference_prefix = $28,
+             payment_qr_enabled = $29,
+             payment_instructions = $30
          WHERE id = true
          RETURNING id, name, legal_name, slug, tagline, image_url, currency_code, primary_color, accent_color,
                    support_email, support_phone, address_line_1, address_line_2, city, state_region, postal_code,
-                   country_code, timezone, service_mode, table_count, table_prefix, table_name_style",
+                   country_code, timezone, service_mode, table_count, table_prefix, table_name_style,
+                   payment_provider, payment_mode, payment_display_name, payment_payee_name, payment_vpa,
+                   payment_phone_number, payment_reference_prefix, payment_qr_enabled, payment_instructions",
     )
     .bind(payload.name.trim())
     .bind(payload.legal_name.trim())
@@ -75,6 +86,15 @@ pub async fn update_settings(pool: &PgPool, payload: UpdateCafeSettingsRequest) 
     .bind(payload.table_count)
     .bind(payload.table_prefix.trim())
     .bind(payload.table_name_style.trim())
+    .bind(payload.payment_provider.trim())
+    .bind(payload.payment_mode.trim())
+    .bind(payload.payment_display_name.trim())
+    .bind(payload.payment_payee_name.trim())
+    .bind(payload.payment_vpa.trim())
+    .bind(payload.payment_phone_number.trim())
+    .bind(payload.payment_reference_prefix.trim())
+    .bind(payload.payment_qr_enabled)
+    .bind(payload.payment_instructions.trim())
     .fetch_one(&mut *tx)
     .await?;
 
@@ -129,6 +149,27 @@ fn validate(payload: &UpdateCafeSettingsRequest) -> Result<(), AppError> {
     if !matches!(payload.service_mode.trim(), "table_service" | "counter_service" | "hybrid") {
         return Err(AppError::BadRequest("service mode must be table_service, counter_service, or hybrid".into()));
     }
+    if !matches!(payload.payment_provider.trim(), "none" | "upi_qr" | "phonepe") {
+        return Err(AppError::BadRequest("payment provider must be none, upi_qr, or phonepe".into()));
+    }
+    if !matches!(payload.payment_mode.trim(), "disabled" | "demo" | "live") {
+        return Err(AppError::BadRequest("payment mode must be disabled, demo, or live".into()));
+    }
+    if payload.payment_reference_prefix.trim().len() > 24 {
+        return Err(AppError::BadRequest("payment reference prefix must be 24 characters or fewer".into()));
+    }
+    let payment_configured = matches!(payload.payment_provider.trim(), "upi_qr" | "phonepe") || payload.payment_qr_enabled;
+    if payment_configured {
+        if payload.payment_display_name.trim().is_empty() {
+            return Err(AppError::BadRequest("payment display name cannot be empty when payment is enabled".into()));
+        }
+        if payload.payment_payee_name.trim().is_empty() {
+            return Err(AppError::BadRequest("payment payee name cannot be empty when payment is enabled".into()));
+        }
+        if payload.payment_vpa.trim().is_empty() {
+            return Err(AppError::BadRequest("payment VPA cannot be empty when QR payment is enabled".into()));
+        }
+    }
     Ok(())
 }
 
@@ -136,7 +177,9 @@ async fn fetch_settings(tx: &mut Transaction<'_, Postgres>) -> Result<CafeSettin
     Ok(sqlx::query_as::<_, CafeSettings>(
         "SELECT id, name, legal_name, slug, tagline, image_url, currency_code, primary_color, accent_color,
                 support_email, support_phone, address_line_1, address_line_2, city, state_region, postal_code,
-                country_code, timezone, service_mode, table_count, table_prefix, table_name_style
+                country_code, timezone, service_mode, table_count, table_prefix, table_name_style,
+                payment_provider, payment_mode, payment_display_name, payment_payee_name, payment_vpa,
+                payment_phone_number, payment_reference_prefix, payment_qr_enabled, payment_instructions
          FROM cafe_settings
          WHERE id = true",
     )

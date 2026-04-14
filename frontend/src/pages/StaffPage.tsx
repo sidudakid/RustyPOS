@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { API_BASE, PUBLIC_ORIGIN, fetchJson, MenuItem, OpenTableSummary, OrderWithItemsView, TableOperationalSummary } from '../api'
+import { API_BASE, PUBLIC_ORIGIN, fetchJson, MenuItem, OpenTableSummary, OrderWithItemsView, TableOperationalSummary, type CafeSettings } from '../api'
 import { NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 import { money, shortId } from '../lib'
@@ -21,6 +21,15 @@ type InventoryTone = 'out' | 'low' | 'ok'
 type StaffView = 'all' | 'attention' | 'idle'
 type FocusLane = 'action' | 'cashier' | 'pickup' | 'stock'
 
+type PaymentPresentation = {
+  uri: string
+  appHref: string
+  reference: string
+  label: string
+  modeLabel: string
+  instructions: string[]
+}
+
 type PrintedBillTable = {
   tableId: string
   tableName: string
@@ -30,6 +39,7 @@ type PrintedBillTable = {
   orders: OrderWithItemsView[]
   currencyCode: string
   paid: boolean
+  payment?: PaymentPresentation | null
 }
 
 function inventoryTone(item: MenuItem): InventoryTone {
@@ -99,7 +109,40 @@ async function buildQrDataUrl(link: string) {
   })
 }
 
-async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, orders, currencyCode, paid }: PrintedBillTable) {
+function buildPaymentPresentation(settings: CafeSettings, table: { tableName: string; tableNumber?: number | null; totalAmount: number }) {
+  const provider = settings.payment_provider
+  const mode = settings.payment_mode
+  const qrEnabled = settings.payment_qr_enabled
+  const vpa = settings.payment_vpa.trim()
+  const payeeName = settings.payment_payee_name.trim() || settings.name.trim()
+  if (!qrEnabled || provider === 'none' || mode === 'disabled' || !vpa || !payeeName || table.totalAmount <= 0) return null
+
+  const referenceBase = settings.payment_reference_prefix.trim().toUpperCase() || 'OPENCLAW'
+  const safeTableCode = `${table.tableNumber ?? table.tableName}`.replace(/[^A-Z0-9]+/gi, '').toUpperCase().slice(-10) || 'TABLE'
+  const reference = `${referenceBase}-${safeTableCode}`.slice(0, 30)
+  const amount = (table.totalAmount / 100).toFixed(2)
+  const note = `${settings.payment_display_name.trim() || settings.name} ${table.tableName}`.trim().slice(0, 80)
+  const params = new URLSearchParams({ pa: vpa, pn: payeeName, am: amount, cu: settings.currency_code || 'INR', tn: note, tr: reference })
+  const uri = `upi://pay?${params.toString()}`
+  const displayName = settings.payment_display_name.trim() || (provider === 'phonepe' ? 'PhonePe' : 'QR Pay')
+  const modeLabel = mode === 'live' ? 'Live config' : 'Demo / training config'
+  const instructions = [
+    `${displayName}: scan the QR or open the pay link for ${table.tableName}.`,
+    `Reference: ${reference}. Confirm the same amount before marking paid.`,
+    settings.payment_instructions.trim(),
+  ].filter(Boolean)
+
+  return {
+    uri,
+    appHref: provider === 'phonepe' ? `phonepe://pay?${params.toString()}` : uri,
+    reference,
+    label: displayName,
+    modeLabel,
+    instructions,
+  }
+}
+
+async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, orders, currencyCode, paid, payment }: PrintedBillTable) {
   const billWindow = window.open('', '_blank', 'width=420,height=900')
   if (!billWindow) return false
 
@@ -122,6 +165,7 @@ async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, o
   const printedAt = new Date().toLocaleString()
   const title = `${tableName} ${paid ? 'Receipt' : 'Bill'}`
   const qrDataUrl = trackingUrl ? await buildQrDataUrl(trackingUrl) : ''
+  const paymentQrDataUrl = payment?.uri ? await buildQrDataUrl(payment.uri) : ''
   const rows = Array.from(groupedItems.entries())
     .map(([name, detail]) => `
       <tr>
@@ -151,6 +195,11 @@ async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, o
           .qr-label { font-size: 12px; color: #374151; }
           .qr-link { font-size: 11px; color: #6b7280; word-break: break-all; }
           .foot { margin-top: 20px; font-size: 12px; color: #6b7280; }
+          .payment-wrap { margin-top: 18px; padding: 14px; border: 1px solid #dbeafe; border-radius: 16px; background: #f8fbff; }
+          .payment-grid { display: flex; gap: 14px; align-items: center; }
+          .payment-grid img { width: 104px; height: 104px; object-fit: contain; }
+          .payment-meta { font-size: 12px; color: #374151; }
+          .payment-uri { font-size: 11px; color: #6b7280; word-break: break-all; }
         </style>
       </head>
       <body>
@@ -177,6 +226,20 @@ async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, o
           <span>Total</span>
           <span>${escapeHtml(money(grandTotal, currencyCode))}</span>
         </div>
+        ${payment && paymentQrDataUrl && !paid ? `
+          <div class="payment-wrap">
+            <strong>${escapeHtml(payment.label)} · ${escapeHtml(payment.modeLabel)}</strong>
+            <div class="payment-grid">
+              <img src="${paymentQrDataUrl}" alt="Payment QR code" />
+              <div>
+                <div class="payment-meta">Scan to pay ${escapeHtml(money(grandTotal, currencyCode))} for ${escapeHtml(tableName)}.</div>
+                <div class="payment-meta">Reference: ${escapeHtml(payment.reference)}</div>
+                <div class="payment-meta">${escapeHtml(payment.instructions.join(' '))}</div>
+                <div class="payment-uri">${escapeHtml(payment.uri)}</div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
         ${trackingUrl ? `
           <div class="qr-wrap">
             <img src="${qrDataUrl}" alt="Tracking QR code" />
@@ -198,7 +261,8 @@ async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, o
 
 export function StaffPage() {
   const [token, setToken] = useState(() => readOperatorToken('staff'))
-  const { currency_code } = useCafeSettings()
+  const cafeSettings = useCafeSettings()
+  const { currency_code } = cafeSettings
   const [lastEvent, setLastEvent] = useState<string>('none yet')
   const [connected, setConnected] = useState(false)
   const [tokenInvalid, setTokenInvalid] = useState(false)
@@ -404,6 +468,7 @@ export function StaffPage() {
         orders: settledOrders,
         currencyCode: currency_code,
         paid: true,
+        payment: buildPaymentPresentation(cafeSettings, { tableName, tableNumber: table.table_number, totalAmount: table.total_amount }),
       })
       setSuccessBarExpiresAt(Date.now() + 60000)
       showBanner(`💸 ${tableName} marked paid. Bill/receipt is ready to print.`, 'success')
@@ -553,6 +618,7 @@ export function StaffPage() {
       orders: ordersForTable,
       currencyCode: currency_code,
       paid: false,
+      payment: buildPaymentPresentation(cafeSettings, { tableName: table.table_name, tableNumber: table.table_number, totalAmount: table.total_amount }),
     })
 
     if (!opened) {
@@ -663,7 +729,7 @@ export function StaffPage() {
           <div className="ops-toolbar ops-toolbar-sticky cashier-toolbar">
             <div className="cashier-toolbar-topline">
               <strong>What should staff do next?</strong>
-              <span className="muted">Search once, then work top to bottom. Payment cards pull tables with ready food upward; pickup cards put unpaid handoffs first so nobody skips the check.</span>
+              <span className="muted">Search once, then work top to bottom. Payment cards pull tables with ready food upward; pickup cards put unpaid handoffs first so nobody skips the check. In this build, “Mark paid” records manual cashier settlement only — it does not charge a live payment provider.</span>
             </div>
             <div className="ops-toolbar-main">
               <label>
@@ -850,6 +916,7 @@ export function StaffPage() {
               {filteredOpenTables.map((table) => {
                 const hasReadyFood = table.statuses.includes('ready')
                 const tableOps = tableOperationsById.get(table.table_id)
+                const payment = buildPaymentPresentation(cafeSettings, { tableName: table.table_name, tableNumber: table.table_number, totalAmount: table.total_amount })
                 return (
                   <div className="admin-order-card ops-order-card cashier-primary-card" key={table.table_id}>
                     <div className="order-meta">
@@ -871,7 +938,13 @@ export function StaffPage() {
                       <button type="button" className="secondary-button" onClick={() => void printCurrentBill(table)} disabled={billingTableId === table.table_id}>
                         {billingTableId === table.table_id ? 'Opening bill…' : 'Bill'}
                       </button>
+                      {payment ? <button type="button" className="secondary-button" onClick={() => window.open(payment.appHref, '_blank')}>QR pay</button> : null}
                     </div>
+                    {payment ? (
+                      <div className="muted" style={{ marginTop: 8 }}>
+                        {payment.label} · {payment.modeLabel} · Ref {payment.reference}
+                      </div>
+                    ) : null}
                   </div>
                 )
               })}
@@ -969,6 +1042,9 @@ export function StaffPage() {
           <div className="order-list compact-order-list ops-order-list">
             {filteredTableOperations.map((table) => {
               const payableTable = openTables.find((entry) => entry.table_id === table.table_id)
+              const payment = payableTable
+                ? buildPaymentPresentation(cafeSettings, { tableName: payableTable.table_name, tableNumber: payableTable.table_number, totalAmount: payableTable.total_amount })
+                : null
               const toneClass = !table.active
                 ? 'info-chip'
                 : table.open_order_count > 0
@@ -1008,6 +1084,7 @@ export function StaffPage() {
                         <button type="button" className="secondary-button" onClick={() => void printCurrentBill(payableTable)} disabled={billingTableId === payableTable.table_id}>
                           {billingTableId === payableTable.table_id ? 'Opening bill…' : 'Bill'}
                         </button>
+                        {payment ? <button type="button" className="secondary-button" onClick={() => window.open(payment.appHref, '_blank')}>QR pay</button> : null}
                       </>
                     ) : (
                       <button className="secondary-button" disabled>

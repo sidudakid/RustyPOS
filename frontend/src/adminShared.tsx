@@ -69,6 +69,15 @@ const defaultSettingsDraft: CafeSettings = {
   table_count: 12,
   table_prefix: 'Table',
   table_name_style: 'numeric',
+  payment_provider: 'none',
+  payment_mode: 'disabled',
+  payment_display_name: 'OpenClaw Café QR Pay',
+  payment_payee_name: 'OpenClaw Café',
+  payment_vpa: '',
+  payment_phone_number: '',
+  payment_reference_prefix: 'OPENCLAW',
+  payment_qr_enabled: false,
+  payment_instructions: '',
 }
 
 function normalizeSlug(value: string) {

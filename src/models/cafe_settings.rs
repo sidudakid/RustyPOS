@@ -26,6 +26,15 @@ pub struct CafeSettings {
     pub table_count: i32,
     pub table_prefix: String,
     pub table_name_style: String,
+    pub payment_provider: String,
+    pub payment_mode: String,
+    pub payment_display_name: String,
+    pub payment_payee_name: String,
+    pub payment_vpa: String,
+    pub payment_phone_number: String,
+    pub payment_reference_prefix: String,
+    pub payment_qr_enabled: bool,
+    pub payment_instructions: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,4 +68,13 @@ pub struct UpdateCafeSettingsRequest {
     pub table_count: i32,
     pub table_prefix: String,
     pub table_name_style: String,
+    pub payment_provider: String,
+    pub payment_mode: String,
+    pub payment_display_name: String,
+    pub payment_payee_name: String,
+    pub payment_vpa: String,
+    pub payment_phone_number: String,
+    pub payment_reference_prefix: String,
+    pub payment_qr_enabled: bool,
+    pub payment_instructions: String,
 }

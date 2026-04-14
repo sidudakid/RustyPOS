@@ -111,6 +111,15 @@ export type CafeSettings = {
   table_count: number
   table_prefix: string
   table_name_style: 'numeric' | 'padded' | 'hyphenated'
+  payment_provider: 'none' | 'upi_qr' | 'phonepe'
+  payment_mode: 'disabled' | 'demo' | 'live'
+  payment_display_name: string
+  payment_payee_name: string
+  payment_vpa: string
+  payment_phone_number: string
+  payment_reference_prefix: string
+  payment_qr_enabled: boolean
+  payment_instructions: string
 }
 
 export type AdminTableAccessArtifact = {
