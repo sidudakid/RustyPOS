@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { API_BASE, OrderStatus } from './api'
+import { OrderStatus } from './api'
+import { getOrdersWebSocketUrl } from './ws'
 
 export type OrderEvent = {
   type: 'new_order' | 'order_status_updated'
@@ -21,8 +22,7 @@ export function useOrdersSocket(onEvent: (event: OrderEvent) => void) {
     let socket: WebSocket | null = null
 
     const connect = () => {
-      const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
-      socket = new WebSocket(`${wsBase}/ws/orders`)
+      socket = new WebSocket(getOrdersWebSocketUrl())
 
       socket.onopen = () => {
         if (!cancelled) setConnected(true)

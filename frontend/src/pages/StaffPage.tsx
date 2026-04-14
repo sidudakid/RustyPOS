@@ -16,6 +16,7 @@ import {
 } from '../notifications'
 import { OperatorAccessCard } from '../operatorAccess'
 import { clearOperatorToken, readOperatorToken, writeOperatorToken } from '../operatorTokens'
+import { getOrdersWebSocketUrl } from '../ws'
 
 type InventoryTone = 'out' | 'low' | 'ok'
 type StaffView = 'all' | 'attention' | 'idle'
@@ -375,8 +376,7 @@ export function StaffPage() {
 
     const connect = () => {
       if (cancelled) return
-      const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
-      socket = new WebSocket(`${wsBase}/ws/orders`)
+      socket = new WebSocket(getOrdersWebSocketUrl())
 
       socket.onopen = () => {
         if (cancelled) return

@@ -43,6 +43,10 @@ impl Actor for OrderEventsWs {
                 }
             }
         });
+
+        ctx.run_interval(std::time::Duration::from_secs(20), |_actor, ctx| {
+            ctx.ping(b"keepalive");
+        });
     }
 }
 

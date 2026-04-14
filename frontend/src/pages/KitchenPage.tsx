@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { API_BASE, fetchJson, OrderStatus, OrderWithItemsView } from '../api'
+import { getOrdersWebSocketUrl } from '../ws'
 import { NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
 import {
   browserNotificationPermission,
@@ -151,8 +152,7 @@ export function KitchenPage() {
       if (cancelled) return
       setConnectionState(initial ? 'connecting' : 'reconnecting')
 
-      const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
-      socket = new WebSocket(`${wsBase}/ws/orders`)
+      socket = new WebSocket(getOrdersWebSocketUrl())
 
       socket.onopen = () => {
         if (cancelled) return
