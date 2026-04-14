@@ -74,7 +74,7 @@ async function loginOperator(role: OperatorRole, loginId: string, secret: string
     const message = error instanceof Error ? error.message : String(error)
     const normalized = message.toLowerCase()
     if (normalized.includes('unauthorized') || normalized.includes('invalid')) {
-      throw new Error(`That ${operatorRoleConfig[role].label.toLowerCase()} login ID or secret was rejected. Check the current credential set and try again.`)
+      throw new Error(`That ${operatorRoleConfig[role].label.toLowerCase()} login ID or secret was rejected. Ask an admin for the current login ID, or have them reset that role in Admin Settings to issue a new secret.`)
     }
     throw new Error('Could not verify those credentials right now. Check the network/server and try again.')
   }

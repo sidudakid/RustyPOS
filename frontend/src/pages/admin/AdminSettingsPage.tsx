@@ -485,6 +485,10 @@ export function AdminSettingsPage() {
                 </div>
                 {admin.operatorCredentialsQuery.isLoading ? <p className="muted">Loading operator credentials…</p> : null}
                 {admin.operatorCredentialsQuery.isError ? <p className="connection-bad">Could not load operator credentials.</p> : null}
+                <p className="muted inventory-helper-text" style={{ marginTop: 0 }}>
+                  This screen shows the current login ID for each role. It does not show existing secrets. If a station password was lost or rejected,
+                  reset that role and copy the new secret immediately from the reset dialog.
+                </p>
                 <div className="admin-settings-access-summary-row admin-settings-access-summary-row-polished">
                   {(admin.operatorCredentialsQuery.data?.credentials ?? []).map((credential) => {
                     const uiRole = credential.role === 'owner' ? 'admin' : credential.role
@@ -492,7 +496,7 @@ export function AdminSettingsPage() {
                       <div key={credential.role} className="admin-settings-quick-card admin-settings-quick-card-inline" style={{ alignItems: 'flex-start' }}>
                         <span className="inventory-summary-label">{uiRole}</span>
                         <strong>{credential.login_id}</strong>
-                        <span className="muted">Session reset rotates active access for this role.</span>
+                        <span className="muted">Current login ID only. Reset rotates active access for this role and reveals a new secret once.</span>
                         <button
                           type="button"
                           className="secondary-button"
