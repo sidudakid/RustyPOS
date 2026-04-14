@@ -369,32 +369,56 @@ export function StaffPage() {
       return
     }
 
-    const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
-    const socket = new WebSocket(`${wsBase}/ws/orders`)
+    let cancelled = false
+    let socket: WebSocket | null = null
+    let reconnectTimer: number | null = null
 
-    socket.onopen = () => setConnected(true)
-    socket.onclose = () => setConnected(false)
-    socket.onerror = () => setConnected(false)
-    socket.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data) as { type?: string; order_id?: string; status?: string }
-        setLastEvent(`${payload.type ?? 'unknown'}:${payload.order_id ?? 'unknown'}`)
-        if (
-          payload.order_id &&
-          payload.status === 'ready' &&
-          claimNotification(`staff-ready:${payload.order_id}`)
-        ) {
-          showBanner(`✅ Order ${payload.order_id.slice(0, 8)} is ready. Open Pickup / handoff when a runner is free.`, 'success')
-          showBrowserNotification('Order ready', `Order ${payload.order_id.slice(0, 8)} is ready for the front counter.`)
-          void playAlertTone('customer-order-ready')
-        }
-      } catch {
-        setLastEvent('socket:update')
+    const connect = () => {
+      if (cancelled) return
+      const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
+      socket = new WebSocket(`${wsBase}/ws/orders`)
+
+      socket.onopen = () => {
+        if (cancelled) return
+        setConnected(true)
       }
-      refetchRef.current?.()
+      socket.onclose = () => {
+        if (cancelled) return
+        setConnected(false)
+        reconnectTimer = window.setTimeout(connect, 2500)
+      }
+      socket.onerror = () => {
+        if (cancelled) return
+        setConnected(false)
+      }
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data) as { type?: string; order_id?: string; status?: string }
+          setLastEvent(`${payload.type ?? 'unknown'}:${payload.order_id ?? 'unknown'}`)
+          if (
+            payload.order_id &&
+            payload.status === 'ready' &&
+            claimNotification(`staff-ready:${payload.order_id}`)
+          ) {
+            showBanner(`✅ Order ${payload.order_id.slice(0, 8)} is ready. Open Pickup / handoff when a runner is free.`, 'success')
+            showBrowserNotification('Order ready', `Order ${payload.order_id.slice(0, 8)} is ready for the front counter.`)
+            void playAlertTone('customer-order-ready')
+          }
+        } catch {
+          setLastEvent('socket:update')
+        }
+        refetchRef.current?.()
+      }
     }
 
-    return () => socket.close()
+    connect()
+
+    return () => {
+      cancelled = true
+      setConnected(false)
+      if (reconnectTimer) window.clearTimeout(reconnectTimer)
+      socket?.close()
+    }
   }, [token])
 
   useEffect(() => {

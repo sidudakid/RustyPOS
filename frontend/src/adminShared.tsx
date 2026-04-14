@@ -17,6 +17,7 @@ import {
 import { useCafeSettings } from './cafeSettings'
 import { centsToMajorUnits, majorUnitsToCents, money, shortId } from './lib'
 import { clearOperatorToken, readOperatorToken, writeOperatorToken } from './operatorTokens'
+import { getOrdersWebSocketUrl } from './ws'
 
 export type RevenueSummary = {
   total_revenue: number
@@ -47,7 +48,7 @@ export type MonthlyExpenseRecord = {
   notes: string
 }
 
-const defaultSettingsDraft: CafeSettings = {
+export const defaultSettingsDraft: CafeSettings = {
   name: 'OpenClaw Café',
   legal_name: 'OpenClaw Café',
   slug: 'openclaw-cafe',
@@ -78,6 +79,13 @@ const defaultSettingsDraft: CafeSettings = {
   payment_reference_prefix: 'OPENCLAW',
   payment_qr_enabled: false,
   payment_instructions: '',
+}
+
+export function coerceCafeSettings(value?: Partial<CafeSettings> | null): CafeSettings {
+  return {
+    ...defaultSettingsDraft,
+    ...(value ?? {}),
+  }
 }
 
 function normalizeSlug(value: string) {
@@ -208,8 +216,8 @@ export function useAdminState() {
   useEffect(() => {
     if (settingsQuery.data) {
       const { table_name_preview, ...settings } = settingsQuery.data
-      setSettingsDraft(settings)
-      setTablePreview(table_name_preview)
+      setSettingsDraft(coerceCafeSettings(settings))
+      setTablePreview(Array.isArray(table_name_preview) ? table_name_preview : [])
     }
   }, [settingsQuery.data])
 
@@ -234,19 +242,46 @@ export function useAdminState() {
       return
     }
 
-    const wsBase = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://')
-    const socket = new WebSocket(`${wsBase}/ws/orders`)
+    let cancelled = false
+    let socket: WebSocket | null = null
+    let reconnectTimer: number | null = null
 
-    socket.onopen = () => setConnected(true)
-    socket.onclose = () => setConnected(false)
-    socket.onerror = () => setConnected(false)
-    socket.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as { type?: string; order_id?: string }
-      setLastEvent(`${payload.type ?? 'unknown'}:${payload.order_id ?? 'unknown'}`)
-      refetchRef.current?.()
+    const connect = () => {
+      if (cancelled) return
+      socket = new WebSocket(getOrdersWebSocketUrl())
+
+      socket.onopen = () => {
+        if (cancelled) return
+        setConnected(true)
+      }
+      socket.onclose = () => {
+        if (cancelled) return
+        setConnected(false)
+        reconnectTimer = window.setTimeout(connect, 2500)
+      }
+      socket.onerror = () => {
+        if (cancelled) return
+        setConnected(false)
+      }
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data) as { type?: string; order_id?: string }
+          setLastEvent(`${payload.type ?? 'unknown'}:${payload.order_id ?? 'unknown'}`)
+        } catch {
+          setLastEvent('socket:update')
+        }
+        refetchRef.current?.()
+      }
     }
 
-    return () => socket.close()
+    connect()
+
+    return () => {
+      cancelled = true
+      setConnected(false)
+      if (reconnectTimer) window.clearTimeout(reconnectTimer)
+      socket?.close()
+    }
   }, [token])
 
   const refreshAdminData = async () => {
@@ -383,8 +418,8 @@ export function useAdminState() {
       }),
     onSuccess: async (result) => {
       const { table_name_preview, ...settings } = result
-      setSettingsDraft(settings)
-      setTablePreview(table_name_preview)
+      setSettingsDraft(coerceCafeSettings(settings))
+      setTablePreview(Array.isArray(table_name_preview) ? table_name_preview : [])
       await refreshAdminData()
     },
   })

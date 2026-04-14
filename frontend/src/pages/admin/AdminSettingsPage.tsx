@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AdminEntityList, AdminListToolbar, SectionCard } from '../../components'
-import { useAdminOutletState } from '../../adminShared'
+import { coerceCafeSettings, useAdminOutletState } from '../../adminShared'
 import { PUBLIC_ORIGIN, type CafeSettings, type TableOperationalSummary } from '../../api'
 import { shortId } from '../../lib'
 import { filterTableAccess, sanitizeFilePart, type TableFilter } from './adminSettingsUtils'
@@ -133,9 +133,16 @@ function TableQrPreview({
   )
 }
 
+function copyText(value: string) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(value)
+  }
+  return Promise.reject(new Error('Clipboard unavailable'))
+}
+
 export function AdminSettingsPage() {
   const admin = useAdminOutletState()
-  const draft = admin.settingsDraft
+  const draft = coerceCafeSettings(admin.settingsDraft)
   const tableAccess = admin.settingsQuery.data?.table_access ?? []
   const activeTableAccess = tableAccess.filter((table) => table.active)
   const tableOperations = (admin.tableOperationsQuery.data ?? []) as TableOperationalSummary[]
@@ -145,7 +152,10 @@ export function AdminSettingsPage() {
   const missingLinks = Math.max(configuredTableCount - activeTableAccess.length, 0)
   const supportReady = Boolean(draft.support_email.trim() || draft.support_phone.trim())
   const brandReady = /^#[0-9a-f]{6}$/i.test(draft.primary_color.trim()) && /^#[0-9a-f]{6}$/i.test(draft.accent_color.trim())
-  const paymentConfigured = draft.payment_provider !== 'none' && Boolean(draft.payment_vpa.trim() && draft.payment_payee_name.trim())
+  const paymentConfigured =
+    draft.payment_provider !== 'none' &&
+    draft.payment_mode !== 'disabled' &&
+    Boolean(draft.payment_vpa.trim() && draft.payment_payee_name.trim())
   const [qrModal, setQrModal] = useState<QrModalState>(null)
   const [tableModal, setTableModal] = useState<TableAccessModalState>(null)
   const [tableQuery, setTableQuery] = useState('')
@@ -421,7 +431,7 @@ export function AdminSettingsPage() {
                           type="number"
                           min="1"
                           value={draft.table_count}
-                          onChange={(e) => updateDraft('table_count', Number(e.target.value))}
+                          onChange={(e) => updateDraft('table_count', Math.max(1, Number(e.target.value) || 1))}
                           placeholder="Table count"
                         />
                         <input value={draft.table_prefix} onChange={(e) => updateDraft('table_prefix', e.target.value)} placeholder="Table prefix" />
@@ -621,7 +631,7 @@ export function AdminSettingsPage() {
                   <a href={tableLink(selectedTable.token)} target="_blank" rel="noreferrer" className="secondary-button">
                     Open link
                   </a>
-                  <button className="secondary-button" onClick={() => void navigator.clipboard?.writeText(tableLink(selectedTable.token))} type="button">
+                  <button className="secondary-button" onClick={() => void copyText(tableLink(selectedTable.token)).catch(() => window.alert('Clipboard access is unavailable on this browser/device.'))} type="button">
                     Copy URL
                   </button>
                 </div>
@@ -665,7 +675,7 @@ export function AdminSettingsPage() {
             </div>
 
             <div className="table-token-actions">
-              <button className="secondary-button" type="button" onClick={() => void navigator.clipboard?.writeText(qrModal.link)}>
+              <button className="secondary-button" type="button" onClick={() => void copyText(qrModal.link).catch(() => window.alert('Clipboard access is unavailable on this browser/device.'))}>
                 Copy URL
               </button>
               <button className="secondary-button" type="button" onClick={() => void downloadQrSvg(qrModal.tableName, qrModal.tokenLabel, qrModal.link)}>
