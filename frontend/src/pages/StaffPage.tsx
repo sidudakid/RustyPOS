@@ -22,6 +22,11 @@ type InventoryTone = 'out' | 'low' | 'ok'
 type StaffView = 'all' | 'attention' | 'idle'
 type FocusLane = 'action' | 'cashier' | 'pickup' | 'stock'
 
+type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'offline'
+
+const SOCKET_RECONNECT_MS = 2500
+const POLL_FALLBACK_MS = 15000
+
 type PaymentPresentation = {
   uri: string
   appHref: string
@@ -113,25 +118,25 @@ async function buildQrDataUrl(link: string) {
 function buildPaymentPresentation(settings: CafeSettings, table: { tableName: string; tableNumber?: number | null; totalAmount: number }) {
   const provider = settings.payment_provider
   const mode = settings.payment_mode
-  const qrEnabled = settings.payment_qr_enabled
-  const accountHandle = settings.payment_vpa.trim()
-  const payeeName = settings.payment_payee_name.trim() || settings.name.trim()
+  const qrEnabled = Boolean(settings.payment_qr_enabled)
+  const accountHandle = (settings.payment_vpa ?? '').trim()
+  const payeeName = (settings.payment_payee_name ?? '').trim() || (settings.name ?? '').trim()
   if (!qrEnabled || provider === 'none' || mode === 'disabled' || !accountHandle || !payeeName || table.totalAmount <= 0) return null
 
-  const referenceBase = settings.payment_reference_prefix.trim().toUpperCase() || 'OCNPL'
+  const referenceBase = (settings.payment_reference_prefix ?? '').trim().toUpperCase() || 'OCNPL'
   const safeTableCode = `${table.tableNumber ?? table.tableName}`.replace(/[^A-Z0-9]+/gi, '').toUpperCase().slice(-10) || 'TABLE'
   const reference = `${referenceBase}-${safeTableCode}`.slice(0, 30)
   const amount = (table.totalAmount / 100).toFixed(2)
-  const note = `${settings.payment_display_name.trim() || settings.name} ${table.tableName}`.trim().slice(0, 80)
+  const note = `${(settings.payment_display_name ?? '').trim() || settings.name} ${table.tableName}`.trim().slice(0, 80)
   const currency = settings.currency_code || 'NPR'
   const normalizedProvider = provider === 'phonepe' || provider === 'upi_qr' ? 'esewa' : provider
-  const displayName = settings.payment_display_name.trim()
+  const displayName = (settings.payment_display_name ?? '').trim()
     || (normalizedProvider === 'bank_qr' ? 'Mobile Banking QR' : 'eSewa QR Pay')
   const modeLabel = mode === 'live' ? 'Live cashier config' : 'Demo / training config'
 
   const params = normalizedProvider === 'bank_qr'
-    ? new URLSearchParams({ merchant: payeeName, account: accountHandle, amount, currency, reference, note, phone: settings.payment_phone_number.trim() })
-    : new URLSearchParams({ merchant: payeeName, wallet: accountHandle, amount, currency, reference, note, phone: settings.payment_phone_number.trim() })
+    ? new URLSearchParams({ merchant: payeeName, account: accountHandle, amount, currency, reference, note, phone: (settings.payment_phone_number ?? '').trim() })
+    : new URLSearchParams({ merchant: payeeName, wallet: accountHandle, amount, currency, reference, note, phone: (settings.payment_phone_number ?? '').trim() })
 
   const uri = normalizedProvider === 'bank_qr'
     ? `bankqr://pay?${params.toString()}`
@@ -143,7 +148,7 @@ function buildPaymentPresentation(settings: CafeSettings, table: { tableName: st
   const instructions = [
     `${displayName}: scan the QR and confirm ${amount} ${currency} for ${table.tableName}.`,
     `Reference: ${reference}. Match the wallet name and amount before marking the bill paid.`,
-    settings.payment_instructions.trim(),
+    (settings.payment_instructions ?? '').trim(),
   ].filter(Boolean)
 
   return {
@@ -279,6 +284,7 @@ export function StaffPage() {
   const { currency_code } = cafeSettings
   const [lastEvent, setLastEvent] = useState<string>('none yet')
   const [connected, setConnected] = useState(false)
+  const [connectionState, setConnectionState] = useState<ConnectionState>('offline')
   const [tokenInvalid, setTokenInvalid] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(() => notificationsEnabled())
   const [banner, setBanner] = useState('🔔 Staff alerts are on by default. Ready orders and cashier updates will pop here.')
@@ -294,6 +300,7 @@ export function StaffPage() {
   const bannerTimeoutRef = useRef<number | null>(null)
   const refetchRef = useRef<null | (() => void)>(null)
   const successBarIntervalRef = useRef<number | null>(null)
+  const pollingIntervalRef = useRef<number | null>(null)
 
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
 
@@ -378,8 +385,24 @@ export function StaffPage() {
   }
 
   useEffect(() => {
+    const stopPolling = () => {
+      if (pollingIntervalRef.current) {
+        window.clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+    }
+
+    const startPolling = () => {
+      if (pollingIntervalRef.current || !token) return
+      pollingIntervalRef.current = window.setInterval(() => {
+        refetchRef.current?.()
+      }, POLL_FALLBACK_MS)
+    }
+
     if (!token) {
       setConnected(false)
+      setConnectionState('offline')
+      stopPolling()
       return
     }
 
@@ -387,22 +410,30 @@ export function StaffPage() {
     let socket: WebSocket | null = null
     let reconnectTimer: number | null = null
 
-    const connect = () => {
+    const connect = (initial = false) => {
       if (cancelled) return
-      socket = new WebSocket(getOrdersWebSocketUrl())
+      setConnectionState(initial ? 'connecting' : 'reconnecting')
+      socket = new WebSocket(getOrdersWebSocketUrl(token))
 
       socket.onopen = () => {
         if (cancelled) return
         setConnected(true)
+        setConnectionState('live')
+        stopPolling()
+        refetchRef.current?.()
       }
       socket.onclose = () => {
         if (cancelled) return
         setConnected(false)
-        reconnectTimer = window.setTimeout(connect, 2500)
+        setConnectionState('reconnecting')
+        startPolling()
+        reconnectTimer = window.setTimeout(() => connect(), SOCKET_RECONNECT_MS)
       }
       socket.onerror = () => {
         if (cancelled) return
         setConnected(false)
+        setConnectionState('reconnecting')
+        startPolling()
       }
       socket.onmessage = (event) => {
         try {
@@ -424,11 +455,14 @@ export function StaffPage() {
       }
     }
 
-    connect()
+    connect(true)
+    startPolling()
 
     return () => {
       cancelled = true
       setConnected(false)
+      setConnectionState('offline')
+      stopPolling()
       if (reconnectTimer) window.clearTimeout(reconnectTimer)
       socket?.close()
     }
@@ -461,6 +495,7 @@ export function StaffPage() {
   useEffect(() => () => {
     if (bannerTimeoutRef.current) window.clearTimeout(bannerTimeoutRef.current)
     if (successBarIntervalRef.current) window.clearInterval(successBarIntervalRef.current)
+    if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current)
   }, [])
 
   const updateInventory = useMutation({
@@ -727,7 +762,7 @@ export function StaffPage() {
             </div>
             <div className="hero-chip-group ops-hero-chips">
               <span className={connected ? 'info-chip info-chip-success' : 'info-chip info-chip-danger'}>
-                {connected ? 'Live connected' : 'Disconnected'}
+                {connected ? 'Live connected' : connectionState === 'reconnecting' ? 'Reconnecting… polling backup on' : connectionState === 'connecting' ? 'Connecting…' : 'Disconnected'}
               </span>
               <span className="info-chip">Need action {urgentQueue.length}</span>
               <span className="info-chip">Ready {readyOrders.length}</span>

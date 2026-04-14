@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOutletContext } from 'react-router-dom'
 import {
   API_BASE,
   CafeSettings,
   CafeSettingsResponse,
+  coerceCafeSettingsResponse,
   fetchJson,
   MenuCategory,
   MenuItem,
@@ -81,10 +82,53 @@ export const defaultSettingsDraft: CafeSettings = {
   payment_instructions: 'Ask the guest to confirm the eSewa wallet name and reference before marking the bill paid.',
 }
 
+function asString(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback
+}
+
+function asBoolean(value: unknown, fallback = false) {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function asNumber(value: unknown, fallback = 0) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
 export function coerceCafeSettings(value?: Partial<CafeSettings> | null): CafeSettings {
+  const source = value ?? {}
+
   return {
     ...defaultSettingsDraft,
-    ...(value ?? {}),
+    name: asString(source.name, defaultSettingsDraft.name),
+    legal_name: asString(source.legal_name, defaultSettingsDraft.legal_name),
+    slug: asString(source.slug, defaultSettingsDraft.slug),
+    tagline: asString(source.tagline, defaultSettingsDraft.tagline),
+    image_url: asString(source.image_url, defaultSettingsDraft.image_url),
+    currency_code: asString(source.currency_code, defaultSettingsDraft.currency_code),
+    primary_color: asString(source.primary_color, defaultSettingsDraft.primary_color),
+    accent_color: asString(source.accent_color, defaultSettingsDraft.accent_color),
+    support_email: asString(source.support_email, defaultSettingsDraft.support_email),
+    support_phone: asString(source.support_phone, defaultSettingsDraft.support_phone),
+    address_line_1: asString(source.address_line_1, defaultSettingsDraft.address_line_1),
+    address_line_2: asString(source.address_line_2, defaultSettingsDraft.address_line_2),
+    city: asString(source.city, defaultSettingsDraft.city),
+    state_region: asString(source.state_region, defaultSettingsDraft.state_region),
+    postal_code: asString(source.postal_code, defaultSettingsDraft.postal_code),
+    country_code: asString(source.country_code, defaultSettingsDraft.country_code),
+    timezone: asString(source.timezone, defaultSettingsDraft.timezone),
+    service_mode: (asString(source.service_mode, defaultSettingsDraft.service_mode) as CafeSettings['service_mode']),
+    table_count: asNumber(source.table_count, defaultSettingsDraft.table_count),
+    table_prefix: asString(source.table_prefix, defaultSettingsDraft.table_prefix),
+    table_name_style: (asString(source.table_name_style, defaultSettingsDraft.table_name_style) as CafeSettings['table_name_style']),
+    payment_provider: (asString(source.payment_provider, defaultSettingsDraft.payment_provider) as CafeSettings['payment_provider']),
+    payment_mode: (asString(source.payment_mode, defaultSettingsDraft.payment_mode) as CafeSettings['payment_mode']),
+    payment_display_name: asString(source.payment_display_name, defaultSettingsDraft.payment_display_name),
+    payment_payee_name: asString(source.payment_payee_name, defaultSettingsDraft.payment_payee_name),
+    payment_vpa: asString(source.payment_vpa, defaultSettingsDraft.payment_vpa),
+    payment_phone_number: asString(source.payment_phone_number, defaultSettingsDraft.payment_phone_number),
+    payment_reference_prefix: asString(source.payment_reference_prefix, defaultSettingsDraft.payment_reference_prefix),
+    payment_qr_enabled: asBoolean(source.payment_qr_enabled, defaultSettingsDraft.payment_qr_enabled),
+    payment_instructions: asString(source.payment_instructions, defaultSettingsDraft.payment_instructions),
   }
 }
 
@@ -101,6 +145,7 @@ function isNonEmpty(value: string) {
 }
 
 export function useAdminState() {
+  const queryClient = useQueryClient()
   const [token, setToken] = useState(() => readOperatorToken('admin'))
   const appSettings = useCafeSettings()
   const { currency_code } = appSettings
@@ -161,8 +206,8 @@ export function useAdminState() {
   })
 
   const settingsQuery = useQuery({
-    queryKey: ['admin-cafe-settings'],
-    queryFn: () => fetchJson<CafeSettingsResponse>('/cafe-settings'),
+    queryKey: ['cafe-settings'],
+    queryFn: async () => coerceCafeSettingsResponse(await fetchJson<CafeSettingsResponse>('/cafe-settings')),
   })
 
   const analyticsQuery = useQuery({
@@ -248,7 +293,7 @@ export function useAdminState() {
 
     const connect = () => {
       if (cancelled) return
-      socket = new WebSocket(getOrdersWebSocketUrl())
+      socket = new WebSocket(getOrdersWebSocketUrl(token))
 
       socket.onopen = () => {
         if (cancelled) return
@@ -417,9 +462,13 @@ export function useAdminState() {
         body: JSON.stringify(settingsDraft),
       }),
     onSuccess: async (result) => {
-      const { table_name_preview, ...settings } = result
-      setSettingsDraft(coerceCafeSettings(settings))
+      const normalized = coerceCafeSettingsResponse(result)
+      const { table_name_preview, ...settings } = normalized
+      const coercedSettings = coerceCafeSettings(settings)
+      setSettingsDraft(coercedSettings)
       setTablePreview(Array.isArray(table_name_preview) ? table_name_preview : [])
+      queryClient.setQueryData(['cafe-settings'], normalized)
+      await queryClient.invalidateQueries({ queryKey: ['cafe-settings'] })
       await refreshAdminData()
     },
   })
