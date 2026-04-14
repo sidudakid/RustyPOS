@@ -17,13 +17,31 @@ Protected endpoints require a bearer token:
 Authorization: Bearer <token>
 ```
 
-Owner/staff auth is validated against the `staff_users` table.
+There are now two valid operator auth paths in the backend:
 
-Default seeded tokens in a fresh database:
+1. **Legacy `staff_users.auth_token` bearer tokens**
+2. **Role-scoped operator login IDs + secrets**, exchanged via `POST /auth/operator/login` for an `operator_sessions.session_token`
+
+Fresh databases still seed the legacy `staff_users` rows first:
 
 - Owner: `owner-demo-token`
 - Staff: `staff-demo-token`
 - Kitchen: `kitchen-demo-token`
+
+On startup, `ensure_operator_credentials()` guarantees one active operator credential per role:
+
+- If a legacy `staff_users` row exists for the role, the backend creates an operator credential from it.
+- If that legacy row has no `login_id`, the backend uses `<role>-legacy` (`admin-legacy`, `staff-legacy`, `kitchen-legacy`).
+- If that legacy row has no `password_hash`, the operator secret is the existing legacy `auth_token` value.
+- Only when no legacy row exists at all does the backend bootstrap a brand-new random login ID + secret pair.
+
+So on a stock fresh DB, the first usable operator credentials are:
+
+- Admin: login ID `admin-legacy`, secret `owner-demo-token`
+- Staff: login ID `staff-legacy`, secret `staff-demo-token`
+- Kitchen: login ID `kitchen-legacy`, secret `kitchen-demo-token`
+
+After that, owners can rotate a role credential with `POST /admin/operator-credentials/reset`. The new secret is returned **only in that reset response**, so it must be copied immediately.
 
 ## Money format
 
@@ -177,9 +195,35 @@ Fetch order status and items.
 
 ---
 
+## Operator Login Endpoints
+
+### POST `/auth/operator/login`
+
+Exchange a role-specific login ID + secret for a session bearer token.
+
+**Request**
+```json
+{
+  "role": "staff",
+  "login_id": "staff-legacy",
+  "secret": "staff-demo-token"
+}
+```
+
+**Response**
+```json
+{
+  "role": "staff",
+  "login_id": "staff-legacy",
+  "session_token": "ops_..."
+}
+```
+
+Use the returned `session_token` as the bearer token for subsequent protected calls.
+
 ## Admin / Owner Endpoints
 
-These require an active owner bearer token.
+These require an active owner bearer token. That can be either the legacy owner bearer token or an owner operator session token.
 
 ### GET `/orders`
 List all orders.
@@ -355,6 +399,32 @@ Toggle menu item availability.
 
 ### GET `/admin/inventory`
 Owner inventory summary.
+
+### GET `/admin/operator-credentials`
+List the current active role credential login IDs for admin/owner, kitchen, and staff.
+
+**Important:** this endpoint does **not** return the current secret, only the login ID and a masked preview field.
+
+### POST `/admin/operator-credentials/reset`
+Rotate one role credential and revoke active sessions for that role.
+
+**Request**
+```json
+{
+  "role": "staff"
+}
+```
+
+**Response**
+```json
+{
+  "role": "staff",
+  "login_id": "staff-ab12cd",
+  "secret": "newly-issued-secret"
+}
+```
+
+This reset response is the only API path that returns the newly generated secret.
 
 ---
 

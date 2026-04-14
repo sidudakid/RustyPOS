@@ -18,9 +18,23 @@ export DATABASE_URL=postgres://postgres:postgres@localhost/openclaw_cafe
 
 ```bash
 export DATABASE_URL=postgres://postgres@localhost/openclaw_cafe
-export ADMIN_TOKEN=super-secret-token
 cargo run
 ```
+
+## Operator credential bootstrap
+
+The backend now supports role-specific operator credentials (`admin`/owner, `staff`, `kitchen`) via `POST /auth/operator/login`.
+
+Important practical detail:
+
+- Fresh DBs still seed legacy `staff_users` bearer tokens first.
+- On startup, `ensure_operator_credentials()` converts those legacy rows into operator credentials.
+- So a stock fresh DB starts with these operator login pairs:
+  - `admin-legacy` / `owner-demo-token`
+  - `staff-legacy` / `staff-demo-token`
+  - `kitchen-legacy` / `kitchen-demo-token`
+- If no legacy row exists for a role, startup bootstraps a brand-new random login ID + secret instead.
+- Owners can rotate any role credential with `POST /admin/operator-credentials/reset`; the new secret is only returned in that reset response.
 
 ## Example API responses
 
