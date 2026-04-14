@@ -26,6 +26,7 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     let stakeholder_finance_sql = include_str!("../migrations/012_stakeholder_finance.sql");
     let order_follow_up_tracking_sql = include_str!("../migrations/013_order_follow_up_tracking.sql");
     let operator_credentials_sql = include_str!("../migrations/014_operator_credentials_and_sessions.sql");
+    let payment_settings_sql = include_str!("../migrations/015_payment_settings.sql");
 
     sqlx::raw_sql(init_sql).execute(pool).await?;
     sqlx::raw_sql(seed_sql).execute(pool).await?;
@@ -41,6 +42,7 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::raw_sql(stakeholder_finance_sql).execute(pool).await?;
     sqlx::raw_sql(order_follow_up_tracking_sql).execute(pool).await?;
     sqlx::raw_sql(operator_credentials_sql).execute(pool).await?;
+    sqlx::raw_sql(payment_settings_sql).execute(pool).await?;
     Ok(())
 }
 

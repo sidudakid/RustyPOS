@@ -50,6 +50,17 @@ Monetary values are integer minor units (for example cents).
 - `450` = `$4.50`
 - `1234500` = `$12,345.00`
 
+## Payment provider status
+
+This codebase currently models **manual settlement**, not live card processing.
+
+- `POST /staff/tables/{id}/settle` records a table as paid inside OpenClaw.
+- The staff UI can print a bill/receipt for cashier handoff.
+- There is **no payment gateway/provider credential flow** in the current backend or frontend API surface.
+- No Stripe/Square/PayPal API keys are documented here because no such integration exists yet.
+
+Do not treat the demo operator credentials in this repo as payment credentials; they are only for role-based station login.
+
 ## Endpoint groups
 
 - Public / customer

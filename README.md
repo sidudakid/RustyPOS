@@ -36,6 +36,17 @@ Important practical detail:
 - If no legacy row exists for a role, startup bootstraps a brand-new random login ID + secret instead.
 - Owners can rotate any role credential with `POST /admin/operator-credentials/reset`; the new secret is only returned in that reset response.
 
+## Payments / cashier behavior
+
+This payment slice currently supports **manual cashier settlement only**.
+
+- `POST /staff/tables/{id}/settle` marks the table's open orders as paid in the app.
+- The staff UI can print a bill/receipt window for handoff.
+- There is **no Stripe, Square, PayPal, or other payment-provider integration/config in this repo today**.
+- The only seeded/demo credentials in this repo are operator access credentials for admin/staff/kitchen login flows.
+
+So if someone asks for payment provider keys or gateway setup, the honest answer is: this repo does not currently ship them because it does not yet implement a real payment processor.
+
 ## Example API responses
 
 ### GET /tables/:id/menu
