@@ -2,6 +2,10 @@
 
 use crate::{errors::AppError, AppState};
 use actix_web::{http::header, web, HttpRequest};
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -68,13 +72,28 @@ fn bearer_token(req: &HttpRequest) -> Option<&str> {
         .and_then(|v| v.strip_prefix("Bearer "))
 }
 
-pub fn hash_secret(secret: &str) -> String {
+fn legacy_hash_secret(secret: &str) -> String {
     let digest = Sha256::digest(secret.as_bytes());
     format!("{:x}", digest)
 }
 
+pub fn hash_secret(secret: &str) -> String {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(secret.as_bytes(), &salt)
+        .map(|hash| hash.to_string())
+        .unwrap_or_else(|_| legacy_hash_secret(secret))
+}
+
 pub fn verify_secret(secret: &str, expected_hash: &str) -> bool {
-    hash_secret(secret) == expected_hash
+    if expected_hash.starts_with("$argon2") {
+        return PasswordHash::new(expected_hash)
+            .ok()
+            .and_then(|parsed| Argon2::default().verify_password(secret.as_bytes(), &parsed).ok())
+            .is_some();
+    }
+
+    legacy_hash_secret(secret) == expected_hash
 }
 
 fn generate_secret(len: usize) -> String {
@@ -106,6 +125,15 @@ async fn require_role(req: &HttpRequest, state: &web::Data<AppState>, allowed_ro
     .await?;
 
     if let Some(role) = session_role {
+        sqlx::query(
+            "UPDATE operator_sessions
+             SET last_used_at = NOW()
+             WHERE session_token = $1 AND active = true",
+        )
+        .bind(token)
+        .execute(&state.db)
+        .await?;
+
         if allowed_roles.contains(&role) {
             return Ok(StaffUser {
                 id: Uuid::nil(),
@@ -201,4 +229,29 @@ pub async fn require_kitchen_access(req: &HttpRequest, state: &web::Data<AppStat
 
 pub async fn require_inventory_access(req: &HttpRequest, state: &web::Data<AppState>) -> Result<StaffUser, AppError> {
     require_role(req, state, &[StaffRole::Owner, StaffRole::Staff, StaffRole::Kitchen]).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{hash_secret, verify_secret};
+    use sha2::{Digest, Sha256};
+
+    #[test]
+    fn hashes_new_secrets_with_argon2_and_verifies_them() {
+        let secret = "station-secret-123";
+        let hash = hash_secret(secret);
+
+        assert!(hash.starts_with("$argon2"));
+        assert!(verify_secret(secret, &hash));
+        assert!(!verify_secret("wrong-secret", &hash));
+    }
+
+    #[test]
+    fn still_verifies_legacy_sha256_hashes() {
+        let secret = "owner-demo-token";
+        let legacy_hash = format!("{:x}", Sha256::digest(secret.as_bytes()));
+
+        assert!(verify_secret(secret, &legacy_hash));
+        assert!(!verify_secret("wrong-secret", &legacy_hash));
+    }
 }
