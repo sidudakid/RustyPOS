@@ -72,49 +72,11 @@ fn bearer_token(req: &HttpRequest) -> Option<&str> {
         .and_then(|v| v.strip_prefix("Bearer "))
 }
 
-fn legacy_hash_secret(secret: &str) -> String {
-    let digest = Sha256::digest(secret.as_bytes());
-    format!("{:x}", digest)
-}
-
-pub fn hash_secret(secret: &str) -> String {
-    let salt = SaltString::generate(&mut OsRng);
-    Argon2::default()
-        .hash_password(secret.as_bytes(), &salt)
-        .map(|hash| hash.to_string())
-        .unwrap_or_else(|_| legacy_hash_secret(secret))
-}
-
-pub fn verify_secret(secret: &str, expected_hash: &str) -> bool {
-    if expected_hash.starts_with("$argon2") {
-        return PasswordHash::new(expected_hash)
-            .ok()
-            .and_then(|parsed| Argon2::default().verify_password(secret.as_bytes(), &parsed).ok())
-            .is_some();
-    }
-
-    legacy_hash_secret(secret) == expected_hash
-}
-
-fn generate_secret(len: usize) -> String {
-    rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(len)
-        .map(char::from)
-        .collect()
-}
-
-pub fn credential_preview(login_id: &str) -> String {
-    let trimmed = login_id.trim();
-    if trimmed.len() <= 4 {
-        return "••••".into();
-    }
-    format!("{}••{}", &trimmed[..2], &trimmed[trimmed.len() - 2..])
-}
-
-async fn require_role(req: &HttpRequest, state: &web::Data<AppState>, allowed_roles: &[StaffRole]) -> Result<StaffUser, AppError> {
-    let token = bearer_token(req).ok_or_else(|| AppError::Unauthorized("missing bearer token".into()))?;
-
+pub async fn require_role_for_token(
+    token: &str,
+    state: &web::Data<AppState>,
+    allowed_roles: &[StaffRole],
+) -> Result<StaffUser, AppError> {
     let session_role = sqlx::query_scalar::<_, StaffRole>(
         "SELECT role
          FROM operator_sessions
@@ -161,6 +123,51 @@ async fn require_role(req: &HttpRequest, state: &web::Data<AppState>, allowed_ro
     } else {
         Err(AppError::Unauthorized("insufficient role for this endpoint".into()))
     }
+}
+
+fn legacy_hash_secret(secret: &str) -> String {
+    let digest = Sha256::digest(secret.as_bytes());
+    format!("{:x}", digest)
+}
+
+pub fn hash_secret(secret: &str) -> String {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(secret.as_bytes(), &salt)
+        .map(|hash| hash.to_string())
+        .unwrap_or_else(|_| legacy_hash_secret(secret))
+}
+
+pub fn verify_secret(secret: &str, expected_hash: &str) -> bool {
+    if expected_hash.starts_with("$argon2") {
+        return PasswordHash::new(expected_hash)
+            .ok()
+            .and_then(|parsed| Argon2::default().verify_password(secret.as_bytes(), &parsed).ok())
+            .is_some();
+    }
+
+    legacy_hash_secret(secret) == expected_hash
+}
+
+fn generate_secret(len: usize) -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(len)
+        .map(char::from)
+        .collect()
+}
+
+pub fn credential_preview(login_id: &str) -> String {
+    let trimmed = login_id.trim();
+    if trimmed.len() <= 4 {
+        return "••••".into();
+    }
+    format!("{}••{}", &trimmed[..2], &trimmed[trimmed.len() - 2..])
+}
+
+async fn require_role(req: &HttpRequest, state: &web::Data<AppState>, allowed_roles: &[StaffRole]) -> Result<StaffUser, AppError> {
+    let token = bearer_token(req).ok_or_else(|| AppError::Unauthorized("missing bearer token".into()))?;
+    require_role_for_token(token, state, allowed_roles).await
 }
 
 pub async fn create_operator_session(pool: &sqlx::PgPool, credential: &OperatorCredential) -> Result<OperatorLoginResponse, AppError> {

@@ -9,7 +9,7 @@ export type OrderEvent = {
   status?: OrderStatus
 }
 
-export function useOrdersSocket(onEvent: (event: OrderEvent) => void) {
+export function useOrdersSocket(onEvent: (event: OrderEvent) => void, token?: string) {
   const [connected, setConnected] = useState(false)
   const onEventRef = useRef(onEvent)
 
@@ -22,7 +22,7 @@ export function useOrdersSocket(onEvent: (event: OrderEvent) => void) {
     let socket: WebSocket | null = null
 
     const connect = () => {
-      socket = new WebSocket(getOrdersWebSocketUrl())
+      socket = new WebSocket(getOrdersWebSocketUrl(token))
 
       socket.onopen = () => {
         if (!cancelled) setConnected(true)
@@ -51,7 +51,7 @@ export function useOrdersSocket(onEvent: (event: OrderEvent) => void) {
       setConnected(false)
       socket?.close()
     }
-  }, [])
+  }, [token])
 
   return { connected }
 }

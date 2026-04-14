@@ -1,17 +1,34 @@
 //! Minimal websocket endpoint for broadcasting order lifecycle events.
 
-use crate::{services::order_events::OrderEventMessage, AppState};
+use crate::{
+    auth::{require_role_for_token, StaffRole},
+    services::order_events::OrderEventMessage,
+    AppState,
+};
 use serde_json::json;
 use actix::{Actor, ActorContext, AsyncContext, StreamHandler};
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use tokio::sync::broadcast;
 
+fn access_token_from_query(req: &HttpRequest) -> Option<String> {
+    web::Query::<std::collections::HashMap<String, String>>::from_query(req.query_string())
+        .ok()
+        .and_then(|query| query.into_inner().remove("access_token"))
+        .filter(|token| !token.trim().is_empty())
+}
+
 pub async fn orders_ws(
     req: HttpRequest,
     stream: web::Payload,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
+    let token = access_token_from_query(&req)
+        .ok_or_else(|| actix_web::error::ErrorUnauthorized("missing websocket access token"))?;
+    require_role_for_token(&token, &state, &[StaffRole::Owner, StaffRole::Staff, StaffRole::Kitchen])
+        .await
+        .map_err(|error| actix_web::error::ErrorUnauthorized(error.to_string()))?;
+
     let receiver = state.order_events.subscribe();
     ws::start(OrderEventsWs { receiver }, &req, stream)
 }

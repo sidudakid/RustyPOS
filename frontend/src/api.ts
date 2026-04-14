@@ -137,6 +137,84 @@ export type CafeSettingsResponse = CafeSettings & {
   table_access: AdminTableAccessArtifact[]
 }
 
+export const defaultCafeSettings: CafeSettings = {
+  name: 'OpenClaw Café',
+  legal_name: 'OpenClaw Café',
+  slug: 'openclaw-cafe',
+  tagline: 'Fast café ordering for customers, kitchen, and staff.',
+  image_url: '',
+  currency_code: 'USD',
+  primary_color: '#2563EB',
+  accent_color: '#F59E0B',
+  support_email: '',
+  support_phone: '',
+  address_line_1: '',
+  address_line_2: '',
+  city: '',
+  state_region: '',
+  postal_code: '',
+  country_code: 'US',
+  timezone: 'America/New_York',
+  service_mode: 'table_service',
+  table_count: 12,
+  table_prefix: 'Table',
+  table_name_style: 'numeric',
+  payment_provider: 'none',
+  payment_mode: 'disabled',
+  payment_display_name: 'eSewa QR Pay',
+  payment_payee_name: 'OpenClaw Café Nepal Demo',
+  payment_vpa: '',
+  payment_phone_number: '',
+  payment_reference_prefix: 'OCNPL',
+  payment_qr_enabled: false,
+  payment_instructions: 'Ask the guest to confirm the eSewa wallet name and reference before marking the bill paid.',
+}
+
+export function coerceCafeSettings(value?: Partial<CafeSettings> | null): CafeSettings {
+  return {
+    ...defaultCafeSettings,
+    ...(value ?? {}),
+    name: value?.name ?? defaultCafeSettings.name,
+    legal_name: value?.legal_name ?? defaultCafeSettings.legal_name,
+    slug: value?.slug ?? defaultCafeSettings.slug,
+    tagline: value?.tagline ?? defaultCafeSettings.tagline,
+    image_url: value?.image_url ?? defaultCafeSettings.image_url,
+    currency_code: value?.currency_code ?? defaultCafeSettings.currency_code,
+    primary_color: value?.primary_color ?? defaultCafeSettings.primary_color,
+    accent_color: value?.accent_color ?? defaultCafeSettings.accent_color,
+    support_email: value?.support_email ?? defaultCafeSettings.support_email,
+    support_phone: value?.support_phone ?? defaultCafeSettings.support_phone,
+    address_line_1: value?.address_line_1 ?? defaultCafeSettings.address_line_1,
+    address_line_2: value?.address_line_2 ?? defaultCafeSettings.address_line_2,
+    city: value?.city ?? defaultCafeSettings.city,
+    state_region: value?.state_region ?? defaultCafeSettings.state_region,
+    postal_code: value?.postal_code ?? defaultCafeSettings.postal_code,
+    country_code: value?.country_code ?? defaultCafeSettings.country_code,
+    timezone: value?.timezone ?? defaultCafeSettings.timezone,
+    service_mode: value?.service_mode ?? defaultCafeSettings.service_mode,
+    table_count: value?.table_count ?? defaultCafeSettings.table_count,
+    table_prefix: value?.table_prefix ?? defaultCafeSettings.table_prefix,
+    table_name_style: value?.table_name_style ?? defaultCafeSettings.table_name_style,
+    payment_provider: value?.payment_provider ?? defaultCafeSettings.payment_provider,
+    payment_mode: value?.payment_mode ?? defaultCafeSettings.payment_mode,
+    payment_display_name: value?.payment_display_name ?? defaultCafeSettings.payment_display_name,
+    payment_payee_name: value?.payment_payee_name ?? defaultCafeSettings.payment_payee_name,
+    payment_vpa: value?.payment_vpa ?? defaultCafeSettings.payment_vpa,
+    payment_phone_number: value?.payment_phone_number ?? defaultCafeSettings.payment_phone_number,
+    payment_reference_prefix: value?.payment_reference_prefix ?? defaultCafeSettings.payment_reference_prefix,
+    payment_qr_enabled: value?.payment_qr_enabled ?? defaultCafeSettings.payment_qr_enabled,
+    payment_instructions: value?.payment_instructions ?? defaultCafeSettings.payment_instructions,
+  }
+}
+
+export function coerceCafeSettingsResponse(value?: Partial<CafeSettingsResponse> | null): CafeSettingsResponse {
+  return {
+    ...coerceCafeSettings(value),
+    table_name_preview: Array.isArray(value?.table_name_preview) ? value!.table_name_preview : ['Table 1', 'Table 2', 'Table 3'],
+    table_access: Array.isArray(value?.table_access) ? value!.table_access : [],
+  }
+}
+
 export type OperatorRole = 'admin' | 'kitchen' | 'staff'
 
 export type OperatorLoginRequest = {
