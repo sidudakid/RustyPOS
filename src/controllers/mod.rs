@@ -7,5 +7,6 @@ pub mod health;
 pub mod inventory;
 pub mod kitchen;
 pub mod operator_auth;
+pub mod payment_sessions;
 pub mod staff;
 pub mod table_tokens;

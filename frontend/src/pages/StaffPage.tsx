@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { API_BASE, PUBLIC_ORIGIN, fetchJson, MenuItem, OpenTableSummary, OrderWithItemsView, TableOperationalSummary, type CafeSettings } from '../api'
+import { API_BASE, PUBLIC_ORIGIN, fetchJson, MenuItem, OpenTableSummary, OrderWithItemsView, PaymentSessionView, TableOperationalSummary, type CafeSettings } from '../api'
 import { NotificationBanner, NotificationButton, SectionCard, StatusBadge } from '../components'
 import { useCafeSettings } from '../cafeSettings'
 import { money, shortId } from '../lib'
@@ -34,6 +34,8 @@ type PaymentPresentation = {
   label: string
   modeLabel: string
   instructions: string[]
+  checkoutUrl?: string
+  qrValue: string
 }
 
 type PrintedBillTable = {
@@ -115,7 +117,11 @@ async function buildQrDataUrl(link: string) {
   })
 }
 
-function buildPaymentPresentation(settings: CafeSettings, table: { tableName: string; tableNumber?: number | null; totalAmount: number }) {
+function buildPaymentPresentation(
+  settings: CafeSettings,
+  table: { tableName: string; tableNumber?: number | null; totalAmount: number },
+  paymentSession?: PaymentSessionView | null,
+) {
   const provider = settings.payment_provider
   const mode = settings.payment_mode
   const qrEnabled = Boolean(settings.payment_qr_enabled)
@@ -151,6 +157,8 @@ function buildPaymentPresentation(settings: CafeSettings, table: { tableName: st
     (settings.payment_instructions ?? '').trim(),
   ].filter(Boolean)
 
+  const checkoutUrl = paymentSession ? `${PUBLIC_ORIGIN}/pay/${paymentSession.session_token}` : undefined
+
   return {
     uri,
     appHref,
@@ -158,6 +166,8 @@ function buildPaymentPresentation(settings: CafeSettings, table: { tableName: st
     label: displayName,
     modeLabel,
     instructions,
+    checkoutUrl,
+    qrValue: checkoutUrl || uri,
   }
 }
 
@@ -184,7 +194,7 @@ async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, o
   const printedAt = new Date().toLocaleString()
   const title = `${tableName} ${paid ? 'Receipt' : 'Bill'}`
   const qrDataUrl = trackingUrl ? await buildQrDataUrl(trackingUrl) : ''
-  const paymentQrDataUrl = payment?.uri ? await buildQrDataUrl(payment.uri) : ''
+  const paymentQrDataUrl = payment?.qrValue ? await buildQrDataUrl(payment.qrValue) : ''
   const rows = Array.from(groupedItems.entries())
     .map(([name, detail]) => `
       <tr>
@@ -254,7 +264,8 @@ async function printBill({ tableName, tableNumber, trackingUrl, trackingLabel, o
                 <div class="payment-meta">Scan in the guest wallet app to collect ${escapeHtml(money(grandTotal, currencyCode))} for ${escapeHtml(tableName)} via ${escapeHtml(payment.label)}.</div>
                 <div class="payment-meta">Reference: ${escapeHtml(payment.reference)}</div>
                 <div class="payment-meta">${escapeHtml(payment.instructions.join(' '))}</div>
-                <div class="payment-uri">${escapeHtml(payment.uri)}</div>
+                ${payment.checkoutUrl ? `<div class="payment-meta">Customer pay page: ${escapeHtml(payment.checkoutUrl)}</div>` : ''}
+                <div class="payment-uri">${escapeHtml(payment.qrValue)}</div>
               </div>
             </div>
           </div>
@@ -498,6 +509,15 @@ export function StaffPage() {
     if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current)
   }, [])
 
+  const createPaymentSession = useMutation({
+    mutationFn: async (tableId: string) =>
+      fetchJson<PaymentSessionView>('/payment-sessions', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ table_id: tableId }),
+      }),
+  })
+
   const updateInventory = useMutation({
     mutationFn: async ({ item, patch }: { item: MenuItem; patch: Partial<MenuItem> }) => {
       const stockCount = Math.max(0, patch.stock_count ?? item.stock_count)
@@ -663,6 +683,26 @@ export function StaffPage() {
     return map
   }, [tableOperations])
 
+  const buildBillPayment = async (table: OpenTableSummary) => {
+    const walletPayment = buildPaymentPresentation(cafeSettings, {
+      tableName: table.table_name,
+      tableNumber: table.table_number,
+      totalAmount: table.total_amount,
+    })
+    if (!walletPayment) return null
+
+    try {
+      const session = await createPaymentSession.mutateAsync(table.table_id)
+      return buildPaymentPresentation(
+        cafeSettings,
+        { tableName: table.table_name, tableNumber: table.table_number, totalAmount: table.total_amount },
+        session,
+      )
+    } catch {
+      return walletPayment
+    }
+  }
+
   const confirmSettleTable = (table: OpenTableSummary) => {
     const confirmed = window.confirm(
       `Mark ${table.table_name} as paid and close ${table.order_count} unpaid order${table.order_count === 1 ? '' : 's'} for ${money(table.total_amount, currency_code)}?`,
@@ -681,6 +721,7 @@ export function StaffPage() {
       return
     }
 
+    const payment = await buildBillPayment(table)
     const opened = await printBill({
       tableId: table.table_id,
       tableName: table.table_name,
@@ -690,7 +731,7 @@ export function StaffPage() {
       orders: ordersForTable,
       currencyCode: currency_code,
       paid: false,
-      payment: buildPaymentPresentation(cafeSettings, { tableName: table.table_name, tableNumber: table.table_number, totalAmount: table.total_amount }),
+      payment,
     })
 
     if (!opened) {

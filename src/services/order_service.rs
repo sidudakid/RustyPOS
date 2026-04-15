@@ -8,6 +8,10 @@ use crate::{
             CreateOrderItemRequest, CreateOrderRequest, OpenTableSummary, Order, OrderItem, OrderItemView, OrderRow,
             OrderStatus, OrderWithItems, OrderWithItemsView, TableOperationalSummary,
         },
+        payment_session::{
+            ConfirmPaymentSessionRequest, PaymentSessionResult, PaymentSessionRow, PaymentSessionStatus,
+            PaymentSessionView,
+        },
         table::CafeTable,
     },
     services::order_events::OrderEventMessage,
@@ -15,6 +19,8 @@ use crate::{
 };
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
+
+const DEFAULT_PAYMENT_SESSION_TTL_HOURS: i64 = 12;
 
 pub async fn get_table_by_token(pool: &PgPool, token: &str) -> Result<CafeTable, AppError> {
     let table = sqlx::query_as::<_, CafeTable>(
@@ -500,26 +506,171 @@ pub async fn list_open_tables(pool: &PgPool) -> Result<Vec<OpenTableSummary>, Ap
 }
 
 pub async fn settle_table(pool: &PgPool, table_id: Uuid) -> Result<Vec<OrderWithItemsView>, AppError> {
-    let order_ids = sqlx::query_scalar::<_, Uuid>(
-        "UPDATE orders
-         SET status = 'paid', paid_at = NOW(), updated_at = NOW()
-         WHERE table_id = $1 AND status != 'paid'
-         RETURNING id",
+    settle_table_with_optional_payment_session(pool, table_id, None).await
+}
+
+pub async fn create_payment_session(pool: &PgPool, table_id: Uuid) -> Result<PaymentSessionView, AppError> {
+    let open_summary: Option<(String, Option<i32>, Option<String>, i64)> = sqlx::query_as(
+        "SELECT
+            t.name,
+            t.table_number,
+            MAX(tt.token) FILTER (WHERE tt.token = ('table-' || t.table_number::TEXT || '-qr')) AS tracking_token,
+            COALESCE(SUM((mi.price * oi.quantity)::BIGINT), 0)::BIGINT AS total_amount
+         FROM tables t
+         JOIN orders o ON o.table_id = t.id AND o.status != 'paid'
+         JOIN order_items oi ON oi.order_id = o.id
+         JOIN menu_items mi ON mi.id = oi.menu_item_id
+         LEFT JOIN table_tokens tt ON tt.table_id = t.id
+         WHERE t.id = $1
+         GROUP BY t.id, t.name, t.table_number",
     )
     .bind(table_id)
-    .fetch_all(pool)
+    .fetch_optional(pool)
     .await?;
 
-    if order_ids.is_empty() {
-        return Err(AppError::BadRequest("no open orders found for table".into()));
+    let (table_name, table_number, tracking_token, total_amount) =
+        open_summary.ok_or_else(|| AppError::BadRequest("no open orders found for table".into()))?;
+
+    let settings = crate::services::cafe_settings_service::get_settings(pool).await?.settings;
+    let provider = settings.payment_provider.trim();
+    let mode = settings.payment_mode.trim();
+    let label = settings.payment_display_name.trim();
+
+    if mode == "disabled" || provider == "none" || total_amount <= 0 {
+        return Err(AppError::BadRequest("payment sessions are not available for this table right now".into()));
     }
 
-    let mut settled = Vec::with_capacity(order_ids.len());
-    for order_id in order_ids {
-        settled.push(get_order_view(pool, order_id).await?);
+    let reference = build_payment_reference(&settings.payment_reference_prefix, table_number, &table_name);
+    let session_token = format!("pay-{}", Uuid::new_v4().simple());
+
+    let row = sqlx::query_as::<_, PaymentSessionRow>(
+        "INSERT INTO payment_sessions (
+            id, session_token, table_id, table_name_snapshot, table_number_snapshot, tracking_token_snapshot,
+            amount_total, currency_code, payment_provider, payment_mode, payment_label, reference_code,
+            status, expires_at, created_at, updated_at
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', NOW() + make_interval(hours => $13), NOW(), NOW())
+         RETURNING
+            id, session_token, table_id, table_name_snapshot, table_number_snapshot, tracking_token_snapshot,
+            amount_total, currency_code, payment_provider, payment_mode, payment_label, reference_code,
+            status, confirmed_at, expires_at, created_at, updated_at",
+    )
+    .bind(Uuid::new_v4())
+    .bind(&session_token)
+    .bind(table_id)
+    .bind(&table_name)
+    .bind(table_number)
+    .bind(tracking_token)
+    .bind(total_amount)
+    .bind(settings.currency_code)
+    .bind(provider)
+    .bind(mode)
+    .bind(if label.is_empty() { settings.name } else { label.to_string() })
+    .bind(reference)
+    .bind(DEFAULT_PAYMENT_SESSION_TTL_HOURS)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.into())
+}
+
+pub async fn get_payment_session(pool: &PgPool, session_token: &str) -> Result<PaymentSessionView, AppError> {
+    let row = sqlx::query_as::<_, PaymentSessionRow>(
+        "UPDATE payment_sessions
+         SET status = CASE
+             WHEN status = 'pending' AND expires_at IS NOT NULL AND expires_at < NOW() THEN 'expired'::payment_session_status
+             ELSE status
+         END,
+         updated_at = CASE
+             WHEN status = 'pending' AND expires_at IS NOT NULL AND expires_at < NOW() THEN NOW()
+             ELSE updated_at
+         END
+         WHERE session_token = $1
+         RETURNING
+            id, session_token, table_id, table_name_snapshot, table_number_snapshot, tracking_token_snapshot,
+            amount_total, currency_code, payment_provider, payment_mode, payment_label, reference_code,
+            status, confirmed_at, expires_at, created_at, updated_at",
+    )
+    .bind(session_token)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(AppError::NotFound)?;
+
+    Ok(row.into())
+}
+
+pub async fn confirm_payment_session(
+    pool: &PgPool,
+    session_token: &str,
+    _payload: ConfirmPaymentSessionRequest,
+) -> Result<PaymentSessionResult, AppError> {
+    let mut tx = pool.begin().await?;
+
+    let existing = sqlx::query_as::<_, PaymentSessionRow>(
+        "SELECT
+            id, session_token, table_id, table_name_snapshot, table_number_snapshot, tracking_token_snapshot,
+            amount_total, currency_code, payment_provider, payment_mode, payment_label, reference_code,
+            status, confirmed_at, expires_at, created_at, updated_at
+         FROM payment_sessions
+         WHERE session_token = $1
+         FOR UPDATE",
+    )
+    .bind(session_token)
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or(AppError::NotFound)?;
+
+    if matches!(existing.status, PaymentSessionStatus::Confirmed) {
+        tx.commit().await?;
+        return Ok(PaymentSessionResult {
+            session: existing.into(),
+            settled_orders: Vec::new(),
+        });
     }
 
-    Ok(settled)
+    if !matches!(existing.status, PaymentSessionStatus::Pending) {
+        return Err(AppError::BadRequest("this payment session is no longer payable".into()));
+    }
+
+    if existing.expires_at.is_some_and(|expires_at| expires_at < chrono::Utc::now()) {
+        sqlx::query(
+            "UPDATE payment_sessions SET status = 'expired', updated_at = NOW() WHERE id = $1",
+        )
+        .bind(existing.id)
+        .execute(&mut *tx)
+        .await?;
+        return Err(AppError::BadRequest("this payment session has expired".into()));
+    }
+
+    let settled_order_ids = settle_table_ids_tx(&mut tx, existing.table_id).await?;
+    if settled_order_ids.is_empty() {
+        return Err(AppError::BadRequest("no open orders remain for this bill".into()));
+    }
+
+    let confirmed = sqlx::query_as::<_, PaymentSessionRow>(
+        "UPDATE payment_sessions
+         SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW()
+         WHERE id = $1
+         RETURNING
+            id, session_token, table_id, table_name_snapshot, table_number_snapshot, tracking_token_snapshot,
+            amount_total, currency_code, payment_provider, payment_mode, payment_label, reference_code,
+            status, confirmed_at, expires_at, created_at, updated_at",
+    )
+    .bind(existing.id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    let mut settled_orders = Vec::with_capacity(settled_order_ids.len());
+    for order_id in settled_order_ids {
+        settled_orders.push(get_order_view(pool, order_id).await?);
+    }
+
+    Ok(PaymentSessionResult {
+        session: confirmed.into(),
+        settled_orders,
+    })
 }
 
 pub async fn list_table_operational_summary(pool: &PgPool) -> Result<Vec<TableOperationalSummary>, AppError> {
@@ -687,6 +838,56 @@ async fn get_order_items_view(pool: &PgPool, order_id: Uuid) -> Result<Vec<Order
     .await?;
 
     Ok(items)
+}
+
+async fn settle_table_with_optional_payment_session(
+    pool: &PgPool,
+    table_id: Uuid,
+    _payment_session_id: Option<Uuid>,
+) -> Result<Vec<OrderWithItemsView>, AppError> {
+    let order_ids = sqlx::query_scalar::<_, Uuid>(
+        "UPDATE orders
+         SET status = 'paid', paid_at = NOW(), updated_at = NOW()
+         WHERE table_id = $1 AND status != 'paid'
+         RETURNING id",
+    )
+    .bind(table_id)
+    .fetch_all(pool)
+    .await?;
+
+    if order_ids.is_empty() {
+        return Err(AppError::BadRequest("no open orders found for table".into()));
+    }
+
+    let mut settled = Vec::with_capacity(order_ids.len());
+    for order_id in order_ids {
+        settled.push(get_order_view(pool, order_id).await?);
+    }
+
+    Ok(settled)
+}
+
+async fn settle_table_ids_tx(tx: &mut Transaction<'_, Postgres>, table_id: Uuid) -> Result<Vec<Uuid>, AppError> {
+    let order_ids = sqlx::query_scalar::<_, Uuid>(
+        "UPDATE orders
+         SET status = 'paid', paid_at = NOW(), updated_at = NOW()
+         WHERE table_id = $1 AND status != 'paid'
+         RETURNING id",
+    )
+    .bind(table_id)
+    .fetch_all(&mut **tx)
+    .await?;
+
+    Ok(order_ids)
+}
+
+fn build_payment_reference(prefix: &str, table_number: Option<i32>, table_name: &str) -> String {
+    let prefix = prefix.trim().to_uppercase();
+    let prefix = if prefix.is_empty() { "PAY" } else { prefix.as_str() };
+    let basis = table_number
+        .map(|number| format!("T{number}"))
+        .unwrap_or_else(|| table_name.replace(|ch: char| !ch.is_ascii_alphanumeric(), "").to_uppercase());
+    format!("{}-{}", prefix, basis.chars().take(12).collect::<String>()).chars().take(30).collect()
 }
 
 fn validate_items(payload: &CreateOrderRequest) -> Result<(), AppError> {

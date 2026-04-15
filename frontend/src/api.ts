@@ -89,6 +89,33 @@ export type TableOperationalSummary = {
   last_order_at?: string | null
 }
 
+export type PaymentSessionStatus = 'pending' | 'confirmed' | 'expired' | 'cancelled'
+
+export type PaymentSessionView = {
+  id: string
+  session_token: string
+  table_id: string
+  table_name: string
+  table_number?: number | null
+  tracking_token?: string | null
+  amount_total: number
+  currency_code: string
+  payment_provider: string
+  payment_mode: string
+  payment_label: string
+  reference_code: string
+  status: PaymentSessionStatus
+  confirmed_at?: string | null
+  expires_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PaymentSessionResult = {
+  session: PaymentSessionView
+  settled_orders: OrderWithItemsView[]
+}
+
 export type CafeSettings = {
   name: string
   legal_name: string

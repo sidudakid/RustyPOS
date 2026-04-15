@@ -5,6 +5,7 @@ import { AppShell } from './ui/AppShell'
 import { CustomerPage } from './pages/CustomerPage'
 import { CustomerLandingPage } from './pages/CustomerLandingPage'
 import { CustomerOrderPage } from './pages/CustomerOrderPage'
+import { CustomerPaymentPage } from './pages/CustomerPaymentPage'
 import { KitchenPage } from './pages/KitchenPage'
 import { StaffPage } from './pages/StaffPage'
 import { AdminPage } from './pages/AdminPage'
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
       { index: true, element: <CustomerLandingPage /> },
       { path: 't/:token', element: <CustomerPage /> },
       { path: 't/:token/order/:orderId', element: <CustomerOrderPage /> },
+      { path: 'pay/:sessionToken', element: <CustomerPaymentPage /> },
       { path: 'ops', element: <OperatorHubPage /> },
       { path: 'kitchen', element: <KitchenPage /> },
       { path: 'staff', element: <StaffPage /> },
