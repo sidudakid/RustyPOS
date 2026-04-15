@@ -158,16 +158,21 @@ fn validate(payload: &UpdateCafeSettingsRequest) -> Result<(), AppError> {
     if payload.payment_reference_prefix.trim().len() > 24 {
         return Err(AppError::BadRequest("payment reference prefix must be 24 characters or fewer".into()));
     }
-    let payment_configured = matches!(payload.payment_provider.trim(), "esewa" | "bank_qr" | "upi_qr" | "phonepe") || payload.payment_qr_enabled;
+    let payment_provider = payload.payment_provider.trim();
+    let payment_mode = payload.payment_mode.trim();
+    let payment_configured = matches!(payment_provider, "esewa" | "bank_qr" | "upi_qr" | "phonepe") || payload.payment_qr_enabled;
     if payment_configured {
         if payload.payment_display_name.trim().is_empty() {
             return Err(AppError::BadRequest("payment display name cannot be empty when payment is enabled".into()));
         }
-        if payload.payment_payee_name.trim().is_empty() {
-            return Err(AppError::BadRequest("payment merchant or wallet account name cannot be empty when payment is enabled".into()));
-        }
-        if payload.payment_vpa.trim().is_empty() {
-            return Err(AppError::BadRequest("payment account handle, merchant code, or VPA cannot be empty when QR payment is enabled".into()));
+
+        if payment_mode == "live" {
+            if payload.payment_payee_name.trim().is_empty() {
+                return Err(AppError::BadRequest("payment merchant or wallet account name cannot be empty in live mode".into()));
+            }
+            if payload.payment_vpa.trim().is_empty() {
+                return Err(AppError::BadRequest("payment account handle, merchant code, or eSewa ID cannot be empty in live mode".into()));
+            }
         }
     }
     Ok(())

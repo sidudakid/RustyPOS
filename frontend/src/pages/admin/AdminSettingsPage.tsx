@@ -155,7 +155,11 @@ export function AdminSettingsPage() {
   const paymentConfigured =
     draft.payment_provider !== 'none' &&
     draft.payment_mode !== 'disabled' &&
-    Boolean(draft.payment_vpa.trim() && draft.payment_payee_name.trim())
+    Boolean(
+      draft.payment_mode === 'demo'
+        ? draft.payment_display_name.trim()
+        : draft.payment_vpa.trim() && draft.payment_payee_name.trim(),
+    )
   const [qrModal, setQrModal] = useState<QrModalState>(null)
   const [tableModal, setTableModal] = useState<TableAccessModalState>(null)
   const [tableQuery, setTableQuery] = useState('')
@@ -333,17 +337,17 @@ export function AdminSettingsPage() {
                       </div>
                       <div className="admin-settings-inline-status-row">
                         <span className={paymentConfigured ? 'info-chip info-chip-success' : 'info-chip'}>
-                          {paymentConfigured ? `Configured for ${draft.payment_mode === 'live' ? 'live/API-ready' : draft.payment_mode === 'demo' ? 'demo' : 'wallet flow'}` : 'Needs merchant name + eSewa ID'}
+                          {paymentConfigured ? `Configured for ${draft.payment_mode === 'live' ? 'live/API-ready' : draft.payment_mode === 'demo' ? 'demo/training' : 'wallet flow'}` : draft.payment_mode === 'demo' ? 'Demo mode can save with defaults' : 'Needs merchant name + eSewa ID'}
                         </span>
                         <span className="muted">
                           {draft.payment_mode === 'live'
                             ? 'Use live only after entering real merchant/API values and verifying callback flow.'
-                            : 'Demo mode generates the wallet payment presentation without pretending a real gateway capture happened.'}
+                            : 'Demo/training mode auto-works with test/demo values so staff can practice without live merchant credentials.'}
                         </span>
                       </div>
                       <input value={draft.payment_display_name} onChange={(e) => updateDraft('payment_display_name', e.target.value)} placeholder="Display label (example: eSewa Payment)" />
-                      <input value={draft.payment_payee_name} onChange={(e) => updateDraft('payment_payee_name', e.target.value)} placeholder="Merchant / business name shown to cashier and customer" />
-                      <input value={draft.payment_vpa} onChange={(e) => updateDraft('payment_vpa', e.target.value)} placeholder="eSewa merchant code / wallet ID / linked account" />
+                      <input value={draft.payment_payee_name} onChange={(e) => updateDraft('payment_payee_name', e.target.value)} placeholder={draft.payment_mode === 'demo' ? 'Demo merchant name (auto defaults are okay)' : 'Merchant / business name shown to cashier and customer'} />
+                      <input value={draft.payment_vpa} onChange={(e) => updateDraft('payment_vpa', e.target.value)} placeholder={draft.payment_mode === 'demo' ? 'Demo wallet ID / phone (auto defaults are okay)' : 'eSewa merchant code / wallet ID / linked account'} />
                       <div className="two-column admin-settings-inline-grid">
                         <input value={draft.payment_phone_number} onChange={(e) => updateDraft('payment_phone_number', e.target.value)} placeholder="Merchant phone (optional)" />
                         <input value={draft.payment_reference_prefix} onChange={(e) => updateDraft('payment_reference_prefix', e.target.value.toUpperCase())} placeholder="Reference prefix (example: ESEWA)" maxLength={24} />
@@ -353,6 +357,12 @@ export function AdminSettingsPage() {
                         <input type="checkbox" checked={draft.payment_qr_enabled} onChange={(e) => updateDraft('payment_qr_enabled', e.target.checked)} />
                         <span>Show eSewa / wallet QR instructions on bills and cashier cards</span>
                       </label>
+                      {draft.payment_mode === 'demo' ? (
+                        <div className="admin-settings-inline-status-row">
+                          <span className="info-chip info-chip-success">Demo defaults enabled</span>
+                          <span className="muted">Training mode can use seeded test/demo values and does not require live merchant/API credentials.</span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>

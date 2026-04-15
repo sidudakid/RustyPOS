@@ -162,12 +162,12 @@ export const defaultCafeSettings: CafeSettings = {
   payment_provider: 'none',
   payment_mode: 'disabled',
   payment_display_name: 'eSewa QR Pay',
-  payment_payee_name: 'OpenClaw Café Nepal Demo',
-  payment_vpa: '',
-  payment_phone_number: '',
-  payment_reference_prefix: 'OCNPL',
+  payment_payee_name: 'eSewa Demo Merchant',
+  payment_vpa: '9806800001',
+  payment_phone_number: '9806800001',
+  payment_reference_prefix: 'ESEWA',
   payment_qr_enabled: false,
-  payment_instructions: 'Ask the guest to confirm the eSewa wallet name and reference before marking the bill paid.',
+  payment_instructions: 'Demo/training mode: ask the guest to confirm the eSewa success screen and reference before marking the bill paid.',
 }
 
 export function coerceCafeSettings(value?: Partial<CafeSettings> | null): CafeSettings {
