@@ -310,38 +310,49 @@ export function AdminSettingsPage() {
                   <div className="admin-settings-form-group-card">
                     <div className="admin-settings-form-group-heading">
                       <strong>Digital wallet payment</strong>
-                      <span className="muted">Config-first eSewa / Nepal wallet setup for cashier screens and printed bills</span>
+                      <span className="muted">eSewa-first setup for cashier screens and printed bills. Demo works now; live mode is for real merchant/API config.</span>
                     </div>
                     <div className="form-stack admin-settings-form-stack">
                       <div className="two-column admin-settings-inline-grid">
-                        <select value={draft.payment_provider} onChange={(e) => updateDraft('payment_provider', e.target.value as CafeSettings['payment_provider'])}>
-                          <option value="none">Disabled</option>
-                          <option value="esewa">eSewa QR / wallet</option>
-                          <option value="bank_qr">Nepal bank mobile banking QR</option>
-                        </select>
-                        <select value={draft.payment_mode} onChange={(e) => updateDraft('payment_mode', e.target.value as CafeSettings['payment_mode'])}>
-                          <option value="disabled">Disabled</option>
-                          <option value="demo">Demo / training</option>
-                          <option value="live">Live</option>
-                        </select>
+                        <label>
+                          <span className="muted">Provider</span>
+                          <select value={draft.payment_provider} onChange={(e) => updateDraft('payment_provider', e.target.value as CafeSettings['payment_provider'])}>
+                            <option value="none">Disabled</option>
+                            <option value="esewa">eSewa</option>
+                            <option value="bank_qr">Nepal bank mobile banking QR</option>
+                          </select>
+                        </label>
+                        <label>
+                          <span className="muted">Mode</span>
+                          <select value={draft.payment_mode} onChange={(e) => updateDraft('payment_mode', e.target.value as CafeSettings['payment_mode'])}>
+                            <option value="disabled">Disabled</option>
+                            <option value="demo">Demo / training</option>
+                            <option value="live">Live / API-ready</option>
+                          </select>
+                        </label>
                       </div>
-                      <input value={draft.payment_display_name} onChange={(e) => updateDraft('payment_display_name', e.target.value)} placeholder="Display label (for example eSewa QR Pay)" />
-                      <input value={draft.payment_payee_name} onChange={(e) => updateDraft('payment_payee_name', e.target.value)} placeholder="Merchant / wallet name" />
-                      <input value={draft.payment_vpa} onChange={(e) => updateDraft('payment_vpa', e.target.value)} placeholder="Wallet handle, merchant code, or linked account" />
-                      <div className="two-column admin-settings-inline-grid">
-                        <input value={draft.payment_phone_number} onChange={(e) => updateDraft('payment_phone_number', e.target.value)} placeholder="Merchant phone (optional)" />
-                        <input value={draft.payment_reference_prefix} onChange={(e) => updateDraft('payment_reference_prefix', e.target.value)} placeholder="Reference prefix (for example OCNPL)" maxLength={24} />
-                      </div>
-                      <textarea value={draft.payment_instructions} onChange={(e) => updateDraft('payment_instructions', e.target.value)} placeholder="Optional cashier / customer instructions for wallet confirmation" rows={4} />
-                      <label className="checkbox-row">
-                        <input type="checkbox" checked={draft.payment_qr_enabled} onChange={(e) => updateDraft('payment_qr_enabled', e.target.checked)} />
-                        <span>Show wallet QR instructions on bills and cashier cards</span>
-                      </label>
                       <div className="admin-settings-inline-status-row">
                         <span className={paymentConfigured ? 'info-chip info-chip-success' : 'info-chip'}>
-                          {paymentConfigured ? `Ready: ${draft.payment_mode === 'live' ? 'live' : draft.payment_mode === 'demo' ? 'demo' : 'configured'}` : 'Needs merchant name + wallet handle'}
+                          {paymentConfigured ? `Configured for ${draft.payment_mode === 'live' ? 'live/API-ready' : draft.payment_mode === 'demo' ? 'demo' : 'wallet flow'}` : 'Needs merchant name + eSewa ID'}
+                        </span>
+                        <span className="muted">
+                          {draft.payment_mode === 'live'
+                            ? 'Use live only after entering real merchant/API values and verifying callback flow.'
+                            : 'Demo mode generates the wallet payment presentation without pretending a real gateway capture happened.'}
                         </span>
                       </div>
+                      <input value={draft.payment_display_name} onChange={(e) => updateDraft('payment_display_name', e.target.value)} placeholder="Display label (example: eSewa Payment)" />
+                      <input value={draft.payment_payee_name} onChange={(e) => updateDraft('payment_payee_name', e.target.value)} placeholder="Merchant / business name shown to cashier and customer" />
+                      <input value={draft.payment_vpa} onChange={(e) => updateDraft('payment_vpa', e.target.value)} placeholder="eSewa merchant code / wallet ID / linked account" />
+                      <div className="two-column admin-settings-inline-grid">
+                        <input value={draft.payment_phone_number} onChange={(e) => updateDraft('payment_phone_number', e.target.value)} placeholder="Merchant phone (optional)" />
+                        <input value={draft.payment_reference_prefix} onChange={(e) => updateDraft('payment_reference_prefix', e.target.value.toUpperCase())} placeholder="Reference prefix (example: ESEWA)" maxLength={24} />
+                      </div>
+                      <textarea value={draft.payment_instructions} onChange={(e) => updateDraft('payment_instructions', e.target.value)} placeholder="Cashier/customer instructions. Example: Ask customer to show success screen before marking paid." rows={4} />
+                      <label className="checkbox-row">
+                        <input type="checkbox" checked={draft.payment_qr_enabled} onChange={(e) => updateDraft('payment_qr_enabled', e.target.checked)} />
+                        <span>Show eSewa / wallet QR instructions on bills and cashier cards</span>
+                      </label>
                     </div>
                   </div>
                 </div>
