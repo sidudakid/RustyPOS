@@ -65,10 +65,12 @@ async function loginOperator(role: OperatorRole, loginId: string, secret: string
     throw new Error('Enter both the login ID and secret for this role.')
   }
 
+  const apiRole = role === 'admin' ? 'owner' : role
+
   try {
     return await fetchJson<OperatorLoginResponse>('/auth/operator/login', {
       method: 'POST',
-      body: JSON.stringify({ role, login_id: trimmedLoginId, secret: trimmedSecret }),
+      body: JSON.stringify({ role: apiRole, login_id: trimmedLoginId, secret: trimmedSecret }),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
