@@ -119,8 +119,8 @@ function buildPaymentPresentation(settings: CafeSettings, table: { tableName: st
   const provider = settings.payment_provider
   const mode = settings.payment_mode
   const qrEnabled = Boolean(settings.payment_qr_enabled)
-  const accountHandle = (settings.payment_vpa ?? '').trim()
-  const payeeName = (settings.payment_payee_name ?? '').trim() || (settings.name ?? '').trim()
+  const accountHandle = ((settings.payment_vpa ?? '').trim() || (mode === 'demo' ? '9806800001' : ''))
+  const payeeName = ((settings.payment_payee_name ?? '').trim() || (mode === 'demo' ? 'eSewa Demo Merchant' : '') || (settings.name ?? '').trim())
   if (!qrEnabled || provider === 'none' || mode === 'disabled' || !accountHandle || !payeeName || table.totalAmount <= 0) return null
 
   const referenceBase = (settings.payment_reference_prefix ?? '').trim().toUpperCase() || 'OCNPL'
