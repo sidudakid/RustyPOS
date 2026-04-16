@@ -21,6 +21,35 @@ export DATABASE_URL=postgres://postgres@localhost/openclaw_cafe
 cargo run
 ```
 
+## One-shot production Docker
+
+This repo now includes a production-oriented multi-stage Docker build and a simple one-shot compose stack.
+
+### Start
+
+```bash
+docker compose up --build -d
+```
+
+Then open:
+
+- App/API: `http://localhost:8081`
+
+### Important before real deployment
+
+Change these values in `docker-compose.yml` first:
+
+- `POSTGRES_PASSWORD`
+- `DATABASE_URL` password portion
+
+Recommended next hardening for real internet exposure:
+
+- put a reverse proxy in front (Caddy / Nginx / Traefik)
+- terminate HTTPS
+- back up the Postgres volume
+- use a strong real database password
+- move secrets to `.env` or secret management instead of committed compose values
+
 ## Operator credential bootstrap
 
 The backend now supports role-specific operator credentials (`admin`/owner, `staff`, `kitchen`) via `POST /auth/operator/login`.
