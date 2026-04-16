@@ -541,6 +541,34 @@ pub async fn create_payment_session(pool: &PgPool, table_id: Uuid) -> Result<Pay
     }
 
     let reference = build_payment_reference(&settings.payment_reference_prefix, table_number, &table_name);
+
+    if let Some(existing) = sqlx::query_as::<_, PaymentSessionRow>(
+        "UPDATE payment_sessions
+         SET status = CASE
+             WHEN status = 'pending' AND expires_at IS NOT NULL AND expires_at < NOW() THEN 'expired'::payment_session_status
+             ELSE status
+         END,
+         updated_at = CASE
+             WHEN status = 'pending' AND expires_at IS NOT NULL AND expires_at < NOW() THEN NOW()
+             ELSE updated_at
+         END
+         WHERE table_id = $1 AND status = 'pending'
+         ORDER BY created_at DESC
+         LIMIT 1
+         RETURNING
+            id, session_token, table_id, table_name_snapshot, table_number_snapshot, tracking_token_snapshot,
+            amount_total, currency_code, payment_provider, payment_mode, payment_label, reference_code,
+            status, confirmed_at, expires_at, created_at, updated_at"
+    )
+    .bind(table_id)
+    .fetch_optional(pool)
+    .await?
+    {
+        if existing.amount_total == total_amount {
+            return Ok(existing.into());
+        }
+    }
+
     let session_token = format!("pay-{}", Uuid::new_v4().simple());
 
     let row = sqlx::query_as::<_, PaymentSessionRow>(
@@ -621,10 +649,12 @@ pub async fn confirm_payment_session(
     .ok_or(AppError::NotFound)?;
 
     if matches!(existing.status, PaymentSessionStatus::Confirmed) {
+        let session: PaymentSessionView = existing.into();
         tx.commit().await?;
+        let settled_orders = list_paid_orders_for_table(pool, session.table_id).await?;
         return Ok(PaymentSessionResult {
-            session: existing.into(),
-            settled_orders: Vec::new(),
+            session,
+            settled_orders,
         });
     }
 
@@ -858,6 +888,28 @@ async fn settle_table_with_optional_payment_session(
     if order_ids.is_empty() {
         return Err(AppError::BadRequest("no open orders found for table".into()));
     }
+
+    let mut settled = Vec::with_capacity(order_ids.len());
+    for order_id in order_ids {
+        settled.push(get_order_view(pool, order_id).await?);
+    }
+
+    Ok(settled)
+}
+
+async fn list_paid_orders_for_table(
+    pool: &PgPool,
+    table_id: Uuid,
+) -> Result<Vec<OrderWithItemsView>, AppError> {
+    let order_ids = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id
+         FROM orders
+         WHERE table_id = $1 AND status = 'paid'
+         ORDER BY paid_at DESC NULLS LAST, updated_at DESC, created_at DESC"
+    )
+    .bind(table_id)
+    .fetch_all(pool)
+    .await?;
 
     let mut settled = Vec::with_capacity(order_ids.len());
     for order_id in order_ids {

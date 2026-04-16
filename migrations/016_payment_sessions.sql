@@ -1,4 +1,14 @@
-CREATE TYPE payment_session_status AS ENUM ('pending', 'confirmed', 'expired', 'cancelled');
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'payment_session_status'
+    ) THEN
+        CREATE TYPE payment_session_status AS ENUM ('pending', 'confirmed', 'expired', 'cancelled');
+    END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS payment_sessions (
     id UUID PRIMARY KEY,
