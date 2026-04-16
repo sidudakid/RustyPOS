@@ -152,7 +152,7 @@ export function KitchenPage() {
       if (cancelled) return
       setConnectionState(initial ? 'connecting' : 'reconnecting')
 
-      socket = new WebSocket(getOrdersWebSocketUrl())
+      socket = new WebSocket(getOrdersWebSocketUrl(token))
 
       socket.onopen = () => {
         if (cancelled) return
